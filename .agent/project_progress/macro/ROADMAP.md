@@ -10,11 +10,27 @@
 |---|---|---|
 | M1 奠基 | 项目结构（src 布局）、pyproject、质量工具链（ruff/mypy/pyright/pytest）、AGENTS.md | ✅ 完成（IT-001）|
 | M2 核心功能 | 会话/消息/事件流核心链路 + 真实服务端到端验证 | ✅ 完成（IT-002）|
-| M3 功能扩张 | 按使用场景补齐端点：权限/问答交互（IT-005 ✅）、vcs、share、MCP、skill 等（分批）；工程化：地基 IT-003 ✅ + sync/async 对等 IT-004 ✅ | 🔵 进行中 |
+| M3 功能扩张 | 按使用场景补齐端点：权限/问答交互（IT-005 ✅）、vcs/skill/MCP 基础（IT-006 ✅）、余下候选 share/MCP 连接流等；工程化：地基 IT-003 ✅ + sync/async 对等 IT-004 ✅ | 🔵 进行中 |
 | M4 测试强化 | 关键路径补充集成测试、事件流断连重连验证、边界用例 | ⬜ 未开始 |
 | M5 发布准备 | README 使用文档、CHANGELOG、版本号策略、打包验证（sdist+wheel）| ⬜ 未开始 |
 
 ## 关键记录
+
+### 2026-08-22 — IT-006 vcs / summary / skill / MCP 基础端点
+- 9 端点（sync/async 对等）：`client.vcs.*`（info/status/diff/diff_raw/apply，
+  diff 的 `mode` 收紧为 `Literal["git","branch"]`）、`client.server.list_skills`、
+  `client.mcp.status/add`；`summarize` 双类早已存在，本轮补齐测试
+- 新模型：`models/vcs.py`（VcsInfo/VcsFileStatus/VcsFileDiff）、`models/mcp.py`
+  （MCPStatus 5 路 `status` 判联合 + McpLocal/McpRemote `type` 判联合 +
+  McpOAuthConfig）、discover += Skill
+- wire 三处 alias 特例（均活服务/spec 核实）：`default_branch` snake_case、
+  `clientId`/`clientSecret` 小写 d、`VcsInfo` 全字段 nullable；`validate_text`
+  处理 `GET /vcs/diff/raw` 的 `text/x-diff` 非 JSON 响应
+- 测试基建：`tests/conftest.py` session 级 fixture 清除环境代理变量
+  （本机 SOCKS 代理会让 httpx 构造即报错；库保留 trust_env 行为，测试自隔离）
+- 验证：全门禁绿（pytest **68 passed**）；真实服务 9 端点 sync+async 冒烟通过
+  （apply 有写副作用，仅 respx 覆盖）
+- 后续另开迭代（一迭代一主题）：IT-007 `with_raw_response`、IT-008 M4 集成/断连重连
 
 ### 2026-08-22 — 仓库工程化（.gitignore + Makefile + develop 分支）
 - `.agent/` 多 Agent 共享布局：指令/进度/学习日志收敛其中，根目录

@@ -24,14 +24,18 @@ src/opencode_client/
     session.py         #   Session / 请求体 / PermissionRule / ModelID ...
     message.py         #   Message(role 判联合) / MessageWithParts
     part.py            #   Part(type 判联合, 11 种) / ToolState / 请求侧 PromptPart
-    discover.py        #   Health / Agent / Provider / Command（发现类端点）
+    discover.py        #   Health / Agent / Provider / Command / Skill（发现类端点）
     event.py           #   Event（SSE 事件泛型）
     interaction.py     #   PermissionRequest / QuestionRequest 等（pending 交互请求）
+    vcs.py             #   VcsInfo / VcsFileStatus / VcsFileDiff
+    mcp.py             #   MCPStatus(status 判联合) / McpLocalConfig / McpRemoteConfig
   resources/           # API 资源层：按端点域分组，组合持有 client（非继承），每域 sync/async 双类
     base.py            #   Resource(sync)/AsyncResource 基类 + query_params 助手
     _wire.py           #   共享 wire 纯函数（request_spec/prompt_body/validate_response/各 body）
-    sessions.py        #   SessionsResource/AsyncSessionsResource（/session 全套 CRUD/prompt/messages/permission）
-    server.py          #   ServerResource/AsyncServerResource（health/config/provider/agent/command + permission/question 交互 + event）
+    sessions.py        #   SessionsResource/AsyncSessionsResource（/session 全套 CRUD/prompt/messages/summarize/permission）
+    server.py          #   ServerResource/AsyncServerResource（health/config/provider/agent/command/skill + permission/question 交互 + event）
+    vcs.py             #   VcsResource/AsyncVcsResource（/vcs info/status/diff/diff_raw/apply）
+    mcp.py             #   McpResource/AsyncMcpResource（/mcp status/add）
 tests/                 # pytest + respx 测试（test_client.py 等）
 examples/              # 教学示例（quickstart/stream_events/browse_history），
                        #   带 test_examples.py 用 respx 驱动 main() 做离线冒烟
