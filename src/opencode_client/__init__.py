@@ -1,0 +1,219 @@
+"""opencode_client — a lightweight Python client for the opencode server.
+
+Connect to an ``opencode serve`` process and drive it programmatically:
+manage sessions, send prompts, inspect messages, and consume the live server
+event stream. Both a **synchronous** and an **asynchronous** client are
+provided; they share the same API and models.
+
+Quick start (async)::
+
+    import asyncio
+    from opencode_client import AsyncOpenCodeClient
+
+    async def main() -> None:
+        async with AsyncOpenCodeClient("http://127.0.0.1:4096") as client:
+            print((await client.server.health()).version)
+            session = await client.sessions.create()
+            reply = await client.sessions.prompt(session.id, "Hello!")
+            print([p.text for p in reply.parts if p.type == "text"])
+
+    asyncio.run(main())
+
+Quick start (sync)::
+
+    from opencode_client import OpenCodeClient
+
+    with OpenCodeClient("http://127.0.0.1:4096") as client:
+        print(client.server.health().version)
+        session = client.sessions.create()
+        reply = client.sessions.prompt(session.id, "Hello!")
+
+The public API lives here (and in the :mod:`opencode_client.models`,
+:mod:`opencode_client.sse` and :mod:`opencode_client.errors` submodules).
+``client`` internals, ``resources.*`` and ``constants`` are implementation
+details.
+"""
+
+from __future__ import annotations
+
+from ._types import NOT_GIVEN
+from .client import AsyncOpenCodeClient, OpenCodeClient
+from .errors import (
+    OpenCodeApiError,
+    OpenCodeAuthenticationError,
+    OpenCodeConflictError,
+    OpenCodeError,
+    OpenCodeNotFoundError,
+    OpenCodePermissionError,
+    OpenCodeRateLimitError,
+    OpenCodeServerConnectionError,
+    OpenCodeServerError,
+    OpenCodeTimeoutError,
+    OpenCodeTransportError,
+    OpenCodeUnprocessableEntityError,
+)
+from .models import (
+    Agent,
+    AgentPart,
+    AgentPartInput,
+    AssistantMessage,
+    AssistantMessagePath,
+    AssistantMessageTokens,
+    Command,
+    CompactionPart,
+    CreateSessionRequest,
+    Event,
+    FilePart,
+    FilePartInput,
+    FilePartRange,
+    FilePartSource,
+    FilePartSourceFile,
+    FilePartSourceResource,
+    FilePartSourceSymbol,
+    FilePartText,
+    Health,
+    Message,
+    MessageTime,
+    MessageWithParts,
+    Model,
+    ModelID,
+    OpencodeModel,
+    Part,
+    PartBase,
+    PartTime,
+    PatchPart,
+    PermissionRequest,
+    PermissionRule,
+    PermissionRuleset,
+    PermissionTool,
+    PromptModel,
+    PromptPart,
+    PromptRequest,
+    Provider,
+    ProviderList,
+    QuestionAnswer,
+    QuestionInfo,
+    QuestionOption,
+    QuestionRequest,
+    QuestionTool,
+    ReasoningPart,
+    RetryPart,
+    ServerConfig,
+    Session,
+    SessionShare,
+    SessionSnapshot,
+    SessionTime,
+    SessionTokenCache,
+    SessionTokens,
+    SnapshotPart,
+    StepFinishPart,
+    StepStartPart,
+    SubtaskModel,
+    SubtaskPartInput,
+    TextPart,
+    TextPartInput,
+    ToolPart,
+    ToolState,
+    ToolStateCompleted,
+    ToolStateError,
+    ToolStatePending,
+    ToolStateRunning,
+    UpdateSessionRequest,
+    UserMessage,
+    UserMessageModel,
+    UserMessageSummary,
+)
+from .sse import EventStream, SSEDecoder, SyncEventStream
+
+__version__ = "0.1.0"
+
+__all__ = [
+    "Agent",
+    "AgentPart",
+    "AgentPartInput",
+    "AsyncOpenCodeClient",
+    "AssistantMessage",
+    "AssistantMessagePath",
+    "AssistantMessageTokens",
+    "Command",
+    "CompactionPart",
+    "CreateSessionRequest",
+    "Event",
+    "EventStream",
+    "FilePart",
+    "FilePartInput",
+    "FilePartRange",
+    "FilePartSource",
+    "FilePartSourceFile",
+    "FilePartSourceResource",
+    "FilePartSourceSymbol",
+    "FilePartText",
+    "Health",
+    "Message",
+    "MessageTime",
+    "MessageWithParts",
+    "Model",
+    "ModelID",
+    "NOT_GIVEN",
+    "OpenCodeApiError",
+    "OpenCodeAuthenticationError",
+    "OpenCodeClient",
+    "OpenCodeConflictError",
+    "OpenCodeError",
+    "OpenCodeNotFoundError",
+    "OpenCodePermissionError",
+    "OpenCodeRateLimitError",
+    "OpenCodeServerConnectionError",
+    "OpenCodeServerError",
+    "OpenCodeTimeoutError",
+    "OpenCodeTransportError",
+    "OpenCodeUnprocessableEntityError",
+    "OpencodeModel",
+    "Part",
+    "PartBase",
+    "PartTime",
+    "PatchPart",
+    "PermissionRequest",
+    "PermissionRule",
+    "PermissionRuleset",
+    "PermissionTool",
+    "PromptModel",
+    "PromptPart",
+    "PromptRequest",
+    "Provider",
+    "ProviderList",
+    "QuestionAnswer",
+    "QuestionInfo",
+    "QuestionOption",
+    "QuestionRequest",
+    "QuestionTool",
+    "ReasoningPart",
+    "RetryPart",
+    "SSEDecoder",
+    "ServerConfig",
+    "Session",
+    "SessionShare",
+    "SessionSnapshot",
+    "SessionTime",
+    "SessionTokenCache",
+    "SessionTokens",
+    "SnapshotPart",
+    "StepFinishPart",
+    "StepStartPart",
+    "SubtaskModel",
+    "SubtaskPartInput",
+    "SyncEventStream",
+    "TextPart",
+    "TextPartInput",
+    "ToolPart",
+    "ToolState",
+    "ToolStateCompleted",
+    "ToolStateError",
+    "ToolStatePending",
+    "ToolStateRunning",
+    "UpdateSessionRequest",
+    "UserMessage",
+    "UserMessageModel",
+    "UserMessageSummary",
+    "__version__",
+]
