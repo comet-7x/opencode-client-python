@@ -172,11 +172,21 @@
 
 ## 发版记录
 
-（暂无）
+### v0.1.0 — 2026-08-22（本地 dist + git tag）
+- 发布形式：`uv build` 产出 `dist/opencode_client-0.1.0-py3-none-any.whl` +
+  sdist，打 tag `v0.1.0`；**未发 PyPI**。
+- 发布件：MIT LICENSE + CHANGELOG + 双语 README；sdist 经 pyproject
+  include/exclude 收紧（不含 `.agent`/`.opencode`/`.claude`/`temp`）。
+- 功能面：双客户端（sync/async 对等）、37 个公开方法（sessions/server/vcs/mcp）、
+  SSE 自动重连、请求级重试（429 Retry-After/5xx/连接错误）、分层异常、
+  pydantic 类型化响应（camelCase/大写ID → snake_case）。
+- **PyPI 阻塞**：`opencode-client` 名称已被第三方占用（v0.1.1）；
+  后续发布需换名（可用：`opencode-client-python` 等）+ token。
 
 ## 待决事项
 
 - [ ] M3 第一批端点优先级：权限/问答交互（permission/question）是否第一优先？
 - [ ] 是否补 `with_raw_response`（官方长板，IT-004 未含）？
 - [x] 是否需要 sync 客户端 → **IT-004 已交付**（双客户端对等）
-- [ ] 发布渠道：PyPI 还是内部私有源？
+- [x] 发布渠道 → **v0.1.0 走本地 dist + git tag**（用户拍板）；PyPI 后续
+      （需先解决名称占用：`opencode-client` 已被第三方用掉，换 `opencode-client-python` 之类）
