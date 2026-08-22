@@ -5,9 +5,14 @@
 这是一个 Python 客户端库，用于连接 opencode 服务器（opencode 作为服务层运行），
 封装其 REST API：会话管理（创建/聊天/中止）、消息、事件流等。
 
-参考仓库（官方 opencode Python SDK，代码可借鉴/移植）：
+参考仓库（均为只读资料，不参与构建）：
 
-- `temp/repositories/opencode-sdk-python`
+- `temp/repositories/opencode-sdk-python` —— 官方 Python SDK（旧版
+  Stainless 生成代码，仅借鉴风格）
+- `temp/repositories/opencode` —— **opencode 官方源码**（TypeScript/bun
+  monorepo）：服务端一手实现。`packages/server`（HTTP 路由/handler）、
+  `packages/protocol`（API 分组与错误约定）、`packages/schema`（数据
+  schema）；端点行为、wire 字段、事件语义存疑时以这里的实现为准
 
 ## 代码结构（src 布局）
 
@@ -42,7 +47,8 @@ examples/              # 教学示例，按场景分子目录（00_quickstart / 
                        #   02_discovery_config / 03_vcs / 04_mcp / 05_advanced_patterns），
                        #   各目录带 README.md；test_examples.py
                        #   用 importlib 加载 + respx 驱动各脚本 cli() 做离线冒烟
-temp/repositories/     # 参考用第三方仓库（不参与构建，已排除在 lint/typecheck 外）
+temp/repositories/     # 参考仓库（opencode 官方源码 + Python SDK；不参与构建，
+                       #   已排除在 lint/typecheck 外）
 .agent/                # 多 Agent 共享区（OpenCode / Claude Code / Codex 共用）
   AGENTS.md            #   本文件真实位置；根目录 AGENTS.md/CLAUDE.md 是指向它的 symlink
   project_progress/    #   宏观/微观进度管理（BOARD.md 看板 + ROADMAP + 迭代文件）
@@ -110,6 +116,10 @@ temp/repositories/     # 参考用第三方仓库（不参与构建，已排除�
   仅作风格参考，字段可能与最新 API 不一致。
 - 服务端 wire 格式为 camelCase，且 ID 类字段是大写 `ID` 后缀（`sessionID`、
   `providerID`），不是 `sessionId`。`models/base.py` 的 `id_alias` 生成器统一处理。
+- **官方源码 `temp/repositories/opencode`** 是行为层面的最终依据：OpenAPI
+  JSON 只描述请求/响应 schema，而端点的副作用（如 `prompt` 的阻塞语义、
+  share 的实际响应、事件触发时机）要看 `packages/server/src/handlers/*`
+  的实现；新增/修正端点行为时先查对应 handler，再查 schema。
 
 ## 常用命令
 
