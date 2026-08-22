@@ -163,6 +163,17 @@ make docker-tui         # 交互式 TUI（临时容器）
 https://github.com/anomalyco/opencode/pkgs/container/opencode （发布页 "Latest"）
 查询，升级只改 `OC_IMAGE` 一行。
 
+**排查坑**（本机实测踩出）：
+- 镜像 entrypoint 已是 `opencode`，compose 的 `command` 只写子命令
+  （`serve ...`）；写全名会拼成 `opencode opencode serve`，容器秒退但
+  `docker-health` 可能仍"成功"（见下条）。
+- **探活先确认应答方**：若宿主机另跑了原生 `opencode serve` 占着同一
+  端口（`lsof -iTCP:20001` 可查），curl 打到的是它，容器是否健康无从
+  验证。`docker ps` 看容器状态是第一手。
+- 本机 shell 带全局 `http_proxy`，会劫持 curl 的 localhost 请求；
+  直连诊断用 `curl --noproxy '*'` 或 `nc -z` 分层定位（TCP 通/HTTP 不通
+  → 服务端；TCP 不通 → 端口/容器）。
+
 **镜像拉取慢**：直接把域名换成镜像代理（不改全局 Docker 配置），拉完 `docker tag`
 还原官方名再 `docker-run`，后续命令统一：
 
@@ -174,6 +185,13 @@ https://github.com/anomalyco/opencode/pkgs/container/opencode （发布页 "Late
 docker pull ghcr.nju.edu.cn/anomalyco/opencode:1.18.21
 docker tag  ghcr.nju.edu.cn/anomalyco/opencode:1.18.21 ghcr.io/anomalyco/opencode:1.18.21
 ```
+
+**挂载**：`./:/app` + `~/.config/opencode`（provider 配置复用）；
+`temp/`（参考仓库）与 `.venv/` 用空命名卷遮蔽（`temp-shadow`/`venv-shadow`）
+——bind mount 无法负向排除子路径，只能子卷覆盖。opencode 的 ripgrep 文件
+搜索本身尊重 `.gitignore`，但 VCS 端点/文件监听/直接读文件不走 gitignore，
+~760MB 无关文件不该进容器（Mac bind mount 上遍历很慢）。
+`docker-tui` 是一次性容器（`--rm`），不需要遮蔽。
 
 **Mac 专属**：若模型服务（vLLM）跑在宿主机，容器内不能用 `127.0.0.1`，
 provider 的 `baseURL` 要用 `http://host.docker.internal:8000/v1`；

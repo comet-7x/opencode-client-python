@@ -1,0 +1,28 @@
+# 本地 opencode serve（客户端开发/联调）。唯一声明源；Makefile 的 docker-*
+# 目标是它的薄包装。默认值与 Makefile 顶部一致（OC_IMAGE/OC_PORT/OC_HOST），
+# 直接跑 `docker compose up` 时用下方 :- 兜底；make 调用时经环境变量覆盖。
+#
+# 仓库 bind mount 到 /app，但 temp/（参考仓库 ~600MB）与 .venv/（~150MB）
+# 用空命名卷遮蔽：bind mount 无法负向排除子路径，只能让子卷盖上去。
+# opencode 的 ripgrep 文件搜索本身尊重 .gitignore（这两者都在其中），但
+# VCS 端点、文件监听、直接读文件不走 gitignore，且 Mac bind mount 上遍历
+# 1.5 万个无关文件很慢，干脆不进容器。
+#
+# 镜像 entrypoint 已是 `opencode`，所以 command 只写子命令
+# （`serve ...`，不能写成 `opencode serve`，会拼成双重前缀）。
+services:
+  server:
+    image: ${OC_IMAGE:-ghcr.io/anomalyco/opencode:1.18.21}
+    container_name: opencode-server
+    command: serve --port ${OC_PORT:-20001} --hostname ${OC_HOST:-0.0.0.0}
+    ports:
+      - "${OC_PORT:-20001}:${OC_PORT:-20001}"
+    volumes:
+      - ./:/app
+      - ~/.config/opencode:/root/.config/opencode
+      - temp-shadow:/app/temp
+      - venv-shadow:/app/.venv
+
+volumes:
+  temp-shadow:
+  venv-shadow:
