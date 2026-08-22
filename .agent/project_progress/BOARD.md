@@ -4,15 +4,14 @@
 
 ## 当前位置
 
-- **宏观**：M3 功能扩张 —— 🔵 进行中（IT-004 同步客户端 ✅ / IT-005 permission+question ✅ /
-  IT-006 vcs+skill+MCP 基础 ✅）
-- **微观**：无进行中迭代（IT-001~006 已归档）
-- **仓库**：已推送 `origin/develop`（5 批按类别提交）；日常命令走 Makefile（`make check` 全门禁）
-- **下一步行动**：开 IT-007（`with_raw_response`）或 IT-008（M4 集成/断连重连测试）；
-  MCP connect/disconnect/auth 流、vcs/apply 教学示例待排期
+- **宏观**：M4 测试强化 —— ✅ 完成（IT-008：SSE 自动重连 + 请求重试/集成/边界全测）
+- **微观**：无进行中迭代（IT-001~006 与 IT-008 已归档；IT-007 `with_raw_response` 占号未做）
+- **仓库**：已推送 `origin/develop`；日常命令走 Makefile（`make check` 全门禁）
+- **下一步行动**：开 M5（发布准备：README/CHANGELOG/版本号/打包）；
+  可先择机补做 IT-007（`with_raw_response`）；余下端点候选：share、MCP connect/auth 流
 
 ```
-宏观  [███]█  M1 ✅ ─ M2 ✅ ── M3 🔵 ── M4 ⬜ ── M5 ⬜
+宏观  [███]██ M1 ✅ ─ M2 ✅ ── M3 ✅ ── M4 ✅ ── M5 ⬜
 微观  [██████] IT-001 ✅  IT-002 ✅  IT-003 ✅  IT-004 ✅  IT-005 ✅  IT-006 ✅
 ```
 
@@ -22,8 +21,8 @@
 |---|---|---|
 | M1 | 奠基：结构 + 工具链 + AGENTS.md | ✅ |
 | M2 | 核心功能：会话/消息/事件流 + 真实验证 | ✅ |
-| M3 | 功能扩张：补齐端点 + 工程化（IT-003 地基 ✅ / IT-004 双客户端 ✅ / IT-005 permission+question ✅ / IT-006 vcs+skill+MCP ✅） | 🔵 |
-| M4 | 测试强化：集成/断连重连/边界 | ⬜ |
+| M3 | 功能扩张：补齐端点 + 工程化（IT-003 地基 ✅ / IT-004 双客户端 ✅ / IT-005 permission+question ✅ / IT-006 vcs+skill+MCP ✅） | ✅ |
+| M4 | 测试强化：集成/断连重连/边界（IT-008：SSE 自动重连 + 请求重试补全 + 真实 server 集成 + 边界用例） | ✅ |
 | M5 | 发布准备：README/CHANGELOG/版本号/打包 | ⬜ |
 
 ## 微观迭代（详见 iterations/）
@@ -36,6 +35,7 @@
 | IT-004 | 同步客户端 + 官方 SDK 优势吸收 | ✅ | 2026-08-22 |
 | IT-005 | permission/question 交互闭环 | ✅ | 2026-08-22 |
 | IT-006 | vcs / summary / skill / MCP 基础端点 | ✅ | 2026-08-22 |
+| IT-008 | M4 测试强化：SSE 自动重连 + 重试/集成/边界测试 | ✅ | 2026-08-22 |
 
 ## 阻塞 / 风险
 
@@ -49,6 +49,6 @@
 - [x] 是否需要 sync 客户端 → 需要，IT-004 已交付（OpenCodeClient=sync / AsyncOpenCodeClient=async）
 - [x] 端点优先级确认（permission/question ✅ IT-005 / vcs+skill+MCP 基础 ✅ IT-006；
       余下候选：MCP connect/disconnect/auth 流、share、with_raw_response）
-- [ ] 是否补 `with_raw_response`（返回原始 httpx.Response）→ 待开 IT-007
-- [ ] M4 集成/断连重连测试 → 待开 IT-008
+- [x] 是否补 `with_raw_response`（返回原始 httpx.Response）→ 占号 IT-007，择机补做
+- [x] M4 集成/断连重连测试 → IT-008 已交付（live 套件 `--live-url` 开关）
 - [ ] 发布渠道（PyPI / 私有源）

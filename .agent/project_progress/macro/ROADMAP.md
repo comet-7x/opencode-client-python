@@ -10,11 +10,31 @@
 |---|---|---|
 | M1 奠基 | 项目结构（src 布局）、pyproject、质量工具链（ruff/mypy/pyright/pytest）、AGENTS.md | ✅ 完成（IT-001）|
 | M2 核心功能 | 会话/消息/事件流核心链路 + 真实服务端到端验证 | ✅ 完成（IT-002）|
-| M3 功能扩张 | 按使用场景补齐端点：权限/问答交互（IT-005 ✅）、vcs/skill/MCP 基础（IT-006 ✅）、余下候选 share/MCP 连接流等；工程化：地基 IT-003 ✅ + sync/async 对等 IT-004 ✅ | 🔵 进行中 |
-| M4 测试强化 | 关键路径补充集成测试、事件流断连重连验证、边界用例 | ⬜ 未开始 |
+| M3 功能扩张 | 按使用场景补齐端点：权限/问答交互（IT-005）、vcs/skill/MCP 基础（IT-006）；工程化：地基 IT-003 + sync/async 对等 IT-004（余下候选 share/MCP 连接流留后续） | ✅ 完成 |
+| M4 测试强化 | 关键路径补充集成测试、事件流断连重连验证（含自动重连实现）、边界用例 | ✅ 完成（IT-008）|
 | M5 发布准备 | README 使用文档、CHANGELOG、版本号策略、打包验证（sdist+wheel）| ⬜ 未开始 |
 
 ## 关键记录
+
+### 2026-08-22 — IT-008 M4 测试强化（SSE 自动重连 + 全测试补全）
+- **SSE 自动重连（新能力）**：`stream.iter_events()`/`aiter_events()` 内建重连；
+  仅**传输错误**触发（0.5s→8s 指数退避，预算 `DEFAULT_STREAM_RECONNECT_ATTEMPTS=5`，
+  收任意行重置预算，耗尽抛 `OpenCodeTransportError` 子类）；**干净 EOF 结束迭代**
+  （冲刷残留半帧）；在途半帧丢弃（服务端不做 `Last-Event-ID` 重放，跨连接拼接
+  会产幽灵事件）。消费 API 上移到流上，`iter_lines`/`aiter_lines`/`SSEDecoder`
+  保留向后兼容。语义教训：初版把 EOF 也当断流，空流脚本下无限重连（跑飞 bug）。
+- **请求级重试补全**：429 + `Retry-After`（数值用之/非数值回退）、5xx 指数退避、
+  预算 0、耗尽→`OpenCodeRateLimitError`/`OpenCodeServerError` 映射，sync+async 镜像
+  （`tests/test_retries.py` 18 例）。
+- **真实 server 集成（新）**：`pytest --live-url <url> [--live-password <pw>]`
+  （选项钩子在根 `conftest.py`，子目录不生效）；无开关自动 skip，离线门禁不受影响。
+  覆盖 health、session CRUD、活事件流看到 `session.created`、真实传输注入 503
+  验证重试。
+- **测试基建**：重连测试用脚本化假传输（respx 无法表达 mid-stream drop——
+  路由解析期即消费 side_effect）；`_reconnect_delay` 模块级单点供 spy。
+- 结果：`make check` 绿，离线 **107 passed / 5 skipped**；真实服务
+  （v1.18.18，127.0.0.1:20001）live 套件 **5/5 passed**。
+- M3/M4 完成；下一里程碑 M5 发布准备。
 
 ### 2026-08-22 — IT-006 vcs / summary / skill / MCP 基础端点
 - 9 端点（sync/async 对等）：`client.vcs.*`（info/status/diff/diff_raw/apply，

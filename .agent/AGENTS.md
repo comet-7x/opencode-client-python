@@ -18,7 +18,7 @@ src/opencode_client/
   errors.py            # OpenCodeError 分层异常 + make_api_error/make_transport_error
   constants.py         # 默认超时、重试次数、User-Agent 等常量
   _types.py            # NOT_GIVEN 哨兵（with_options 精确 override 用）
-  sse.py               # SSEDecoder（行协议解码）+ EventStream/SyncEventStream（流连接上下文管理器）
+  sse.py               # SSEDecoder（行协议解码）+ EventStream/SyncEventStream（流连接上下文管理器，自动重连）
   models/              # pydantic 模型，按业务实体拆文件，__init__ 统一 re-export
     base.py            #   OpencodeModel 基类 + id_alias 生成器（camelCase/大写ID 映射）
     session.py         #   Session / 请求体 / PermissionRule / ModelID ...
@@ -153,9 +153,12 @@ make clean              # 清理构建产物与工具缓存（不动 .venv）
 - 429/5xx/连接错误自动重试（`max_retries`，指数退避 + `Retry-After`）；
   `with_options(...)` 用 `NOT_GIVEN` 哨兵精确 override 配置。
 - 事件流（`/event`）是 SSE：async `client.server.stream_events()` 返回 `EventStream`
-  （`aiter_lines`），sync 返回 `SyncEventStream`（`iter_lines`）；
-  统一用 `SSEDecoder`（`aiter_events`/`iter_events`）解析为 `Event`
-  （`type` + `properties: dict`，v1 事件不建模 94 个具体类型）。
+  、sync 返回 `SyncEventStream`；直接迭代 `stream.aiter_events()`/`stream.iter_events()`
+  得到 `Event`（`type` + `properties: dict`，v1 事件不建模 94 个具体类型）。
+  流内建自动重连：仅**传输错误**触发（指数退避 0.5s→8s cap，预算
+  `max_reconnect_attempts`，收任意行重置预算，耗尽抛 `OpenCodeTransportError`
+  子类）；**干净 EOF 结束迭代**。在途半帧丢弃（服务端不重放事件）。
+  `SSEDecoder` 与 `iter_lines`/`aiter_lines` 直通保留供高级用法。
 - 不要修改 `temp/` 下的参考仓库。
 - 从官方 SDK 移植代码时：参考仓库是 Stainless 生成的重型代码（`_client.py`、
   `_resource.py`、generated types），本项目保持轻量手写风格，只挑选需要的部分，
