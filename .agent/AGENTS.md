@@ -148,6 +148,10 @@ make docker-stop        # 停止并移除容器（配置持久化在 ~/.config/o
 make docker-tui         # 交互式 TUI（临时容器）
 ```
 
+**镜像版本**：Makefile 顶部的 `OC_IMAGE` 是当前 pin 的版本；最新版本在
+https://github.com/anomalyco/opencode/pkgs/container/opencode （发布页 "Latest"）
+查询，升级只改 `OC_IMAGE` 一行。
+
 **镜像拉取慢**：直接把域名换成镜像代理（不改全局 Docker 配置），拉完 `docker tag`
 还原官方名再 `docker-run`，后续命令统一：
 

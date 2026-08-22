@@ -141,7 +141,9 @@ async with client.server.stream_events() as stream:
 ## 本地服务（Docker）
 
 需要一个运行中的 `opencode serve`。Makefile 用 Docker 统一管理（默认端口
-**20001**，镜像 `ghcr.io/anomalyco/opencode:1.18.21`）：
+**20001**，镜像 `ghcr.io/anomalyco/opencode:1.18.21`——最新版本见
+<https://github.com/anomalyco/opencode/pkgs/container/opencode> 发布页 "Latest"，
+升级时改 Makefile 顶部的 `OC_IMAGE`）：
 
 ```sh
 make docker-pull        # 拉取官方镜像

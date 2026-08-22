@@ -150,7 +150,9 @@ the standard pattern for watching a turn live.
 ## Running a local server (Docker)
 
 A running `opencode serve` is required. The Makefile manages it via Docker
-(default port **20001**, image `ghcr.io/anomalyco/opencode:1.18.21`):
+(default port **20001**, image `ghcr.io/anomalyco/opencode:1.18.21` — latest
+version listed at <https://github.com/anomalyco/opencode/pkgs/container/opencode>;
+bump `OC_IMAGE` at the top of the Makefile to upgrade):
 
 ```sh
 make docker-pull        # pull the official image

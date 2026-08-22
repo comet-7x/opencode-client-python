@@ -2,7 +2,9 @@
 UV_RUN := uv run
 
 # ---- 本地服务（Docker）默认值 -------------------------------------------
-# 官方镜像；拉取慢时换域名代理（ghcr.io -> ghcr.nju.edu.cn 或 ghcr.m.daocloud.io），
+# 官方镜像；最新版本查 https://github.com/anomalyco/opencode/pkgs/container/opencode
+# （发布页 "Latest" 即最新 tag），升级时改这里即可。
+# 拉取慢时换域名代理（ghcr.io -> ghcr.nju.edu.cn 或 ghcr.m.daocloud.io），
 # 拉完用 docker tag 还原官方名再 run，详见 .agent/AGENTS.md「本地服务（Docker）」。
 OC_IMAGE ?= ghcr.io/anomalyco/opencode:1.18.21
 OC_PORT  ?= 20001
