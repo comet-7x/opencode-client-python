@@ -95,15 +95,13 @@ class TestSyncSurface:
         assert sent["parts"] == [{"type": "text", "text": "say hi"}]
 
     def test_sync_event_stream(self, mock_server: respx.MockRouter) -> None:
-        from opencode_client import SSEDecoder
-
         body = f"data: {json.dumps({'type': 'session.created', 'properties': {}})}\n\n".encode()
         mock_server.get("/event").mock(
             return_value=httpx.Response(200, headers={"Content-Type": "text/event-stream"}, content=body)
         )
         with OpenCodeClient(BASE) as client:
             with client.server.stream_events() as stream:
-                events = list(SSEDecoder().iter_events(stream.iter_lines()))
+                events = list(stream.iter_events())
         assert [e.type for e in events] == ["session.created"]
 
 

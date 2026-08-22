@@ -1,9 +1,13 @@
-"""Shared test fixtures: isolate HTTP tests from the ambient proxy environment.
+"""Shared test fixtures: hermetic HTTP environment + live-server opt-in.
 
 The library keeps httpx's default ``trust_env=True`` so real users get proxy
 support for free; tests must instead be hermetic and route everything through
 respx. A session-scoped autouse fixture therefore clears any ambient proxy
 variables before the suite runs and restores them afterwards.
+
+Optional: ``pytest --live-url http://127.0.0.1:4096`` points the integration
+suite (``tests/test_live_server.py``) at a real running opencode server;
+without the flag those tests skip and never touch the network.
 """
 
 from __future__ import annotations

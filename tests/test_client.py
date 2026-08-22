@@ -14,7 +14,6 @@ from opencode_client import (
     OpenCodeApiError,
     OpenCodeNotFoundError,
     PromptModel,
-    SSEDecoder,
     TextPartInput,
     UpdateSessionRequest,
 )
@@ -161,8 +160,8 @@ class TestEventStream:
             )
         )
         async with client.server.stream_events() as stream:
-            assert stream.status_code == 200
-            received = [event async for event in SSEDecoder().aiter_events(stream.aiter_lines())]
+            assert stream.connections_opened == 1
+            received = [event async for event in stream.aiter_events()]
         assert [e.type for e in received] == ["session.created", "message.updated"]
         assert received[1].properties["info"]["role"] == "assistant"
 
