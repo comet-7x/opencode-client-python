@@ -4,12 +4,10 @@
 
 ## 当前位置
 
-- **宏观**：M4 测试强化 —— ✅ 完成（IT-008：SSE 自动重连 + 请求重试/集成/边界全测）
-- **微观**：无进行中迭代（IT-001~006 与 IT-008 已归档；IT-007 `with_raw_response` 占号未做）
+- **宏观**：M5 发布准备 —— 🚧 进行中（IT-009：打包已验证；待 LICENSE/CHANGELOG/渠道）
+- **微观**：IT-009 M5 发布准备（IT-001~006、IT-008 已归档；IT-007 `with_raw_response` 占号未做）
 - **仓库**：已推送 `origin/develop`；日常命令走 Makefile（`make check` 全门禁）
-- **下一步行动**：开 M5（发布准备：版本号/打包/发布渠道；README 已先行交付——
-  中英双语 `README.md`/`README-CN.md`）；
-  可先择机补做 IT-007（`with_raw_response`）；余下端点候选：share、MCP connect/auth 流
+- **下一步行动**：IT-009 补 LICENSE + CHANGELOG + 拍板发布渠道（PyPI/私有源/暂不发）
 - **备注**：本地 `opencode serve` 统一 Docker 管理（Makefile `docker-*` 目标，
   默认 20001；镜像慢走域名代理 + tag 还原）；examples 按资源域全量补齐为
   00~05 六个编号目录，37 个公开方法全覆盖
@@ -27,7 +25,7 @@
 | M2 | 核心功能：会话/消息/事件流 + 真实验证 | ✅ |
 | M3 | 功能扩张：补齐端点 + 工程化（IT-003 地基 ✅ / IT-004 双客户端 ✅ / IT-005 permission+question ✅ / IT-006 vcs+skill+MCP ✅） | ✅ |
 | M4 | 测试强化：集成/断连重连/边界（IT-008：SSE 自动重连 + 请求重试补全 + 真实 server 集成 + 边界用例） | ✅ |
-| M5 | 发布准备：README/CHANGELOG/版本号/打包 | ⬜ |
+| M5 | 发布准备：README/CHANGELOG/版本号/打包 | 🚧（README ✅ / 打包 ✅ / 发布中，IT-009） |
 
 ## 微观迭代（详见 iterations/）
 
@@ -40,6 +38,7 @@
 | IT-005 | permission/question 交互闭环 | ✅ | 2026-08-22 |
 | IT-006 | vcs / summary / skill / MCP 基础端点 | ✅ | 2026-08-22 |
 | IT-008 | M4 测试强化：SSE 自动重连 + 重试/集成/边界测试 | ✅ | 2026-08-22 |
+| IT-009 | M5 发布准备：LICENSE/CHANGELOG/打包/发版 | 🚧 | 2026-08-22 |
 
 ## 阻塞 / 风险
 

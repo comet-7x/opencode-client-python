@@ -42,6 +42,26 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/opencode_client"]
 
+# sdist 只带发布需要的文件（模式为 gitignore 风格，根级文件用 / 锚定，
+# 否则 "README.md" 会匹配到 .agent/ 等子目录里的同名文件）
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/**",
+    "examples/**",
+    "tests/**",
+    "/README.md",
+    "/README-CN.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+    "/pyproject.toml",
+]
+exclude = [
+    ".agent/**",
+    ".opencode/**",
+    ".claude/**",
+    ".gitignore",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "examples"]
 # tests/ 与 examples/ 均非安装包；examples 测试需 `import examples.*`，
