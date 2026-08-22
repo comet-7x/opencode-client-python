@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+
+# 质量工具缓存
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.pyright/
+.coverage
+htmlcov/
+
+# 本地环境
+.DS_Store
+.env
+.env.*
+
+# 参考仓库（第三方 SDK clone，不参与提交）
+temp/

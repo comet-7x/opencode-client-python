@@ -1,0 +1,110 @@
+[project]
+name = "opencode-client"
+version = "0.1.0"
+description = "A Python client for the opencode server"
+license = "MIT"
+authors = [{ name = "comet" }]
+dependencies = [
+    "httpx>=0.23.0, <1",
+    "pydantic>=2.0, <3",
+]
+requires-python = ">= 3.11"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "pytest-xdist>=3",
+    "respx>=0.20",
+    "ruff",
+    "mypy",
+    "pyright",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/opencode_client"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "examples"]
+addopts = "--tb=short"
+xfail_strict = true
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["temp", ".venv", ".agent"]
+
+[tool.ruff.lint]
+select = [
+    "I",    # isort
+    "B",    # bugbear
+    "F401", # unused imports
+    "E722", # bare except
+    "UP",   # pyupgrade
+    "D",    # pydocstyle (docstring presence + style, Google convention)
+]
+ignore = [
+    "B006",  # mutable defaults
+    "D105",  # magic methods (__init__ 等)不需要 docstring
+    "D107",  # __init__ 不要求 docstring
+    "D212",  # 多行 docstring 摘要写在第一行（Google 风格）
+    "D213",  # 与 D212 互斥
+    "D401",  # 不强制祈使句
+    "D413",  # 节末空行与代码块结尾冲突，不强制
+    "D417",  # 不强制在 docstring 里列多行参数
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+"examples/*" = ["D"]
+"conftest.py" = ["D"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["opencode_client", "tests"]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.11"
+exclude = [
+    ".venv",
+    ".nox",
+    ".git",
+    "temp",
+    ".agent",
+]
+reportImportCycles = false
+
+[tool.mypy]
+pretty = true
+show_error_codes = true
+strict_equality = true
+implicit_reexport = true
+check_untyped_defs = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
+disallow_any_generics = true
+disallow_untyped_defs = true
+disallow_subclassing_any = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+exclude = ["^/temp/.*$", "^/\\.agent/.*$"]
