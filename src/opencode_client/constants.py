@@ -13,3 +13,7 @@ DEFAULT_READ_TIMEOUT = 60.0
 
 #: How many times a failed (5xx/429/connection-error) request is retried, on top of the first attempt.
 DEFAULT_MAX_RETRIES = 2
+
+#: How many times a dropped ``/event`` stream is reconnected, on top of the first attempt.
+#: The budget resets whenever a line is received, so a healthy stream reconnects indefinitely.
+DEFAULT_STREAM_RECONNECT_ATTEMPTS = 5

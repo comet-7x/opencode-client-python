@@ -8,7 +8,9 @@ Maps to the non-session endpoints (``/global/health``, ``/config``,
 - :class:`AsyncServerResource` — asynchronous, backed by :class:`AsyncOpenCodeClient`.
 
 ``stream_events`` returns the matching :class:`~opencode_client.EventStream`
-(sync or async) for the owning client.
+(sync or async) for the owning client, with automatic reconnection after
+drops — iterate its ``iter_events()`` / ``aiter_events()`` for decoded
+events.
 """
 
 from __future__ import annotations
@@ -165,21 +167,30 @@ class ServerResource(Resource):
 
     # -- events -----------------------------------------------------------
 
-    def stream_events(self, directory: str | None = None, workspace: str | None = None) -> Any:
+    def stream_events(
+        self,
+        directory: str | None = None,
+        workspace: str | None = None,
+        max_reconnect_attempts: int | None = None,
+    ) -> Any:
         """Open the ``/event`` SSE stream as a (sync) context manager.
 
         Args:
             directory: Optional scoping query param.
             workspace: Optional scoping query param.
+            max_reconnect_attempts: Reconnect budget after a drop; ``None``
+                uses the package default.  The budget resets whenever a line
+                is received, so a healthy stream reconnects indefinitely.
 
         Returns:
-            An :class:`~opencode_client.SyncEventStream`; feed
-            ``iter_lines()`` into :class:`~opencode_client.SSEDecoder`.
+            An :class:`~opencode_client.SyncEventStream`; iterate
+            ``iter_events()`` for decoded events with automatic
+            reconnection.
         """
         from ..sse import SyncEventStream
 
         request = self._client.http.build_request("GET", "/event", params=query_params(directory, workspace))
-        return SyncEventStream(self._client.http, request)
+        return SyncEventStream(self._client.http, request, max_reconnect_attempts=max_reconnect_attempts)
 
 
 class AsyncServerResource(AsyncResource):
@@ -318,18 +329,27 @@ class AsyncServerResource(AsyncResource):
 
     # -- events -----------------------------------------------------------
 
-    def stream_events(self, directory: str | None = None, workspace: str | None = None) -> Any:
+    def stream_events(
+        self,
+        directory: str | None = None,
+        workspace: str | None = None,
+        max_reconnect_attempts: int | None = None,
+    ) -> Any:
         """Open the ``/event`` SSE stream as an async context manager.
 
         Args:
             directory: Optional scoping query param.
             workspace: Optional scoping query param.
+            max_reconnect_attempts: Reconnect budget after a drop; ``None``
+                uses the package default.  The budget resets whenever a line
+                is received, so a healthy stream reconnects indefinitely.
 
         Returns:
-            An :class:`~opencode_client.EventStream`; feed
-            ``aiter_lines()`` into :class:`~opencode_client.SSEDecoder`.
+            An :class:`~opencode_client.EventStream`; iterate
+            ``aiter_events()`` for decoded events with automatic
+            reconnection.
         """
         from ..sse import EventStream
 
         request = self._client.http.build_request("GET", "/event", params=query_params(directory, workspace))
-        return EventStream(self._client.http, request)
+        return EventStream(self._client.http, request, max_reconnect_attempts=max_reconnect_attempts)

@@ -16,7 +16,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 
-from opencode_client import AsyncOpenCodeClient, SSEDecoder
+from opencode_client import AsyncOpenCodeClient
 
 
 async def main(base_url: str, provider_id: str | None = None, model_id: str | None = None) -> None:
@@ -29,12 +29,11 @@ async def main(base_url: str, provider_id: str | None = None, model_id: str | No
     """
     async with AsyncOpenCodeClient(base_url) as client:
         session = await client.sessions.create()
-        decoder = SSEDecoder()
 
         async def listen() -> None:
-            """Read the /event stream until the session goes idle."""
+            """Read the /event stream until the session goes idle (auto-reconnects on drops)."""
             async with client.server.stream_events() as stream:
-                async for event in decoder.aiter_events(stream.aiter_lines()):
+                async for event in stream.aiter_events():
                     if event.type == "message.part.delta":
                         props = event.properties
                         if props.get("field") == "text":
