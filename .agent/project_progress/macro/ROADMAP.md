@@ -27,7 +27,7 @@
 - Mac 坑：容器访问宿主机 vLLM 须用 `host.docker.internal`，不能 `127.0.0.1`。
 - 探活端点为 `/global/health`（OpenAPI 里另有 `/api/health`，客户端库用前者；
   笔记中的 `/health` 不是真实路径）。
-- 新增 `README.md`（英）/ `README.zh-CN.md`（中）：安装、快速上手、资源分组表、
+- 新增 `README.md`（英，默认）/ `README-CN.md`（中）：安装、快速上手、资源分组表、
   异常树、事件流语义、Docker 服务、示例导航、开发命令。
 
 ### 2026-08-22 — examples 全模块补齐（02/03/04 新域 + 01 生命周期 + 05 交互补全）

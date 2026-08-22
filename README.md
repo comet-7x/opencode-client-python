@@ -21,7 +21,7 @@ API surface.
 - **Deliberately small**: no code generation, no heavyweight runtime —
   a handful of small modules wrapping `httpx`.
 
-> 🇨🇳 中文文档见 [README.zh-CN.md](README.zh-CN.md)
+> 🇨🇳 中文文档见 [README-CN.md](README-CN.md)
 
 ## Requirements
 
