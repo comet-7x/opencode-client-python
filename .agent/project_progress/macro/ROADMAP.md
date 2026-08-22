@@ -16,6 +16,17 @@
 
 ## 关键记录
 
+### 2026-08-22 — conftest 收敛：删除根目录 conftest.py
+- 根目录 `conftest.py`（仅注册 `--live-url`/`--live-password`）删除，选项注册并入
+  `tests/conftest.py`。实测（pytest 9.1.1）IT-008 时「子目录 conftest 的选项钩子
+  不生效」的结论过严：只要调用会收集到 tests/（`make test`、裸 `pytest`、
+  `pytest tests/`），子目录 conftest 的 `pytest_addoption` 都生效；唯一不识别的
+  是 `pytest examples/ --live-url ...`，该组合无意义（examples 全 respx 离线 mock）。
+- 连带修复：根 conftest 被删后 pytest 不再自动把项目根加入 sys.path，
+  `examples` 包无法 import → pyproject 加 `pythonpath = ["."]`（pytest 内置 ini
+  选项，不依赖任何 conftest 位置）。
+- 结果：`make check` 绿，113 passed / 5 skipped。
+
 ### 2026-08-22 — examples 按场景重构为编号目录
 - 平铺脚本（quickstart/stream_events/browse_history/respond_interactions）迁移为
   `00_quickstart/`、`01_session_management/`、`03_advanced_patterns/`，每目录
@@ -39,7 +50,8 @@
   预算 0、耗尽→`OpenCodeRateLimitError`/`OpenCodeServerError` 映射，sync+async 镜像
   （`tests/test_retries.py` 18 例）。
 - **真实 server 集成（新）**：`pytest --live-url <url> [--live-password <pw>]`
-  （选项钩子在根 `conftest.py`，子目录不生效）；无开关自动 skip，离线门禁不受影响。
+  （选项钩子注册在 `tests/conftest.py`，见下方 2026-08-22 conftest 迁移记录）；
+  无开关自动 skip，离线门禁不受影响。
   覆盖 health、session CRUD、活事件流看到 `session.created`、真实传输注入 503
   验证重试。
 - **测试基建**：重连测试用脚本化假传输（respx 无法表达 mid-stream drop——

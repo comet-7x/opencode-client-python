@@ -83,3 +83,6 @@ M3 结束时的现状盘点：
   `session.created`、真实传输注入 503 后重试成功。
 - 语义修正记录：初版把"干净 EOF 也重连"实现后在空流脚本下无限重连，
   且跨连接半帧拼接与服务端不重放矛盾，遂定为上文 Option A 语义。
+- 勘误（2026-08-22）：上文「选项钩子必须放根 conftest.py」结论过严，已实测修正
+  并删除根 conftest（选项注册并入 tests/conftest.py + pyproject `pythonpath=["."]`），
+  详见 ROADMAP 同名记录。

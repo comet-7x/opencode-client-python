@@ -44,6 +44,9 @@ packages = ["src/opencode_client"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "examples"]
+# tests/ 与 examples/ 均非安装包；examples 测试需 `import examples.*`，
+# 显式把项目根加入 sys.path（不依赖任何 conftest 的位置）。
+pythonpath = ["."]
 addopts = "--tb=short"
 xfail_strict = true
 asyncio_mode = "auto"
@@ -76,7 +79,6 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]
 "examples/*" = ["D"]
-"conftest.py" = ["D"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["opencode_client", "tests"]
