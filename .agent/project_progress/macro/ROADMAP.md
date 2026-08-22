@@ -16,6 +16,18 @@
 
 ## 关键记录
 
+### 2026-08-22 — examples 按场景重构为编号目录
+- 平铺脚本（quickstart/stream_events/browse_history/respond_interactions）迁移为
+  `00_quickstart/`、`01_session_management/`、`03_advanced_patterns/`，每目录
+  README.md（适用场景 + 前置条件）+ 完整可运行脚本；总入口 `examples/README.md`。
+- 新增示例：client_reuse（复用收益 + with_options override）、error_handling
+  （分层异常处理）、interact_moving_session（权限+问答交互闭环，asyncio 并发监听）。
+- `test_examples.py` 重写：importlib 加载编号包（数字前缀目录靠 PEP 420 命名空间包），
+  respx 驱动各脚本 `cli()` 离线冒烟 9 例。
+- 踩坑：`sessions.create()` 无 title 平铺参数，须传 `body=CreateSessionRequest(...)`；
+  asyncio 子任务（deadline sleep）不 cancel 就 gather 会挂满整个超时。
+- 结果：`make check` 绿，113 passed / 5 skipped。
+
 ### 2026-08-22 — IT-008 M4 测试强化（SSE 自动重连 + 全测试补全）
 - **SSE 自动重连（新能力）**：`stream.iter_events()`/`aiter_events()` 内建重连；
   仅**传输错误**触发（0.5s→8s 指数退避，预算 `DEFAULT_STREAM_RECONNECT_ATTEMPTS=5`，

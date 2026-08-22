@@ -37,8 +37,9 @@ src/opencode_client/
     vcs.py             #   VcsResource/AsyncVcsResource（/vcs info/status/diff/diff_raw/apply）
     mcp.py             #   McpResource/AsyncMcpResource（/mcp status/add）
 tests/                 # pytest + respx 测试（test_client.py 等）
-examples/              # 教学示例（quickstart/stream_events/browse_history），
-                       #   带 test_examples.py 用 respx 驱动 main() 做离线冒烟
+examples/              # 教学示例，按场景分子目录（00_quickstart / 01_session_management /
+                       #   03_advanced_patterns），各目录带 README.md；test_examples.py
+                       #   用 importlib 加载 + respx 驱动各脚本 cli() 做离线冒烟
 temp/repositories/     # 参考用第三方仓库（不参与构建，已排除在 lint/typecheck 外）
 .agent/                # 多 Agent 共享区（OpenCode / Claude Code / Codex 共用）
   AGENTS.md            #   本文件真实位置；根目录 AGENTS.md/CLAUDE.md 是指向它的 symlink
