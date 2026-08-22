@@ -147,6 +147,23 @@ backoff 0.5 s → 8 s, budget `max_reconnect_attempts`, reset on any received
 line); a clean EOF ends the iteration. `prompt_async` + `stream_events` is
 the standard pattern for watching a turn live.
 
+## Raw responses
+
+Every method returns a parsed model. For headers, exact status codes, or the
+body before model mapping, use the `with_raw_response` prefix — same
+signatures, same retries, same error mapping on non-2xx, but the unprocessed
+`httpx.Response` on success:
+
+```python
+raw = await client.sessions.with_raw_response.get(session_id)
+print(raw.status_code, raw.headers["content-type"])
+session = Session.model_validate(raw.json())  # parse it yourself if you like
+```
+
+Available on all four resource groups (`sessions` / `server` / `vcs` / `mcp`);
+`stream_events` has no raw variant (it returns an event stream, not a
+one-shot response).
+
 ## Running a local server (Docker)
 
 A running `opencode serve` is required. The Makefile manages it via Docker
@@ -197,7 +214,7 @@ Runnable, commented walkthroughs organized by scenario — start at
 | `02_discovery_config/` | Health, config, providers, agents, commands, skills |
 | `03_vcs/` | Repo info / status / diff / raw diff / patch apply |
 | `04_mcp/` | MCP server status + registration |
-| `05_advanced_patterns/` | Client reuse, error handling, live streaming, interaction loops |
+| `05_advanced_patterns/` | Client reuse, error handling, live streaming, interaction loops, raw responses |
 
 Every script runs offline under the test suite via `respx`, so
 `uv run pytest` verifies them without a server.

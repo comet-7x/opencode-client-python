@@ -30,6 +30,7 @@ src/opencode_client/
     vcs.py             #   VcsInfo / VcsFileStatus / VcsFileDiff
     mcp.py             #   MCPStatus(status 判联合) / McpLocalConfig / McpRemoteConfig
   resources/           # API 资源层：按端点域分组，组合持有 client（非继承），每域 sync/async 双类
+                       #   + 各带 *WithRawResponse 裸响应代理（with_raw_response 属性，见约定）
     base.py            #   Resource(sync)/AsyncResource 基类 + query_params 助手
     _wire.py           #   共享 wire 纯函数（request_spec/prompt_body/validate_response/各 body）
     sessions.py        #   SessionsResource/AsyncSessionsResource（/session 全套 CRUD/prompt/messages/summarize/permission）
@@ -184,6 +185,11 @@ provider 的 `baseURL` 要用 `http://host.docker.internal:8000/v1`；
   server 级（health/config/provider/agent/command/event）走 `client.server.*`。
 - 双客户端对等：**`OpenCodeClient`（sync）与 `AsyncOpenCodeClient`（async）方法签名完全一致**，
   仅 async 侧多 `await`。新增端点必须同时实现双类。
+- 裸响应视图：每个资源类带 `with_raw_response` 属性，返回对应的
+  `*WithRawResponse` 代理类（镜像全部方法、签名一致，成功时返回未解析的
+  `httpx.Response`；重试与非 2xx 错误映射与正常视图共享，只改成功返回值）。
+  `stream_events` 无 raw 变体。新增端点时**资源类与 raw 类必须同步加**，
+  由 `tests/test_raw_response.py` 的镜像一致性锁把守。
 - wire 逻辑（路径/query/body 组装、`TypeAdapter` 解析）必须放在 `resources/_wire.py`
   的共享纯函数里，资源类只做"发送 + 调共享函数"，禁止在资源里写裸 dict 拼装。
 - 错误：非 2xx 按状态码抛分层异常（404→`OpenCodeNotFoundError`、429→`OpenCodeRateLimitError`、

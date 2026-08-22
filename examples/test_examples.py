@@ -346,3 +346,7 @@ class TestExamplesSmoke:
         # --respond 额外走 sessions.respond_permission + server.reject_question
         mod = _load("05_advanced_patterns.interact_moving_session")
         _run_cli(mod, "--url", BASE, "--respond")
+
+    def test_raw_response(self) -> None:
+        mod = _load("05_advanced_patterns.raw_response")
+        _run_cli(mod, "--url", BASE)

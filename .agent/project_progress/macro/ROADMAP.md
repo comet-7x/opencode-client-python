@@ -186,7 +186,15 @@
 ## 待决事项
 
 - [ ] M3 第一批端点优先级：权限/问答交互（permission/question）是否第一优先？
-- [ ] 是否补 `with_raw_response`（官方长板，IT-004 未含）？
+- [x] 是否补 `with_raw_response`（官方长板，IT-004 未含）→ **IT-009 已交付**
+      （2026-08-23，官方同款代理前缀形态 + 镜像一致性锁）
 - [x] 是否需要 sync 客户端 → **IT-004 已交付**（双客户端对等）
 - [x] 发布渠道 → **v0.1.0 走本地 dist + git tag**（用户拍板）；PyPI 后续
       （需先解决名称占用：`opencode-client` 已被第三方用掉，换 `opencode-client-python` 之类）
+
+## v0.1.0 之后增量（随下次发版带出）
+
+- IT-009 `with_raw_response` 裸响应视图：4 资源域 × sync/async 共 8 个
+  `*WithRawResponse` 代理（成功返回未解析 `httpx.Response`；重试/错误映射
+  与正常视图共享；`stream_events` 无 raw 变体），`tests/test_raw_response.py`
+  镜像一致性锁 + 示例 `05_advanced_patterns/raw_response.py`。

@@ -2,7 +2,7 @@
 
 ## 本文件夹讲什么
 
-真实应用里比"发一句话"多出的那些工程问题。四个脚本各演示一类：
+真实应用里比"发一句话"多出的那些工程问题。五个脚本各演示一类：
 
 | 脚本 | 模式 | 关键点 |
 |---|---|---|
@@ -10,6 +10,7 @@
 | `error_handling.py` | **异常捕获与降级** | `OpenCodeApiError` 的分层族谱（404/429/5xx 各有子类）；怎么捕获后降级而不是崩溃；`status_code`/`payload` 怎么用 |
 | `stream_events.py` | **事件流 + 流式增量** | `prompt_async`（fire-and-forget）+ `stream_events()` 的 `aiter_events()`；断流自动重连 |
 | `interact_moving_session.py` | **权限/问答交互循环** | 轮询 `list_permissions`/`list_questions` 并应答，让一个会要权限的 turn 走完到 `session.idle`；`--respond` 额外演示 `sessions.respond_permission`（会话级端点）与 `server.reject_question`（整题拒绝） |
+| `raw_response.py` | **裸响应视图** | `<resource>.with_raw_response.<method>(...)` 返回未解析的 `httpx.Response`（头/状态码/原始 body）；重试与错误映射与正常视图一致；`stream_events` 无 raw 变体 |
 
 ## 适用场景
 
@@ -17,7 +18,9 @@
 - 面向用户的程序，需要**优雅降级**而不是把异常堆栈糊用户脸上（`error_handling.py`）；
 - 需要**实时**看到模型输出/工具调用，而不是干等 turn 结束（`stream_events.py`）；
 - 自动化要**无人值守**地推进 turn：自动批准/拒绝权限与回答追问
-  （`interact_moving_session.py`）。
+  （`interact_moving_session.py`）；
+- 需要看到**响应头 / 原始 body / 精确状态码**（限流探测、透传、调试），
+  而不是被模型解析后的对象（`raw_response.py`）。
 
 ## 前置条件
 
@@ -35,6 +38,7 @@ uv run python -m examples.05_advanced_patterns.error_handling            # 故�
 uv run python -m examples.05_advanced_patterns.stream_events
 uv run python -m examples.05_advanced_patterns.interact_moving_session --allow
 uv run python -m examples.05_advanced_patterns.interact_moving_session --respond   # 额外演示 respond_permission / reject_question
+uv run python -m examples.05_advanced_patterns.raw_response
 ```
 
 均支持 `--url`，`--help` 查看全部参数。

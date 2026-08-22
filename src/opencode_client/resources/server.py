@@ -17,15 +17,33 @@ from __future__ import annotations
 
 from typing import Any
 
+import httpx
+
 from ..models import Agent, Command, Health, PermissionRequest, ProviderList, QuestionRequest, Skill
 from ._wire import TYPE_ADAPTERS, permission_reply_body, question_reply_body, request_spec, validate_response
 from .base import AsyncResource, Resource, query_params
 
-__all__ = ["AsyncServerResource", "ServerResource"]
+__all__ = [
+    "AsyncServerResource",
+    "AsyncServerResourceWithRawResponse",
+    "ServerResource",
+    "ServerResourceWithRawResponse",
+]
 
 
 class ServerResource(Resource):
     """Synchronous client for server-level endpoints."""
+
+    @property
+    def with_raw_response(self) -> ServerResourceWithRawResponse:
+        """Prefix for the raw-response variants of every method below.
+
+        Each call returns the unprocessed :class:`httpx.Response` instead of
+        the parsed model (same retries, same error mapping on non-2xx).
+        ``stream_events`` has no raw variant (it returns an EventStream, not
+        a one-shot response).
+        """
+        return ServerResourceWithRawResponse(self._client)
 
     # -- health & config --------------------------------------------------
 
@@ -196,6 +214,17 @@ class ServerResource(Resource):
 class AsyncServerResource(AsyncResource):
     """Asynchronous client for server-level endpoints."""
 
+    @property
+    def with_raw_response(self) -> AsyncServerResourceWithRawResponse:
+        """Prefix for the raw-response variants of every method below.
+
+        Each call returns the unprocessed :class:`httpx.Response` instead of
+        the parsed model (same retries, same error mapping on non-2xx).
+        ``stream_events`` has no raw variant (it returns an EventStream, not
+        a one-shot response).
+        """
+        return AsyncServerResourceWithRawResponse(self._client)
+
     # -- health & config --------------------------------------------------
 
     async def health(self) -> Health:
@@ -353,3 +382,190 @@ class AsyncServerResource(AsyncResource):
 
         request = self._client.http.build_request("GET", "/event", params=query_params(directory, workspace))
         return EventStream(self._client.http, request, max_reconnect_attempts=max_reconnect_attempts)
+
+
+class ServerResourceWithRawResponse(Resource):
+    """Synchronous raw-response view of the server-level endpoints.
+
+    Mirrors :class:`ServerResource` method-for-method (minus ``stream_events``)
+    but returns the unprocessed response instead of the parsed model. Non-2xx
+    still raise the same mapped errors; retries are shared.
+    """
+
+    def health(self) -> httpx.Response:
+        """Check server liveness; return the raw response."""
+        return self._send("GET", "/global/health")
+
+    def get_config(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Read the effective configuration; return the raw response."""
+        return self._send("GET", "/config", **request_spec(directory=directory, workspace=workspace))
+
+    def update_config(
+        self,
+        body: dict[str, Any],
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Patch the server configuration; return the raw response."""
+        return self._send("PATCH", "/config", **request_spec(directory=directory, workspace=workspace, json_body=body))
+
+    def list_providers(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List providers; return the raw response."""
+        return self._send("GET", "/provider", **request_spec(directory=directory, workspace=workspace))
+
+    def list_agents(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List agents; return the raw response."""
+        return self._send("GET", "/agent", **request_spec(directory=directory, workspace=workspace))
+
+    def list_commands(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List slash commands; return the raw response."""
+        return self._send("GET", "/command", **request_spec(directory=directory, workspace=workspace))
+
+    def list_skills(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List skills; return the raw response."""
+        return self._send("GET", "/skill", **request_spec(directory=directory, workspace=workspace))
+
+    def list_permissions(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List pending permission requests; return the raw response."""
+        return self._send("GET", "/permission", **request_spec(directory=directory, workspace=workspace))
+
+    def reply_permission(
+        self,
+        request_id: str,
+        reply: str,
+        message: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Answer a permission request; return the raw response."""
+        json_body = permission_reply_body(reply, message)
+        return self._send(
+            "POST",
+            f"/permission/{request_id}/reply",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def list_questions(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List pending question requests; return the raw response."""
+        return self._send("GET", "/question", **request_spec(directory=directory, workspace=workspace))
+
+    def reply_question(
+        self,
+        request_id: str,
+        answers: list[list[str]],
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Answer a question request; return the raw response."""
+        json_body = question_reply_body(answers)
+        return self._send(
+            "POST",
+            f"/question/{request_id}/reply",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def reject_question(
+        self,
+        request_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Reject a question request; return the raw response."""
+        return self._send(
+            "POST", f"/question/{request_id}/reject", **request_spec(directory=directory, workspace=workspace)
+        )
+
+
+class AsyncServerResourceWithRawResponse(AsyncResource):
+    """Asynchronous raw-response view of the server-level endpoints.
+
+    Mirrors :class:`AsyncServerResource` method-for-method (minus
+    ``stream_events``) but returns the unprocessed response instead of the
+    parsed model. Non-2xx still raise the same mapped errors; retries are
+    shared.
+    """
+
+    async def health(self) -> httpx.Response:
+        """Check server liveness; return the raw response."""
+        return await self._send("GET", "/global/health")
+
+    async def get_config(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Read the effective configuration; return the raw response."""
+        return await self._send("GET", "/config", **request_spec(directory=directory, workspace=workspace))
+
+    async def update_config(
+        self,
+        body: dict[str, Any],
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Patch the server configuration; return the raw response."""
+        return await self._send(
+            "PATCH", "/config", **request_spec(directory=directory, workspace=workspace, json_body=body)
+        )
+
+    async def list_providers(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List providers; return the raw response."""
+        return await self._send("GET", "/provider", **request_spec(directory=directory, workspace=workspace))
+
+    async def list_agents(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List agents; return the raw response."""
+        return await self._send("GET", "/agent", **request_spec(directory=directory, workspace=workspace))
+
+    async def list_commands(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List slash commands; return the raw response."""
+        return await self._send("GET", "/command", **request_spec(directory=directory, workspace=workspace))
+
+    async def list_skills(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List skills; return the raw response."""
+        return await self._send("GET", "/skill", **request_spec(directory=directory, workspace=workspace))
+
+    async def list_permissions(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List pending permission requests; return the raw response."""
+        return await self._send("GET", "/permission", **request_spec(directory=directory, workspace=workspace))
+
+    async def reply_permission(
+        self,
+        request_id: str,
+        reply: str,
+        message: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Answer a permission request; return the raw response."""
+        json_body = permission_reply_body(reply, message)
+        return await self._send(
+            "POST",
+            f"/permission/{request_id}/reply",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def list_questions(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List pending question requests; return the raw response."""
+        return await self._send("GET", "/question", **request_spec(directory=directory, workspace=workspace))
+
+    async def reply_question(
+        self,
+        request_id: str,
+        answers: list[list[str]],
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Answer a question request; return the raw response."""
+        json_body = question_reply_body(answers)
+        return await self._send(
+            "POST",
+            f"/question/{request_id}/reply",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def reject_question(
+        self,
+        request_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Reject a question request; return the raw response."""
+        return await self._send(
+            "POST", f"/question/{request_id}/reject", **request_spec(directory=directory, workspace=workspace)
+        )

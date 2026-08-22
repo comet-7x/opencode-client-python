@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import httpx
+
 from ..models import (
     CreateSessionRequest,
     MessageWithParts,
@@ -37,11 +39,25 @@ from ._wire import (
 )
 from .base import AsyncResource, Resource
 
-__all__ = ["AsyncSessionsResource", "SessionsResource"]
+__all__ = [
+    "AsyncSessionsResource",
+    "AsyncSessionsResourceWithRawResponse",
+    "SessionsResource",
+    "SessionsResourceWithRawResponse",
+]
 
 
 class SessionsResource(Resource):
     """Synchronous client for everything under ``/session``."""
+
+    @property
+    def with_raw_response(self) -> SessionsResourceWithRawResponse:
+        """Prefix for the raw-response variants of every method below.
+
+        Each call returns the unprocessed :class:`httpx.Response` instead of
+        the parsed model (same retries, same error mapping on non-2xx).
+        """
+        return SessionsResourceWithRawResponse(self._client)
 
     # -- CRUD -------------------------------------------------------------
 
@@ -313,6 +329,15 @@ class SessionsResource(Resource):
 class AsyncSessionsResource(AsyncResource):
     """Asynchronous client for everything under ``/session``."""
 
+    @property
+    def with_raw_response(self) -> AsyncSessionsResourceWithRawResponse:
+        """Prefix for the raw-response variants of every method below.
+
+        Each call returns the unprocessed :class:`httpx.Response` instead of
+        the parsed model (same retries, same error mapping on non-2xx).
+        """
+        return AsyncSessionsResourceWithRawResponse(self._client)
+
     # -- CRUD -------------------------------------------------------------
 
     async def list_sessions(
@@ -582,3 +607,451 @@ class AsyncSessionsResource(AsyncResource):
             **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
+
+
+class SessionsResourceWithRawResponse(Resource):
+    """Synchronous raw-response view: same calls, returns ``httpx.Response``.
+
+    Mirrors :class:`SessionsResource` method-for-method but returns the
+    unprocessed response (headers / status / raw body) instead of the parsed
+    model. Non-2xx still raise the same mapped errors; retries are shared.
+    """
+
+    def list_sessions(
+        self,
+        directory: str | None = None,
+        workspace: str | None = None,
+        scope: str | None = None,
+        path: str | None = None,
+        roots: bool | None = None,
+        start: float | None = None,
+        search: str | None = None,
+        limit: int | None = None,
+    ) -> httpx.Response:
+        """List sessions; return the raw response."""
+        query = session_list_query(scope, path, roots, start, search, limit)
+        return self._send("GET", "/session", **request_spec(directory=directory, workspace=workspace, query=query))
+
+    def create(
+        self,
+        directory: str | None = None,
+        workspace: str | None = None,
+        body: CreateSessionRequest | None = None,
+    ) -> httpx.Response:
+        """Create a session; return the raw response."""
+        json_body = create_body(body)
+        return self._send(
+            "POST", "/session", **request_spec(directory=directory, workspace=workspace, json_body=json_body)
+        )
+
+    def get(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Fetch one session; return the raw response."""
+        return self._send("GET", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace))
+
+    def update(
+        self,
+        session_id: str,
+        body: UpdateSessionRequest,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Update a session; return the raw response."""
+        json_body = update_body(body)
+        return self._send(
+            "PATCH",
+            f"/session/{session_id}",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def delete(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Delete a session; return the raw response."""
+        return self._send("DELETE", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace))
+
+    def fork(
+        self,
+        session_id: str,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Fork a session; return the raw response."""
+        json_body = fork_body(message_id)
+        return self._send(
+            "POST",
+            f"/session/{session_id}/fork",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def abort(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Abort a session; return the raw response."""
+        return self._send(
+            "POST", f"/session/{session_id}/abort", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    def share(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Publish a session; return the raw response."""
+        return self._send(
+            "POST", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    def unshare(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Withdraw a session's share; return the raw response."""
+        return self._send(
+            "DELETE", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    def summarize(
+        self,
+        session_id: str,
+        provider_id: str,
+        model_id: str,
+        auto: bool | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Ask for a summary; return the raw response."""
+        json_body = summarize_body(provider_id, model_id, auto)
+        return self._send(
+            "POST",
+            f"/session/{session_id}/summarize",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def respond_permission(
+        self,
+        session_id: str,
+        permission_id: str,
+        response: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Answer a permission request; return the raw response."""
+        json_body = permission_body(response)
+        return self._send(
+            "POST",
+            f"/session/{session_id}/permissions/{permission_id}",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def list_messages(
+        self,
+        session_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+        limit: int | None = None,
+        before: str | None = None,
+    ) -> httpx.Response:
+        """List a session's messages; return the raw response."""
+        query = messages_query(limit, before)
+        return self._send(
+            "GET",
+            f"/session/{session_id}/message",
+            **request_spec(directory=directory, workspace=workspace, query=query),
+        )
+
+    def prompt(
+        self,
+        session_id: str,
+        prompt: str | list[PromptPart],
+        model: PromptModel | dict[str, Any] | None = None,
+        agent: str | None = None,
+        tools: dict[str, bool] | None = None,
+        system: str | None = None,
+        variant: str | None = None,
+        no_reply: bool | None = None,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Send a prompt (blocking); return the raw response."""
+        json_body = prompt_body(
+            prompt,
+            model=model,
+            agent=agent,
+            tools=tools,
+            system=system,
+            variant=variant,
+            no_reply=no_reply,
+            message_id=message_id,
+        )
+        return self._send(
+            "POST",
+            f"/session/{session_id}/message",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def prompt_async(
+        self,
+        session_id: str,
+        prompt: str | list[PromptPart],
+        model: PromptModel | dict[str, Any] | None = None,
+        agent: str | None = None,
+        tools: dict[str, bool] | None = None,
+        system: str | None = None,
+        variant: str | None = None,
+        no_reply: bool | None = None,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Send a prompt (fire-and-forget); return the raw response."""
+        json_body = prompt_body(
+            prompt,
+            model=model,
+            agent=agent,
+            tools=tools,
+            system=system,
+            variant=variant,
+            no_reply=no_reply,
+            message_id=message_id,
+        )
+        return self._send(
+            "POST",
+            f"/session/{session_id}/prompt_async",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def delete_message(
+        self,
+        session_id: str,
+        message_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Delete one message; return the raw response."""
+        return self._send(
+            "DELETE",
+            f"/session/{session_id}/message/{message_id}",
+            **request_spec(directory=directory, workspace=workspace),
+        )
+
+
+class AsyncSessionsResourceWithRawResponse(AsyncResource):
+    """Asynchronous raw-response view: same calls, returns ``httpx.Response``.
+
+    Mirrors :class:`AsyncSessionsResource` method-for-method but returns the
+    unprocessed response instead of the parsed model. Non-2xx still raise the
+    same mapped errors; retries are shared.
+    """
+
+    async def list_sessions(
+        self,
+        directory: str | None = None,
+        workspace: str | None = None,
+        scope: str | None = None,
+        path: str | None = None,
+        roots: bool | None = None,
+        start: float | None = None,
+        search: str | None = None,
+        limit: int | None = None,
+    ) -> httpx.Response:
+        """List sessions; return the raw response."""
+        query = session_list_query(scope, path, roots, start, search, limit)
+        return await self._send(
+            "GET", "/session", **request_spec(directory=directory, workspace=workspace, query=query)
+        )
+
+    async def create(
+        self,
+        directory: str | None = None,
+        workspace: str | None = None,
+        body: CreateSessionRequest | None = None,
+    ) -> httpx.Response:
+        """Create a session; return the raw response."""
+        json_body = create_body(body)
+        return await self._send(
+            "POST", "/session", **request_spec(directory=directory, workspace=workspace, json_body=json_body)
+        )
+
+    async def get(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Fetch one session; return the raw response."""
+        return await self._send(
+            "GET", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    async def update(
+        self,
+        session_id: str,
+        body: UpdateSessionRequest,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Update a session; return the raw response."""
+        json_body = update_body(body)
+        return await self._send(
+            "PATCH",
+            f"/session/{session_id}",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def delete(
+        self, session_id: str, directory: str | None = None, workspace: str | None = None
+    ) -> httpx.Response:
+        """Delete a session; return the raw response."""
+        return await self._send(
+            "DELETE", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    async def fork(
+        self,
+        session_id: str,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Fork a session; return the raw response."""
+        json_body = fork_body(message_id)
+        return await self._send(
+            "POST",
+            f"/session/{session_id}/fork",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def abort(
+        self, session_id: str, directory: str | None = None, workspace: str | None = None
+    ) -> httpx.Response:
+        """Abort a session; return the raw response."""
+        return await self._send(
+            "POST", f"/session/{session_id}/abort", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    async def share(
+        self, session_id: str, directory: str | None = None, workspace: str | None = None
+    ) -> httpx.Response:
+        """Publish a session; return the raw response."""
+        return await self._send(
+            "POST", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    async def unshare(
+        self, session_id: str, directory: str | None = None, workspace: str | None = None
+    ) -> httpx.Response:
+        """Withdraw a session's share; return the raw response."""
+        return await self._send(
+            "DELETE", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    async def summarize(
+        self,
+        session_id: str,
+        provider_id: str,
+        model_id: str,
+        auto: bool | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Ask for a summary; return the raw response."""
+        json_body = summarize_body(provider_id, model_id, auto)
+        return await self._send(
+            "POST",
+            f"/session/{session_id}/summarize",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def respond_permission(
+        self,
+        session_id: str,
+        permission_id: str,
+        response: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Answer a permission request; return the raw response."""
+        json_body = permission_body(response)
+        return await self._send(
+            "POST",
+            f"/session/{session_id}/permissions/{permission_id}",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def list_messages(
+        self,
+        session_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+        limit: int | None = None,
+        before: str | None = None,
+    ) -> httpx.Response:
+        """List a session's messages; return the raw response."""
+        query = messages_query(limit, before)
+        return await self._send(
+            "GET",
+            f"/session/{session_id}/message",
+            **request_spec(directory=directory, workspace=workspace, query=query),
+        )
+
+    async def prompt(
+        self,
+        session_id: str,
+        prompt: str | list[PromptPart],
+        model: PromptModel | dict[str, Any] | None = None,
+        agent: str | None = None,
+        tools: dict[str, bool] | None = None,
+        system: str | None = None,
+        variant: str | None = None,
+        no_reply: bool | None = None,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Send a prompt (blocking); return the raw response."""
+        json_body = prompt_body(
+            prompt,
+            model=model,
+            agent=agent,
+            tools=tools,
+            system=system,
+            variant=variant,
+            no_reply=no_reply,
+            message_id=message_id,
+        )
+        return await self._send(
+            "POST",
+            f"/session/{session_id}/message",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def prompt_async(
+        self,
+        session_id: str,
+        prompt: str | list[PromptPart],
+        model: PromptModel | dict[str, Any] | None = None,
+        agent: str | None = None,
+        tools: dict[str, bool] | None = None,
+        system: str | None = None,
+        variant: str | None = None,
+        no_reply: bool | None = None,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Send a prompt (fire-and-forget); return the raw response."""
+        json_body = prompt_body(
+            prompt,
+            model=model,
+            agent=agent,
+            tools=tools,
+            system=system,
+            variant=variant,
+            no_reply=no_reply,
+            message_id=message_id,
+        )
+        return await self._send(
+            "POST",
+            f"/session/{session_id}/prompt_async",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def delete_message(
+        self,
+        session_id: str,
+        message_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Delete one message; return the raw response."""
+        return await self._send(
+            "DELETE",
+            f"/session/{session_id}/message/{message_id}",
+            **request_spec(directory=directory, workspace=workspace),
+        )

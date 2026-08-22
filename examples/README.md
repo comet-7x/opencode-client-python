@@ -15,7 +15,7 @@
 | `02_discovery_config/` | 服务发现与配置 | health / config / providers / agents / commands / skills 一次摸清新服务 |
 | `03_vcs/` | 版本控制 | info / status / diff / diff_raw / apply（看改动、落盘 diff、打补丁） |
 | `04_mcp/` | MCP 服务器 | status（判别联合收窄）/ add（local·remote 两种 config） |
-| `05_advanced_patterns/` | 进阶模式 | 复用客户端、超时配置、异常捕获降级、事件流、权限/问答交互循环 |
+| `05_advanced_patterns/` | 进阶模式 | 复用客户端、超时配置、异常捕获降级、事件流、权限/问答交互循环、`with_raw_response` 裸响应 |
 
 编号前缀决定阅读顺序，对应 `client` 上的四个资源域
 （`sessions` / `server` / `vcs` / `mcp`）由浅到深；后续可按需新增 `99_*` 等文件夹。

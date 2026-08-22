@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Raw response view** (`with_raw_response`): every resource group
+  (`sessions` / `server` / `vcs` / `mcp`), in both sync and async flavours,
+  exposes a `<resource>.with_raw_response` prefix whose methods mirror the
+  parsed ones one-for-one but return the unprocessed `httpx.Response` on
+  success — handy for reading response headers, exact status codes, or the
+  body before model mapping. Retries and non-2xx error mapping are shared
+  with the normal view; `stream_events` has no raw variant (it yields an
+  event stream, not a one-shot response).
+
 ## [0.1.0] - 2026-08-22
 
 First public release.
@@ -45,4 +58,5 @@ First public release.
 - **Docker-managed local server**: `make docker-pull/run/tui/stop/logs/health`
   targets (default port 20001).
 
+[Unreleased]: https://github.com/comet-7x/opencode-client-python/compare/v0.1.0...develop
 [0.1.0]: https://github.com/comet-7x/opencode-client-python/releases/tag/v0.1.0

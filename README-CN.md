@@ -138,6 +138,21 @@ async with client.server.stream_events() as stream:
 `max_reconnect_attempts`，收到任意行即重置预算）；干净 EOF 结束迭代。
 `prompt_async` + `stream_events` 是实时观察一个 turn 的标准姿势。
 
+## 裸响应视图
+
+每个方法默认返回解析好的模型。若需要**响应头、精确状态码、或模型映射前的
+原始 body**，用 `with_raw_response` 前缀——签名、重试、非 2xx 的错误映射
+与正常视图完全一致，只是成功时返回未处理的 `httpx.Response`：
+
+```python
+raw = await client.sessions.with_raw_response.get(session_id)
+print(raw.status_code, raw.headers["content-type"])
+session = Session.model_validate(raw.json())  # 需要的话自己解析
+```
+
+四个资源域（`sessions` / `server` / `vcs` / `mcp`）都有；
+`stream_events` 没有 raw 变体（它返回事件流，不是一次性响应）。
+
 ## 本地服务（Docker）
 
 需要一个运行中的 `opencode serve`。Makefile 用 Docker 统一管理（默认端口
@@ -186,7 +201,7 @@ uv run pytest --live-url http://127.0.0.1:20001   # 可选的真实服务集成�
 | `02_discovery_config/` | 健康检查、配置、providers、agents、commands、skills |
 | `03_vcs/` | 仓库信息 / 状态 / diff / 原始 diff / 打补丁 |
 | `04_mcp/` | MCP 服务器状态 + 注册 |
-| `05_advanced_patterns/` | 客户端复用、异常处理、实时流、交互循环 |
+| `05_advanced_patterns/` | 客户端复用、异常处理、实时流、交互循环、裸响应视图 |
 
 所有脚本都在测试套件里用 `respx` 离线驱动，`uv run pytest` 无需真实服务即可验证。
 
