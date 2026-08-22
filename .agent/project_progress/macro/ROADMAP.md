@@ -16,6 +16,20 @@
 
 ## 关键记录
 
+### 2026-08-22 — Docker 统一管理本地服务 + 双语 README
+- 决策：**不自建 `opencode serve` 进程，统一 Docker 管理**。Makefile 新增
+  `docker-pull/run/tui/stop/logs/health` 目标（`OC_IMAGE`/`OC_PORT` 可覆盖，
+  默认 `ghcr.io/anomalyco/opencode:1.18.21` : 20001）；`docker-run` 挂
+  `./`→`/app`、`~/.config/opencode`→容器，provider 配置持久化复用。
+- 镜像拉取慢用**域名代理**（不改全局 Docker 配置）：`ghcr.io` →
+  `ghcr.nju.edu.cn`（南大）/ `ghcr.m.daocloud.io`（DaoCloud），拉完
+  `docker tag` 还原官方名，后续命令统一。
+- Mac 坑：容器访问宿主机 vLLM 须用 `host.docker.internal`，不能 `127.0.0.1`。
+- 探活端点为 `/global/health`（OpenAPI 里另有 `/api/health`，客户端库用前者；
+  笔记中的 `/health` 不是真实路径）。
+- 新增 `README.md`（英）/ `README.zh-CN.md`（中）：安装、快速上手、资源分组表、
+  异常树、事件流语义、Docker 服务、示例导航、开发命令。
+
 ### 2026-08-22 — examples 全模块补齐（02/03/04 新域 + 01 生命周期 + 05 交互补全）
 - 背景：盘点发现 37 个公开方法仅 ~15 有示例，vcs/mcp 两域零覆盖。
 - 目录重排：03_advanced_patterns → **05**；新增 **02_discovery_config**

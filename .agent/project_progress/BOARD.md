@@ -7,11 +7,12 @@
 - **宏观**：M4 测试强化 —— ✅ 完成（IT-008：SSE 自动重连 + 请求重试/集成/边界全测）
 - **微观**：无进行中迭代（IT-001~006 与 IT-008 已归档；IT-007 `with_raw_response` 占号未做）
 - **仓库**：已推送 `origin/develop`；日常命令走 Makefile（`make check` 全门禁）
-- **下一步行动**：开 M5（发布准备：README/CHANGELOG/版本号/打包）；
+- **下一步行动**：开 M5（发布准备：版本号/打包/发布渠道；README 已先行交付——
+  中英双语 `README.md`/`README.zh-CN.md`）；
   可先择机补做 IT-007（`with_raw_response`）；余下端点候选：share、MCP connect/auth 流
-- **备注**：examples 已按资源域全量补齐为 00~05 六个编号目录（quickstart /
-  session / discovery / vcs / mcp / advanced，各带 README），37 个公开方法全覆盖，
-  M5 写 README 时可直接引用该结构
+- **备注**：本地 `opencode serve` 统一 Docker 管理（Makefile `docker-*` 目标，
+  默认 20001；镜像慢走域名代理 + tag 还原）；examples 按资源域全量补齐为
+  00~05 六个编号目录，37 个公开方法全覆盖
 
 ```
 宏观  [███]██ M1 ✅ ─ M2 ✅ ── M3 ✅ ── M4 ✅ ── M5 ⬜

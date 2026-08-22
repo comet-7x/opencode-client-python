@@ -134,6 +134,39 @@ make check              # format-check + lint + types + test
 make clean              # 清理构建产物与工具缓存（不动 .venv）
 ```
 
+## 本地服务（Docker）
+
+开发/联调需要一个真实 `opencode serve`。统一用 **Docker** 管理（不自建进程），
+Makefile 提供 `docker-*` 目标（`make help` 可见），默认端口 `20001`：
+
+```sh
+make docker-pull        # 拉官方镜像 ghcr.io/anomalyco/opencode:1.18.21
+make docker-run         # 后台起 API 服务（-p 20001，挂 ./ 到 /app、挂 ~/.config/opencode）
+make docker-health      # curl /global/health 探活
+make docker-logs        # 看日志排查
+make docker-stop        # 停止并移除容器（配置持久化在 ~/.config/opencode，不受影响）
+make docker-tui         # 交互式 TUI（临时容器）
+```
+
+**镜像拉取慢**：直接把域名换成镜像代理（不改全局 Docker 配置），拉完 `docker tag`
+还原官方名再 `docker-run`，后续命令统一：
+
+| 原始 | 南大代理 | DaoCloud |
+|---|---|---|
+| `ghcr.io` | `ghcr.nju.edu.cn` | `ghcr.m.daocloud.io` |
+
+```sh
+docker pull ghcr.nju.edu.cn/anomalyco/opencode:1.18.21
+docker tag  ghcr.nju.edu.cn/anomalyco/opencode:1.18.21 ghcr.io/anomalyco/opencode:1.18.21
+```
+
+**Mac 专属**：若模型服务（vLLM）跑在宿主机，容器内不能用 `127.0.0.1`，
+provider 的 `baseURL` 要用 `http://host.docker.internal:8000/v1`；
+`~/.config/opencode/opencode.json` 里的 provider 配置被挂载复用。
+
+客户端侧所有示例/测试都指向 `http://127.0.0.1:20001`（见 `examples/`、
+`tests/test_live_server.py` 的 `--live-url`）。
+
 ## 约定
 
 - Python >= 3.11，使用现代语法（`X | None`、`list[T]` 等）。

@@ -1,7 +1,15 @@
 # 常用命令入口（底层仍用 uv 驱动，见 .agent/AGENTS.md「常用命令」）
 UV_RUN := uv run
 
-.PHONY: help install test lint format format-check types check clean
+# ---- 本地服务（Docker）默认值 -------------------------------------------
+# 官方镜像；拉取慢时换域名代理（ghcr.io -> ghcr.nju.edu.cn 或 ghcr.m.daocloud.io），
+# 拉完用 docker tag 还原官方名再 run，详见 .agent/AGENTS.md「本地服务（Docker）」。
+OC_IMAGE ?= ghcr.io/anomalyco/opencode:1.18.21
+OC_PORT  ?= 20001
+OC_HOST  ?= 0.0.0.0
+
+.PHONY: help install test lint format format-check types check clean \
+        docker-pull docker-run docker-tui docker-stop docker-logs docker-health
 
 help: ## 显示所有目标
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -27,6 +35,31 @@ types: ## 类型检查（mypy 全量 + pyright strict，src 与 tests 一起查�
 
 check: format-check lint types test ## 全量质量门禁（提交前必须全绿）
 	@echo "✓ all gates passed"
+
+# ---- 本地服务（Docker，管理 opencode 服务；见 AGENTS.md「本地服务（Docker）」）----
+docker-pull: ## 拉取官方镜像（慢时换 OC_IMAGE 为域名代理，如 ghcr.nju.edu.cn/anomalyco/opencode:1.18.21）
+	docker pull $(OC_IMAGE)
+
+docker-run: ## 后台启动 API 服务（默认端口 20001；先 docker-pull）
+	docker run -d \
+	  --name opencode-server \
+	  -p $(OC_PORT):$(OC_PORT) \
+	  -v $(PWD):/app \
+	  -v $(HOME)/.config/opencode:/root/.config/opencode \
+	  $(OC_IMAGE) \
+	  opencode serve --port $(OC_PORT) --hostname $(OC_HOST)
+
+docker-tui: ## 交互式 TUI（临时容器，Ctrl-D 退出即删）
+	docker run -it --rm -v $(PWD):/app $(OC_IMAGE) opencode tui
+
+docker-stop: ## 停止并移除容器（配置在 ~/.config/opencode 持久化，不受影响）
+	-docker rm -f opencode-server
+
+docker-logs: ## 查看服务日志（排查启动报错）
+	docker logs -f opencode-server
+
+docker-health: ## 探活（期望返回 {"healthy": true, ...}）
+	@curl -fsS http://127.0.0.1:$(OC_PORT)/global/health && echo
 
 clean: ## 清理构建产物与工具缓存（不动 .venv）
 	rm -rf dist build .mypy_cache .pytest_cache .ruff_cache
