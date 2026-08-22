@@ -2,7 +2,7 @@
 
 > 项目定位：轻量 Python 客户端，连接 `opencode serve` 服务层；代码风格参考官方 SDK
 > （`temp/repositories/opencode-sdk-python`），API 以
-> `learning_log/get_opencode_api/opencode_rest_api.json`（170+ 端点）为准。
+> `.agent/learning_log/get_opencode_api/opencode_rest_api.json`（170+ 端点）为准。
 
 ## 里程碑总览
 
@@ -15,6 +15,15 @@
 | M5 发布准备 | README 使用文档、CHANGELOG、版本号策略、打包验证（sdist+wheel）| ⬜ 未开始 |
 
 ## 关键记录
+
+### 2026-08-22 — 仓库工程化（.gitignore + Makefile + develop 分支）
+- `.agent/` 多 Agent 共享布局：指令/进度/学习日志收敛其中，根目录
+  `AGENTS.md`/`CLAUDE.md` 及 `.claude/skills`、`.opencode/skill|plugin` symlink 接线
+- `.gitignore` 建立（`.venv`/`dist`/工具缓存/`temp/` 参考仓库均排除）
+- Makefile 常用命令别名：`make install/test/lint/format/types/check/clean`
+  （`make check` = format-check + lint + types + test 全门禁）
+- 首次推送 `origin/develop`：5 批按类别提交（脚手架/核心/测试/示例/共享配置），
+  symlink 以 mode 120000 正确入库
 
 ### 2026-08-22 — IT-005 permission/question 交互闭环
 - 5 个交互端点（server 级，归 ServerResource 双类）：`list_permissions`/`reply_permission`

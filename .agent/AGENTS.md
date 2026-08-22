@@ -106,20 +106,26 @@ temp/repositories/     # 参考用第三方仓库（不参与构建，已排除�
 
 ## 常用命令
 
+Makefile 提供等价别名（`make help` 查看；CI/提交前用 `make check` 一次跑完门禁），
+底层仍由 uv 驱动，手写 uv 命令同样有效：
+
 ```sh
 # 安装（Python >= 3.11，建议 uv）
-uv sync                 # 或 pip install -e ".[dev]"
+make install            # = uv sync（或 pip install -e ".[dev]"）
 
 # 测试
-uv run pytest
+make test               # = uv run pytest
 
 # lint / 格式化
-uv run ruff check .
-uv run ruff format .
+make lint               # = uv run ruff check .
+make format             # = uv run ruff format .
 
 # 类型检查（pyright strict + mypy 都要过，src 和 tests 一起查）
-uv run pyright
-uv run mypy src/ tests/
+make types              # = uv run pyright + uv run mypy src/ tests/
+
+# 全量门禁 / 清理
+make check              # format-check + lint + types + test
+make clean              # 清理构建产物与工具缓存（不动 .venv）
 ```
 
 ## 约定
