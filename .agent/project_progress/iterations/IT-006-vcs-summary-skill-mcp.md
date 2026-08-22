@@ -58,5 +58,5 @@ summary（补测试）、skill（1）、MCP 基础（2）。with_raw_response �
 - MCPStatus 不用基类：strict pyright 禁止子类 Literal 窄化，5 个兄弟模型 + Annotated union
 - 环境债：本机 `all_proxy=socks5://…` 泄漏进测试 → conftest 统一清除，未动库行为
 - 68 = 45（前序）+ 23（本迭代）
-- 下一步候选（另开迭代）：IT-007 with_raw_response / IT-008 M4 集成+断连重连 /
+- 下一步候选（另开迭代）：IT-007 M4 集成+断连重连 / IT-009 with_raw_response /
   MCP connect/disconnect/auth 流 / vcs/apply 教学示例

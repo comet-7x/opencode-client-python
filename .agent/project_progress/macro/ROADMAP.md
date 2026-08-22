@@ -11,7 +11,7 @@
 | M1 奠基 | 项目结构（src 布局）、pyproject、质量工具链（ruff/mypy/pyright/pytest）、AGENTS.md | ✅ 完成（IT-001）|
 | M2 核心功能 | 会话/消息/事件流核心链路 + 真实服务端到端验证 | ✅ 完成（IT-002）|
 | M3 功能扩张 | 按使用场景补齐端点：权限/问答交互（IT-005）、vcs/skill/MCP 基础（IT-006）；工程化：地基 IT-003 + sync/async 对等 IT-004（余下候选 share/MCP 连接流留后续） | ✅ 完成 |
-| M4 测试强化 | 关键路径补充集成测试、事件流断连重连验证（含自动重连实现）、边界用例 | ✅ 完成（IT-008）|
+| M4 测试强化 | 关键路径补充集成测试、事件流断连重连验证（含自动重连实现）、边界用例 | ✅ 完成（IT-007）|
 | M5 发布准备 | README 使用文档、CHANGELOG、版本号策略、打包验证（sdist+wheel）| ⬜ 未开始 |
 
 ## 关键记录
@@ -48,7 +48,7 @@
 
 ### 2026-08-22 — conftest 收敛：删除根目录 conftest.py
 - 根目录 `conftest.py`（仅注册 `--live-url`/`--live-password`）删除，选项注册并入
-  `tests/conftest.py`。实测（pytest 9.1.1）IT-008 时「子目录 conftest 的选项钩子
+  `tests/conftest.py`。实测（pytest 9.1.1）IT-007 时「子目录 conftest 的选项钩子
   不生效」的结论过严：只要调用会收集到 tests/（`make test`、裸 `pytest`、
   `pytest tests/`），子目录 conftest 的 `pytest_addoption` 都生效；唯一不识别的
   是 `pytest examples/ --live-url ...`，该组合无意义（examples 全 respx 离线 mock）。
@@ -69,7 +69,7 @@
   asyncio 子任务（deadline sleep）不 cancel 就 gather 会挂满整个超时。
 - 结果：`make check` 绿，113 passed / 5 skipped。
 
-### 2026-08-22 — IT-008 M4 测试强化（SSE 自动重连 + 全测试补全）
+### 2026-08-22 — IT-007 M4 测试强化（SSE 自动重连 + 全测试补全）
 - **SSE 自动重连（新能力）**：`stream.iter_events()`/`aiter_events()` 内建重连；
   仅**传输错误**触发（0.5s→8s 指数退避，预算 `DEFAULT_STREAM_RECONNECT_ATTEMPTS=5`，
   收任意行重置预算，耗尽抛 `OpenCodeTransportError` 子类）；**干净 EOF 结束迭代**
@@ -104,7 +104,7 @@
   （本机 SOCKS 代理会让 httpx 构造即报错；库保留 trust_env 行为，测试自隔离）
 - 验证：全门禁绿（pytest **68 passed**）；真实服务 9 端点 sync+async 冒烟通过
   （apply 有写副作用，仅 respx 覆盖）
-- 后续另开迭代（一迭代一主题）：IT-007 `with_raw_response`、IT-008 M4 集成/断连重连
+- 后续另开迭代（一迭代一主题）：IT-007 M4 集成/断连重连、IT-009 `with_raw_response`
 
 ### 2026-08-22 — 仓库工程化（.gitignore + Makefile + develop 分支）
 - `.agent/` 多 Agent 共享布局：指令/进度/学习日志收敛其中，根目录
