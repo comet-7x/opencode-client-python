@@ -1,4 +1,4 @@
-# 03_advanced_patterns — 进阶模式
+# 05_advanced_patterns — 进阶模式
 
 ## 本文件夹讲什么
 
@@ -9,7 +9,7 @@
 | `client_reuse.py` | **复用 Client + 超时配置** | 一个连接池跑多次调用 vs 每次都新建；`timeout=`/`max_retries=` 参数；`with_options()` 派生新配置而不动原 client |
 | `error_handling.py` | **异常捕获与降级** | `OpenCodeApiError` 的分层族谱（404/429/5xx 各有子类）；怎么捕获后降级而不是崩溃；`status_code`/`payload` 怎么用 |
 | `stream_events.py` | **事件流 + 流式增量** | `prompt_async`（fire-and-forget）+ `stream_events()` 的 `aiter_events()`；断流自动重连 |
-| `interact_moving_session.py` | **权限/问答交互循环** | 轮询 `list_permissions`/`list_questions` 并应答，让一个会要权限的 turn 走完到 `session.idle` |
+| `interact_moving_session.py` | **权限/问答交互循环** | 轮询 `list_permissions`/`list_questions` 并应答，让一个会要权限的 turn 走完到 `session.idle`；`--respond` 额外演示 `sessions.respond_permission`（会话级端点）与 `server.reject_question`（整题拒绝） |
 
 ## 适用场景
 
@@ -30,10 +30,11 @@
 ## 运行
 
 ```sh
-uv run python -m examples.03_advanced_patterns.client_reuse
-uv run python -m examples.03_advanced_patterns.error_handling            # 故意 404，看降级
-uv run python -m examples.03_advanced_patterns.stream_events
-uv run python -m examples.03_advanced_patterns.interact_moving_session --allow
+uv run python -m examples.05_advanced_patterns.client_reuse
+uv run python -m examples.05_advanced_patterns.error_handling            # 故意 404，看降级
+uv run python -m examples.05_advanced_patterns.stream_events
+uv run python -m examples.05_advanced_patterns.interact_moving_session --allow
+uv run python -m examples.05_advanced_patterns.interact_moving_session --respond   # 额外演示 respond_permission / reject_question
 ```
 
 均支持 `--url`，`--help` 查看全部参数。

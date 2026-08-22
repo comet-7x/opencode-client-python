@@ -1,4 +1,4 @@
-"""03 error_handling: catch OpenCodeApiError and degrade instead of crashing.
+"""05 error_handling: catch OpenCodeApiError and degrade instead of crashing.
 
 Real programs should not dump a traceback to end users when the server says
 "not found". This script shows the exception hierarchy and the
@@ -8,8 +8,8 @@ fallbacks).
 
 Run (from the repo root):
 
-    uv run python -m examples.03_advanced_patterns.error_handling
-    uv run python examples/03_advanced_patterns/error_handling.py --url http://127.0.0.1:20001
+    uv run python -m examples.05_advanced_patterns.error_handling
+    uv run python examples/05_advanced_patterns/error_handling.py --url http://127.0.0.1:20001
 """
 
 from __future__ import annotations

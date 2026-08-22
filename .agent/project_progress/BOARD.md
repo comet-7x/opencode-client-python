@@ -9,8 +9,9 @@
 - **仓库**：已推送 `origin/develop`；日常命令走 Makefile（`make check` 全门禁）
 - **下一步行动**：开 M5（发布准备：README/CHANGELOG/版本号/打包）；
   可先择机补做 IT-007（`with_raw_response`）；余下端点候选：share、MCP connect/auth 流
-- **备注**：examples 已按场景重构为编号目录（00_quickstart / 01_session_management /
-  03_advanced_patterns，各带 README），M5 写 README 时可直接引用该结构
+- **备注**：examples 已按资源域全量补齐为 00~05 六个编号目录（quickstart /
+  session / discovery / vcs / mcp / advanced，各带 README），37 个公开方法全覆盖，
+  M5 写 README 时可直接引用该结构
 
 ```
 宏观  [███]██ M1 ✅ ─ M2 ✅ ── M3 ✅ ── M4 ✅ ── M5 ⬜

@@ -1,4 +1,4 @@
-"""03 stream_events: watch a prompt live over the SSE event stream.
+"""05 stream_events: watch a prompt live over the SSE event stream.
 
 The difference vs ``sessions.prompt`` (which blocks until the whole turn
 finishes): ``prompt_async`` fires the prompt and returns immediately, and we
@@ -13,8 +13,8 @@ module). No manual ``SSEDecoder`` plumbing is needed.
 
 Run (from the repo root):
 
-    uv run python -m examples.03_advanced_patterns.stream_events
-    uv run python examples/03_advanced_patterns/stream_events.py --provider anthropic --model claude-x
+    uv run python -m examples.05_advanced_patterns.stream_events
+    uv run python examples/05_advanced_patterns/stream_events.py --provider anthropic --model claude-x
 """
 
 from __future__ import annotations

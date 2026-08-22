@@ -16,6 +16,22 @@
 
 ## 关键记录
 
+### 2026-08-22 — examples 全模块补齐（02/03/04 新域 + 01 生命周期 + 05 交互补全）
+- 背景：盘点发现 37 个公开方法仅 ~15 有示例，vcs/mcp 两域零覆盖。
+- 目录重排：03_advanced_patterns → **05**；新增 **02_discovery_config**
+  （health/config/providers/agents/commands/skills + update_config）、
+  **03_vcs**（info/status/diff/diff_raw/apply）、**04_mcp**（status/add）。
+- 01 新增 `session_lifecycle.py`：update/get/fork/abort/share/unshare/
+  summarize/delete_message 一次走完（含 404 演示、share 未启用时降级、
+  summarize 动态选 connected provider）；05 interact 加 `--respond` 演示
+  `sessions.respond_permission` 与 `server.reject_question`。
+- 测试：fixture 扩展全部新端点路由，冒烟 9 → **16 例**（含 list_messages
+  此前漏测）。踩坑：respx 同 method+path 多次注册是别名覆盖（后者优先）；
+  宽泛 DELETE regex 会吞 /session/{id}/share（需 `$` 锚定）；
+  argparse `choices` 只能收窄到 str，传 `Literal` 参数要 `cast`。
+- 结果：`make check` 绿，120 passed / 5 skipped。覆盖率：sessions 15/15、
+  server 13/13、vcs 5/5、mcp 2/2（client 级 with_options 在 05）。
+
 ### 2026-08-22 — conftest 收敛：删除根目录 conftest.py
 - 根目录 `conftest.py`（仅注册 `--live-url`/`--live-password`）删除，选项注册并入
   `tests/conftest.py`。实测（pytest 9.1.1）IT-008 时「子目录 conftest 的选项钩子

@@ -1,4 +1,4 @@
-"""03 client_reuse: build the client ONCE and reuse it, with tuning knobs.
+"""05 client_reuse: build the client ONCE and reuse it, with tuning knobs.
 
 Teaches two related things:
 
@@ -14,8 +14,8 @@ Teaches two related things:
 
 Run (from the repo root):
 
-    uv run python -m examples.03_advanced_patterns.client_reuse
-    uv run python examples/03_advanced_patterns/client_reuse.py --url http://127.0.0.1:20001
+    uv run python -m examples.05_advanced_patterns.client_reuse
+    uv run python examples/05_advanced_patterns/client_reuse.py --url http://127.0.0.1:20001
 """
 
 from __future__ import annotations

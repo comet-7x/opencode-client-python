@@ -1,4 +1,4 @@
-"""03 interact_moving_session: keep a turn moving by answering its requests.
+"""05 interact_moving_session: keep a turn moving by answering its requests.
 
 Some prompts need a human in the loop: the agent asks for **tool permission**
 (``permission.updated``) or poses a follow-up **question** (``question.updated``),
@@ -10,13 +10,18 @@ runs unattended:
 - meanwhile poll ``server.list_permissions`` / ``server.list_questions`` and
   answer each pending request.
 
+With ``--respond`` the script additionally demos the two remaining interaction
+verbs on a pre-existing pending request pair: ``sessions.respond_permission``
+(the session-scoped endpoint) and ``server.reject_question``.
+
 Safety default: permissions are answered **reject** (never auto-grant a tool).
 Pass ``--allow`` to auto-approve with ``once`` instead.
 
 Run (from the repo root):
 
-    uv run python -m examples.03_advanced_patterns.interact_moving_session
-    uv run python -m examples.03_advanced_patterns.interact_moving_session --allow
+    uv run python -m examples.05_advanced_patterns.interact_moving_session
+    uv run python -m examples.05_advanced_patterns.interact_moving_session --allow
+    uv run python -m examples.05_advanced_patterns.interact_moving_session --respond
 """
 
 from __future__ import annotations
@@ -93,6 +98,39 @@ async def answer_pending(client: AsyncOpenCodeClient, *, allow: bool) -> int:
     return answered
 
 
+async def demo_remaining_verbs(client: AsyncOpenCodeClient) -> None:
+    """Demo the two interaction verbs the polling loop above doesn't use.
+
+    The main loop answers requests via the server-scoped endpoints
+    (``server.reply_permission`` / ``server.reply_question``). opencode also
+    exposes a session-scoped permission endpoint (``sessions.respond_permission``)
+    and a question rejection endpoint (``server.reject_question``); this
+    function drives both against a real pending request when one happens to
+    exist.
+
+    Args:
+        client: 已打开的客户端。
+    """
+    # —— sessions.respond_permission：与 server.reply_permission 效果相同，
+    #    但路径挂在 /session/{id}/permissions/{pid} 下，适合"我只知道会话 id"的场景。
+    permissions = await client.server.list_permissions()
+    if permissions:
+        perm = permissions[0]
+        ok = await client.sessions.respond_permission(perm.session_id, perm.id, "reject")
+        print(f"respond_permission: 会话 {perm.session_id} 的 {perm.id} -> reject = {ok}")
+    else:
+        print("respond_permission: 当前没有 pending 权限请求，跳过（跑一个会触发工具的 turn 再试）")
+
+    # —— server.reject_question：不回答、直接拒绝整个 question 请求
+    #    （区别于 reply_question：逐题给答案）。
+    questions = await client.server.list_questions()
+    if questions:
+        ok = await client.server.reject_question(questions[0].id)
+        print(f"reject_question: {questions[0].id} -> rejected = {ok}")
+    else:
+        print("reject_question: 当前没有 pending 问题请求，跳过")
+
+
 async def run_turn(client: AsyncOpenCodeClient, *, allow: bool, model: dict[str, str] | None) -> int:
     """Run one prompt to completion, answering whatever it asks for.
 
@@ -141,18 +179,22 @@ async def run_turn(client: AsyncOpenCodeClient, *, allow: bool, model: dict[str,
         await client.sessions.delete(session.id)  # 清理会话
 
 
-async def main(base_url: str, allow: bool, provider_id: str | None, model_id: str | None) -> None:
+async def main(base_url: str, allow: bool, respond: bool, provider_id: str | None, model_id: str | None) -> None:
     """Open the client and run one interactive turn.
 
     Args:
         base_url: server base URL.
         allow: 是否自动批准工具权限。
+        respond: 是否额外演示 respond_permission / reject_question 两个动词。
         provider_id: 可选 provider。
         model_id: 可选 model。
     """
     model = {"providerID": provider_id, "modelID": model_id} if provider_id and model_id else None
     async with AsyncOpenCodeClient(base_url) as client:
         await run_turn(client, allow=allow, model=model)
+        if respond:
+            print("\n== 其余两个交互动词 ==")
+            await demo_remaining_verbs(client)
 
 
 def cli() -> None:
@@ -160,12 +202,13 @@ def cli() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default=BASE_URL, help="opencode server base URL")
     parser.add_argument("--allow", action="store_true", help="auto-approve tool permissions")
+    parser.add_argument("--respond", action="store_true", help="also demo respond_permission / reject_question")
     parser.add_argument("--provider", default=None, help="pin a provider id")
     parser.add_argument("--model", default=None, help="pin a model id")
     args = parser.parse_args()
 
     try:
-        asyncio.run(main(args.url, args.allow, args.provider, args.model))
+        asyncio.run(main(args.url, args.allow, args.respond, args.provider, args.model))
     except OpenCodeApiError as exc:
         print(f"[OpenCodeApiError] HTTP {exc.status_code}: {exc.payload}", file=sys.stderr)
         raise SystemExit(1) from exc
