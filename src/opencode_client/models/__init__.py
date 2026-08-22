@@ -10,7 +10,7 @@ package root or from this submodule; deep submodule paths
 from __future__ import annotations
 
 from .base import OpencodeModel
-from .discover import Agent, Command, Health, Model, Provider, ProviderList, ServerConfig
+from .discover import Agent, Command, Health, Model, Provider, ProviderList, ServerConfig, Skill
 from .event import Event
 from .interaction import (
     PermissionRequest,
@@ -20,6 +20,18 @@ from .interaction import (
     QuestionOption,
     QuestionRequest,
     QuestionTool,
+)
+from .mcp import (
+    McpConfig,
+    McpLocalConfig,
+    McpOAuthConfig,
+    McpRemoteConfig,
+    MCPStatus,
+    MCPStatusConnected,
+    MCPStatusDisabled,
+    MCPStatusFailed,
+    MCPStatusNeedsAuth,
+    MCPStatusNeedsClientRegistration,
 )
 from .message import (
     AssistantMessage,
@@ -80,6 +92,7 @@ from .session import (
     SessionTokens,
     UpdateSessionRequest,
 )
+from .vcs import VcsFileDiff, VcsFileStatus, VcsInfo
 
 __all__ = [
     "Agent",
@@ -104,6 +117,16 @@ __all__ = [
     "Message",
     "MessageTime",
     "MessageWithParts",
+    "MCPStatus",
+    "MCPStatusConnected",
+    "MCPStatusDisabled",
+    "MCPStatusFailed",
+    "MCPStatusNeedsAuth",
+    "MCPStatusNeedsClientRegistration",
+    "McpConfig",
+    "McpLocalConfig",
+    "McpOAuthConfig",
+    "McpRemoteConfig",
     "Model",
     "ModelID",
     "OpencodeModel",
@@ -134,6 +157,7 @@ __all__ = [
     "SessionTime",
     "SessionTokenCache",
     "SessionTokens",
+    "Skill",
     "SnapshotPart",
     "StepFinishPart",
     "StepStartPart",
@@ -151,4 +175,7 @@ __all__ = [
     "UserMessage",
     "UserMessageModel",
     "UserMessageSummary",
+    "VcsFileDiff",
+    "VcsFileStatus",
+    "VcsInfo",
 ]

@@ -23,6 +23,9 @@ from ..models import (
     Command,
     CreateSessionRequest,
     Health,
+    McpLocalConfig,
+    McpRemoteConfig,
+    MCPStatus,
     MessageWithParts,
     PermissionRequest,
     PromptModel,
@@ -30,8 +33,12 @@ from ..models import (
     ProviderList,
     QuestionRequest,
     Session,
+    Skill,
     TextPartInput,
     UpdateSessionRequest,
+    VcsFileDiff,
+    VcsFileStatus,
+    VcsInfo,
 )
 from .base import query_params
 
@@ -40,6 +47,7 @@ __all__ = [
     "create_body",
     "fork_body",
     "messages_query",
+    "mcp_add_body",
     "permission_body",
     "prompt_body",
     "request_spec",
@@ -47,6 +55,9 @@ __all__ = [
     "summarize_body",
     "update_body",
     "validate_response",
+    "validate_text",
+    "vcs_apply_body",
+    "vcs_diff_query",
     "permission_reply_body",
     "question_reply_body",
 ]
@@ -85,6 +96,20 @@ class TypeAdapters:
     permission_requests: TypeAdapter[list[PermissionRequest]] = TypeAdapter(list[PermissionRequest])
     #: ``GET /question``.
     question_requests: TypeAdapter[list[QuestionRequest]] = TypeAdapter(list[QuestionRequest])
+    #: ``GET /vcs``.
+    vcs_info: TypeAdapter[VcsInfo] = TypeAdapter(VcsInfo)
+    #: ``GET /vcs/status``.
+    vcs_status: TypeAdapter[list[VcsFileStatus]] = TypeAdapter(list[VcsFileStatus])
+    #: ``GET /vcs/diff``.
+    vcs_diff: TypeAdapter[list[VcsFileDiff]] = TypeAdapter(list[VcsFileDiff])
+    #: ``POST /vcs/apply`` result document.
+    vcs_apply: TypeAdapter[dict[str, Any]] = TypeAdapter(dict[str, Any])
+    #: ``GET /skill``.
+    skill_list: TypeAdapter[list[Skill]] = TypeAdapter(list[Skill])
+    #: ``GET /mcp`` — server name -> status union.
+    mcp_status: TypeAdapter[dict[str, MCPStatus]] = TypeAdapter(dict[str, MCPStatus])
+    #: ``POST /mcp`` result document.
+    mcp_add: TypeAdapter[dict[str, Any]] = TypeAdapter(dict[str, Any])
 
 
 #: Shared response validators keyed by response shape.
@@ -105,6 +130,18 @@ def validate_response(response: httpx.Response, adapter: TypeAdapter[_T]) -> _T:
         The validated model (or list / scalar) described by ``adapter``.
     """
     return adapter.validate_python(response.json())
+
+
+def validate_text(response: httpx.Response) -> str:
+    """Return a non-JSON response body as text (e.g. ``GET /vcs/diff/raw``).
+
+    Args:
+        response: A completed (already sent) response.
+
+    Returns:
+        The decoded body text.
+    """
+    return response.text
 
 
 def request_spec(
@@ -341,3 +378,48 @@ def question_reply_body(answers: list[list[str]]) -> dict[str, Any]:
         The JSON body dict.
     """
     return {"answers": answers}
+
+
+def vcs_diff_query(mode: str, context: int | None) -> dict[str, Any]:
+    """Collect the query params for ``GET /vcs/diff`` (``mode`` is required).
+
+    Args:
+        mode: Diff base, ``"git"`` or ``"branch"`` (required by the server).
+        context: Optional number of context lines.
+
+    Returns:
+        The query dict.
+    """
+    query: dict[str, Any] = {"mode": mode}
+    _optional(query, "context", context)
+    return query
+
+
+def vcs_apply_body(patch: str) -> dict[str, Any]:
+    """Build the ``POST /vcs/apply`` body.
+
+    Args:
+        patch: The unified diff patch to apply to the working tree.
+
+    Returns:
+        The JSON body dict.
+    """
+    return {"patch": patch}
+
+
+def mcp_add_body(name: str, config: McpLocalConfig | McpRemoteConfig | dict[str, Any]) -> dict[str, Any]:
+    """Build the ``POST /mcp`` body from a validated config model.
+
+    Args:
+        name: The server name to register.
+        config: A :class:`McpLocalConfig` / :class:`McpRemoteConfig`, or a raw
+            wire dict escape hatch (see :func:`prompt_body`'s ``model``).
+
+    Returns:
+        The JSON body dict.
+    """
+    if isinstance(config, (McpLocalConfig, McpRemoteConfig)):
+        config_wire: dict[str, Any] = config.to_wire()
+    else:
+        config_wire = dict(config)
+    return {"name": name, "config": config_wire}

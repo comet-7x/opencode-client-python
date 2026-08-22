@@ -39,8 +39,10 @@ import httpx
 from ._types import NOT_GIVEN, NotGiven
 from .constants import DEFAULT_CONNECT_TIMEOUT, DEFAULT_MAX_RETRIES, DEFAULT_USER_AGENT
 from .errors import OpenCodeServerError, make_api_error, make_transport_error
+from .resources.mcp import AsyncMcpResource, McpResource
 from .resources.server import AsyncServerResource, ServerResource
 from .resources.sessions import AsyncSessionsResource, SessionsResource
+from .resources.vcs import AsyncVcsResource, VcsResource
 
 __all__ = ["AsyncOpenCodeClient", "OpenCodeClient"]
 
@@ -199,6 +201,8 @@ class OpenCodeClient:
         self._http = httpx.Client(**_client_kwargs(base_url, username, password, timeout, kwargs))
         self.sessions = SessionsResource(self)
         self.server = ServerResource(self)
+        self.vcs = VcsResource(self)
+        self.mcp = McpResource(self)
 
     @property
     def http(self) -> httpx.Client:
@@ -320,6 +324,8 @@ class AsyncOpenCodeClient:
         self._http = httpx.AsyncClient(**_client_kwargs(base_url, username, password, timeout, kwargs))
         self.sessions = AsyncSessionsResource(self)
         self.server = AsyncServerResource(self)
+        self.vcs = AsyncVcsResource(self)
+        self.mcp = AsyncMcpResource(self)
 
     @property
     def http(self) -> httpx.AsyncClient:

@@ -5,7 +5,7 @@ from typing import Any, Literal
 from .base import OpencodeModel
 from .session import PermissionRuleset
 
-__all__ = ["Agent", "Command", "Health", "Model", "Provider", "ProviderList", "ServerConfig"]
+__all__ = ["Agent", "Command", "Health", "Model", "Provider", "ProviderList", "ServerConfig", "Skill"]
 
 
 class Model(OpencodeModel):
@@ -84,3 +84,12 @@ class Agent(OpencodeModel):
     variant: str | None = None
     prompt: str | None = None
     options: dict[str, Any]
+
+
+class Skill(OpencodeModel):
+    """A skill exposed by the server (``GET /skill``)."""
+
+    name: str
+    location: str
+    content: str
+    description: str | None = None

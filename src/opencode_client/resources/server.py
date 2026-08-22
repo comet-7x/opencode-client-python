@@ -1,8 +1,8 @@
-"""Server resource: health, config, discovery, interactions, and the event stream.
+"""Server resource: health, config, discovery, skills, interactions, and the event stream.
 
 Maps to the non-session endpoints (``/global/health``, ``/config``,
-``/provider``, ``/agent``, ``/command``, ``/permission*``, ``/question*``,
-``/event``) and ships in two flavours:
+``/provider``, ``/agent``, ``/command``, ``/skill``, ``/permission*``,
+``/question*``, ``/event``) and ships in two flavours:
 
 - :class:`ServerResource` — synchronous, backed by :class:`OpenCodeClient`;
 - :class:`AsyncServerResource` — asynchronous, backed by :class:`AsyncOpenCodeClient`.
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..models import Agent, Command, Health, PermissionRequest, ProviderList, QuestionRequest
+from ..models import Agent, Command, Health, PermissionRequest, ProviderList, QuestionRequest, Skill
 from ._wire import TYPE_ADAPTERS, permission_reply_body, question_reply_body, request_spec, validate_response
 from .base import AsyncResource, Resource, query_params
 
@@ -65,6 +65,11 @@ class ServerResource(Resource):
         """List available slash commands (built-ins, MCP tools, skills)."""
         response = self._send("GET", "/command", **request_spec(directory=directory, workspace=workspace))
         return validate_response(response, TYPE_ADAPTERS.command_list)
+
+    def list_skills(self, directory: str | None = None, workspace: str | None = None) -> list[Skill]:
+        """List the skills exposed by the server, with location and body."""
+        response = self._send("GET", "/skill", **request_spec(directory=directory, workspace=workspace))
+        return validate_response(response, TYPE_ADAPTERS.skill_list)
 
     # -- interactions: permissions ---------------------------------------
 
@@ -220,6 +225,11 @@ class AsyncServerResource(AsyncResource):
         """List available slash commands (built-ins, MCP tools, skills)."""
         response = await self._send("GET", "/command", **request_spec(directory=directory, workspace=workspace))
         return validate_response(response, TYPE_ADAPTERS.command_list)
+
+    async def list_skills(self, directory: str | None = None, workspace: str | None = None) -> list[Skill]:
+        """List the skills exposed by the server, with location and body."""
+        response = await self._send("GET", "/skill", **request_spec(directory=directory, workspace=workspace))
+        return validate_response(response, TYPE_ADAPTERS.skill_list)
 
     # -- interactions: permissions ---------------------------------------
 
