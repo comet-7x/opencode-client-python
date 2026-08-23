@@ -2,13 +2,14 @@
 
 ## 本文件夹讲什么
 
-真实应用里比"发一句话"多出的那些工程问题。五个脚本各演示一类：
+真实应用里比"发一句话"多出的那些工程问题。六个脚本各演示一类：
 
 | 脚本 | 模式 | 关键点 |
 |---|---|---|
 | `client_reuse.py` | **复用 Client + 超时配置** | 一个连接池跑多次调用 vs 每次都新建；`timeout=`/`max_retries=` 参数；`with_options()` 派生新配置而不动原 client |
 | `error_handling.py` | **异常捕获与降级** | `OpenCodeApiError` 的分层族谱（404/429/5xx 各有子类）；怎么捕获后降级而不是崩溃；`status_code`/`payload` 怎么用 |
-| `stream_events.py` | **事件流 + 流式增量** | `prompt_async`（fire-and-forget）+ `stream_events()` 的 `aiter_events()`；按 `partID` 区分**思考/正文/工具调用**三类事件（delta 的 `field` 对思考和正文都是 `text`）；断流自动重连 |
+| `stream_events.py` | **事件流 + 流式增量（裸流）** | `prompt_async`（fire-and-forget）+ `stream_events()` 的 `aiter_events()`；按 `partID` 区分**思考/正文/工具调用**三类事件（delta 的 `field` 对思考和正文都是 `text`）；断流自动重连 |
+| `event_router.py` | **事件 Router + 类型化热事件** | `stream.route(session_id)` 收窄广播 + `bus.on(type, handler)` 三行订阅替代 if/elif 监听循环；热事件自动类型化（`event.part: Part`，未知类型回落基类 `Event`）；`run(until="session.idle", timeout=)` 统一收口 |
 | `interact_moving_session.py` | **权限/问答交互循环** | 轮询 `list_permissions`/`list_questions` 并应答，让一个会要权限的 turn 走完到 `session.idle`；`--respond` 额外演示 `sessions.respond_permission`（会话级端点）与 `server.reject_question`（整题拒绝） |
 | `raw_response.py` | **裸响应视图** | `<resource>.with_raw_response.<method>(...)` 返回未解析的 `httpx.Response`（头/状态码/原始 body）；重试与错误映射与正常视图一致；`stream_events` 无 raw 变体 |
 
@@ -17,6 +18,8 @@
 - 写服务/批处理任务，需要控制**超时**与**重试**（`client_reuse.py`）；
 - 面向用户的程序，需要**优雅降级**而不是把异常堆栈糊用户脸上（`error_handling.py`）；
 - 需要**实时**看到模型输出/工具调用，而不是干等 turn 结束（`stream_events.py`）；
+- 实时监听但不想手写 if/elif 分支、不想从 `properties` 字典挖字段——
+  按类型订阅 + 类型化 payload（`event_router.py`）；
 - 自动化要**无人值守**地推进 turn：自动批准/拒绝权限与回答追问
   （`interact_moving_session.py`）；
 - 需要看到**响应头 / 原始 body / 精确状态码**（限流探测、透传、调试），
@@ -36,6 +39,7 @@
 uv run python -m examples.05_advanced_patterns.client_reuse
 uv run python -m examples.05_advanced_patterns.error_handling            # 故意 404，看降级
 uv run python -m examples.05_advanced_patterns.stream_events
+uv run python -m examples.05_advanced_patterns.event_router
 uv run python -m examples.05_advanced_patterns.interact_moving_session --allow
 uv run python -m examples.05_advanced_patterns.interact_moving_session --respond   # 额外演示 respond_permission / reject_question
 uv run python -m examples.05_advanced_patterns.raw_response

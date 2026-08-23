@@ -128,6 +128,18 @@ def _question_payload() -> dict[str, Any]:
 TEXT_PART = {"id": "prt_t", "sessionID": "ses_e", "messageID": "msg_a", "type": "text", "text": "pong"}
 
 
+def _part_updated_event(text: str) -> dict[str, Any]:
+    """One ``message.part.updated`` SSE event (wire shape: sessionID+part+time, all required)."""
+    return {
+        "type": "message.part.updated",
+        "properties": {
+            "sessionID": "ses_e",
+            "part": {"id": "prt_t", "type": "text", "text": text, "messageID": "msg_a", "sessionID": "ses_e"},
+            "time": 1,
+        },
+    }
+
+
 @pytest.fixture(autouse=True)
 def mock_server() -> Generator[respx.MockRouter, None, None]:
     """Mocking of the endpoints that the example scripts touch.
@@ -257,11 +269,12 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
         router.route(method="POST", path__regex=r"/session/[^/]+/permissions/[^/]+").mock(
             return_value=httpx.Response(200, json=True)
         )
+        # part.updated 的 wire 形状（/doc 导出）：sessionID + part + time 均必填。
         sse = (
-            f"data: {json.dumps({'type': 'message.part.updated', 'properties': {'sessionID': 'ses_e', 'part': {'id': 'prt_t', 'type': 'text', 'text': '', 'messageID': 'msg_a', 'sessionID': 'ses_e'}}})}\n\n"
+            f"data: {json.dumps(_part_updated_event(''))}\n\n"
             f"data: {json.dumps({'type': 'message.part.delta', 'properties': {'sessionID': 'ses_e', 'partID': 'prt_t', 'field': 'text', 'delta': 'hello '}})}\n\n"
             f"data: {json.dumps({'type': 'message.part.delta', 'properties': {'sessionID': 'ses_e', 'partID': 'prt_t', 'field': 'text', 'delta': 'world'}})}\n\n"
-            f"data: {json.dumps({'type': 'message.part.updated', 'properties': {'sessionID': 'ses_e', 'part': {'id': 'prt_t', 'type': 'text', 'text': 'hello world', 'messageID': 'msg_a', 'sessionID': 'ses_e'}}})}\n\n"
+            f"data: {json.dumps(_part_updated_event('hello world'))}\n\n"
             f"data: {json.dumps({'type': 'session.idle', 'properties': {'sessionID': 'ses_e'}})}\n\n"
         ).encode()
         router.get("/event").mock(
@@ -338,6 +351,10 @@ class TestExamplesSmoke:
 
     def test_stream_events(self) -> None:
         mod = _load("05_advanced_patterns.stream_events")
+        _run_cli(mod, "--url", BASE)
+
+    def test_event_router(self) -> None:
+        mod = _load("05_advanced_patterns.event_router")
         _run_cli(mod, "--url", BASE)
 
     def test_interact_moving_session(self) -> None:
