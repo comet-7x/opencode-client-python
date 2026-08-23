@@ -6,7 +6,7 @@ read the server's ``/event`` stream for the fine-grained updates — including
 incremental text deltas, tool states, and the ``session.idle`` end-of-turn
 signal.
 
-The stream is an :class:`EventStream` context manager; consume it with
+The stream is an :class:`AsyncEventStream` context manager; consume it with
 ``aiter_events()`` which decodes lines into :class:`Event` objects and
 **reconnects automatically** after transient drops (see the package ``sse``
 module). No manual ``SSEDecoder`` plumbing is needed.
@@ -61,7 +61,7 @@ async def listen_until_idle(client: AsyncOpenCodeClient, session_id: str) -> int
     part_types: dict[str, str] = {}  # partID -> part.type（从 updated 事件学习）
     tool_status: dict[str, str] = {}  # partID -> 最近一次工具状态（只打印变化）
     thinking: set[str] = set()  # 正在输出思考块的 partID
-    # stream_events() 返回 EventStream，是 async 上下文管理器：
+    # stream_events() 返回 AsyncEventStream，是 async 上下文管理器：
     # 退出时一定关闭底层连接，即使中间抛了错。
     #
     # max_reconnect_attempts=0：本例只消费“一次连接”。生产环境若希望

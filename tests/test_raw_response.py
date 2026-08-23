@@ -2,7 +2,7 @@
 
 Structural: every resource's raw twin keeps the exact same public method
 surface (and parameter order) as the parsed view — server drops only
-``stream_events``, which yields an :class:`EventStream`, not a one-shot
+``stream_events``, which yields an :class:`AsyncEventStream`, not a one-shot
 response. Behavioural: raw calls hit the identical wire as parsed calls,
 return the unprocessed :class:`httpx.Response`, and keep the shared
 retry/error mapping. Only the package-root public API is used here on
@@ -35,7 +35,7 @@ BASE = "http://localhost:4096"
 
 DOMAINS = ["sessions", "server", "vcs", "mcp"]
 
-# stream_events 返回 EventStream 而非一次性响应，是唯一没有 raw 变体的方法
+# stream_events 返回 AsyncEventStream 而非一次性响应，是唯一没有 raw 变体的方法
 RAW_EXCLUDED = {"stream_events"}
 
 

@@ -145,7 +145,7 @@ class TestSessions:
         assert payload["data"]["message"] == "Session not found"
 
 
-class TestEventStream:
+class TestAsyncEventStream:
     async def test_stream_events_end_to_end(self, mock_server: respx.MockRouter, client: AsyncOpenCodeClient) -> None:
         events = [
             json.dumps({"id": "evt_1", "type": "session.created", "properties": {"info": _session_payload()}}),

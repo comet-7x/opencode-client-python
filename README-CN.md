@@ -138,6 +138,30 @@ async with client.server.stream_events() as stream:
 `max_reconnect_attempts`，收到任意行即重置预算）；干净 EOF 结束迭代。
 `prompt_async` + `stream_events` 是实时观察一个 turn 的标准姿势。
 
+### 类型化热事件与事件 Router
+
+不必再对 `event.type` 做 `if/elif` 分支、从 `properties` 字典里挖字段：
+高频消费的事件类型会以**类型化子类**到达（`message.part.updated` →
+`event.part: Part`、`message.part.delta`、`message.updated`、`session.idle`、
+`permission.asked`、`question.asked`）。未知类型、以及 payload 解析失败的
+热事件，一律回落基类 `Event`——流永不断。
+
+`stream.route(session_id)` 构建事件 Router：按类型订阅、按到达序顺序分发、
+一个 run 循环统一收口：
+
+```python
+async with client.server.stream_events() as stream:
+    bus = stream.route(session.id)
+    bus.on("message.part.delta", lambda e: print(e.delta))  # 类型化 payload
+    bus.on("message.part.updated", lambda e: print(e.part.type))
+    await bus.run(until="session.idle", timeout=300)
+```
+
+handler 可为 sync 或 async；同一类型可挂多个订阅；`run` 在 `until` 类型
+匹配、handler 抛错、`timeout` 超时、或干净流结束时停止。`EventType`
+（开放集 `StrEnum`）可替代裸字符串使用。裸迭代器
+`aiter_events()` / `iter_events()` 原样保留，供高级用法。
+
 ## 裸响应视图
 
 每个方法默认返回解析好的模型。若需要**响应头、精确状态码、或模型映射前的

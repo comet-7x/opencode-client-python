@@ -16,6 +16,28 @@
 
 ## 关键记录
 
+### 2026-08-23 — IT-010 事件 Router + 类型化热事件
+- **契约层**（`models/event.py`）：`EventType`（`StrEnum` 开放集，57 成员，
+  种子 = 服务端 `/doc` 导出的 v1 事件面）；6 热事件子类复用现有模型
+  （`MessagePartUpdatedEvent.part → Part` 判别联合 /
+  `PermissionAskedEvent.request → PermissionRequest` /
+  `QuestionAskedEvent.request → QuestionRequest`）；`_TypedEvent` 的
+  before 校验器把 `properties` 提升到顶层；`typed_event()` 升级未知类型
+  直通、payload 解析失败降级基类（流永不断）。
+- **消费层**（`router.py` 新文件，包根）：`AsyncEventRouter`/`EventRouter`，
+  `stream.route(session_id)` 进 `sse.py`；单读者顺序分发（保 part 创建先于
+  delta 的时序）、多订阅、`until`/`timeout`/错误传播/干净 EOF 四路收口；
+  裸流 `aiter_events()` 原样保留（加法式）。
+- **权威源修正**（设计 §12）：事件面以 `/doc` 导出的 OpenAPI 为准——
+  "94 种"系误传（实为 57 个 v1 事件）；`permission.updated`/
+  `question.updated` 不存在，实为 `permission.asked`/`question.asked`；
+  `packages/schema/src/v1` 只定义 16 个、生成 SDK 有漂移。
+- 关键坑：`Part` 必须运行时导入（`TYPE_CHECKING` 下 pydantic 延迟注解
+  解析报错）；pyright strict 的 lambda 参数收窄 / StrEnum 字面量收窄 /
+  dict spread partial-unknown 返回各有处理。
+- 结果：`make check` 全绿，**174 passed / 5 skipped**（新增
+  `tests/test_event_router.py` 32 项）。引用设计的流式消费将建在 Router 上。
+
 ### 2026-08-22 — Docker 统一管理本地服务 + 双语 README
 - 决策：**不自建 `opencode serve` 进程，统一 Docker 管理**。Makefile 新增
   `docker-pull/run/tui/stop/logs/health` 目标（`OC_IMAGE`/`OC_PORT` 可覆盖，
@@ -134,7 +156,7 @@
 - **吸收官方长板**：分层异常（404→`OpenCodeNotFoundError`、429→`RateLimit`、5xx→`Server`、
   timeout/connection 独立基类）、`NOT_GIVEN` 哨兵（`with_options` 精确 override）、
   自动重试（429/5xx/连接错误，指数退避 + `Retry-After`）、`with_options` 派生
-- 同步 SSE：`SyncEventStream` 与 async `EventStream` 对等
+- 同步 SSE：`EventStream` 与 async `AsyncEventStream` 对等
 - **破坏性变更（0.1.0 未发布，接受）**：原 async `OpenCodeClient` → `AsyncOpenCodeClient`；
   examples/tests 全量迁移
 - 未做（待决）：`with_raw_response`（返回原始 httpx.Response）
@@ -164,7 +186,7 @@
 - 模型层 `models.py`：Session/Message(discriminated union)/Part(11 种)/ToolState/Agent/Provider 等
 - **wire 格式关键约定**：camelCase + 大写 ID（`sessionID`），由 `_id_alias` 生成器统一处理
 - `sse.py`：WHATWG SSE 行协议解码器；`client.py`：session 全套 CRUD、prompt/prompt_async、
-  `stream_events()`（EventStream 异步上下文管理器）、health/config/providers/agents/commands/respond_permission
+  `stream_events()`（AsyncEventStream 异步上下文管理器）、health/config/providers/agents/commands/respond_permission
 - 端到端验证：建会话 → prompt(Qwen3.8-27B) → SSE 92 deltas + session.idle → 历史/abort/fork/delete 全部成功
 - 修复：`prompt(model=)` 支持 dict；`MessageWithParts.parts` 由弱类型改为 `list[Part]`
 - 已知环境问题：本机 uv python 3.12.13 缺 `collections.abc.AsyncContextManager`（疑似坏构建）；
@@ -191,6 +213,9 @@
 - [x] 是否需要 sync 客户端 → **IT-004 已交付**（双客户端对等）
 - [x] 发布渠道 → **v0.1.0 走本地 dist + git tag**（用户拍板）；PyPI 后续
       （需先解决名称占用：`opencode-client` 已被第三方用掉，换 `opencode-client-python` 之类）
+- [x] 事件 Router + 类型化热事件 → **IT-010 已交付**（2026-08-23）；
+      全量类型化 deferred，触发式排期（功能需求 / 事件遥测频次报告，
+      见 `temp/docs/event-router-design.md` §9）
 
 ## v0.1.0 之后增量（随下次发版带出）
 
@@ -198,3 +223,6 @@
   `*WithRawResponse` 代理（成功返回未解析 `httpx.Response`；重试/错误映射
   与正常视图共享；`stream_events` 无 raw 变体），`tests/test_raw_response.py`
   镜像一致性锁 + 示例 `05_advanced_patterns/raw_response.py`。
+- IT-010 事件 Router + 类型化热事件：`EventType` 开放集（57）+ 6 热事件
+  类型化子类（降级兜底不破坏流）+ `AsyncEventRouter`/`EventRouter`
+  （`stream.route(sid)` 订阅/顺序分发/`until` 终止）。

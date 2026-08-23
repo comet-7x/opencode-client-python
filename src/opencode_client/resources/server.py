@@ -7,7 +7,7 @@ Maps to the non-session endpoints (``/global/health``, ``/config``,
 - :class:`ServerResource` — synchronous, backed by :class:`OpenCodeClient`;
 - :class:`AsyncServerResource` — asynchronous, backed by :class:`AsyncOpenCodeClient`.
 
-``stream_events`` returns the matching :class:`~opencode_client.EventStream`
+``stream_events`` returns the matching :class:`~opencode_client.AsyncEventStream`
 (sync or async) for the owning client, with automatic reconnection after
 drops — iterate its ``iter_events()`` / ``aiter_events()`` for decoded
 events.
@@ -40,7 +40,7 @@ class ServerResource(Resource):
 
         Each call returns the unprocessed :class:`httpx.Response` instead of
         the parsed model (same retries, same error mapping on non-2xx).
-        ``stream_events`` has no raw variant (it returns an EventStream, not
+        ``stream_events`` has no raw variant (it returns an AsyncEventStream, not
         a one-shot response).
         """
         return ServerResourceWithRawResponse(self._client)
@@ -201,14 +201,14 @@ class ServerResource(Resource):
                 is received, so a healthy stream reconnects indefinitely.
 
         Returns:
-            An :class:`~opencode_client.SyncEventStream`; iterate
+            An :class:`~opencode_client.EventStream`; iterate
             ``iter_events()`` for decoded events with automatic
             reconnection.
         """
-        from ..sse import SyncEventStream
+        from ..sse import EventStream
 
         request = self._client.http.build_request("GET", "/event", params=query_params(directory, workspace))
-        return SyncEventStream(self._client.http, request, max_reconnect_attempts=max_reconnect_attempts)
+        return EventStream(self._client.http, request, max_reconnect_attempts=max_reconnect_attempts)
 
 
 class AsyncServerResource(AsyncResource):
@@ -220,7 +220,7 @@ class AsyncServerResource(AsyncResource):
 
         Each call returns the unprocessed :class:`httpx.Response` instead of
         the parsed model (same retries, same error mapping on non-2xx).
-        ``stream_events`` has no raw variant (it returns an EventStream, not
+        ``stream_events`` has no raw variant (it returns an AsyncEventStream, not
         a one-shot response).
         """
         return AsyncServerResourceWithRawResponse(self._client)
@@ -374,14 +374,14 @@ class AsyncServerResource(AsyncResource):
                 is received, so a healthy stream reconnects indefinitely.
 
         Returns:
-            An :class:`~opencode_client.EventStream`; iterate
+            An :class:`~opencode_client.AsyncEventStream`; iterate
             ``aiter_events()`` for decoded events with automatic
             reconnection.
         """
-        from ..sse import EventStream
+        from ..sse import AsyncEventStream
 
         request = self._client.http.build_request("GET", "/event", params=query_params(directory, workspace))
-        return EventStream(self._client.http, request, max_reconnect_attempts=max_reconnect_attempts)
+        return AsyncEventStream(self._client.http, request, max_reconnect_attempts=max_reconnect_attempts)
 
 
 class ServerResourceWithRawResponse(Resource):

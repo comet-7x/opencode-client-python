@@ -147,6 +147,32 @@ backoff 0.5 s → 8 s, budget `max_reconnect_attempts`, reset on any received
 line); a clean EOF ends the iteration. `prompt_async` + `stream_events` is
 the standard pattern for watching a turn live.
 
+### Typed hot events & the event router
+
+Instead of branching on `event.type` and digging through the `properties`
+dict, frequently consumed event types arrive as typed subclasses
+(`message.part.updated` → `event.part: Part`, `message.part.delta`,
+`message.updated`, `session.idle`, `permission.asked`, `question.asked`).
+Unknown types and payloads that no longer validate degrade to the base
+`Event`, so the stream never breaks.
+
+`stream.route(session_id)` builds an event router — subscribe by type,
+dispatch in arrival order, one run loop:
+
+```python
+async with client.server.stream_events() as stream:
+    bus = stream.route(session.id)
+    bus.on("message.part.delta", lambda e: print(e.delta))  # typed payload
+    bus.on("message.part.updated", lambda e: print(e.part.type))
+    await bus.run(until="session.idle", timeout=300)
+```
+
+Handlers may be sync or async; several subscriptions may target one type;
+`run` stops on the `until` type, a handler raising, the `timeout`, or a clean
+stream end. `EventType` (an open-set `StrEnum`) can be used in place of
+raw strings. The plain `aiter_events()` / `iter_events()` iterators remain
+available for advanced use.
+
 ## Raw responses
 
 Every method returns a parsed model. For headers, exact status codes, or the

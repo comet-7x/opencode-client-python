@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Typed hot events & event router**: frequently consumed `/event` types
+  now arrive as typed subclasses (`message.part.updated` → `event.part: Part`,
+  `message.part.delta`, `message.updated`, `session.idle`, `permission.asked`,
+  `question.asked`), reusing the existing models; unknown types and payloads
+  that no longer validate degrade to the base `Event`, so the stream never
+  breaks. `stream.route(session_id)` returns an `AsyncEventRouter` /
+  `EventRouter` for subscription-based consumption (`on(type, handler)`
+  dispatches in arrival order; `run(until=, timeout=)` stops on the `until`
+  type, a raising handler, the timeout, or a clean stream end). `EventType`
+  is an open-set `StrEnum` (57 members from the server's v1 event surface)
+  usable in place of raw strings; the plain `aiter_events()` /
+  `iter_events()` iterators are unchanged.
 - **Raw response view** (`with_raw_response`): every resource group
   (`sessions` / `server` / `vcs` / `mcp`), in both sync and async flavours,
   exposes a `<resource>.with_raw_response` prefix whose methods mirror the

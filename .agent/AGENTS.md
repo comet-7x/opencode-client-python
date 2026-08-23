@@ -23,14 +23,15 @@ src/opencode_client/
   errors.py            # OpenCodeError 分层异常 + make_api_error/make_transport_error
   constants.py         # 默认超时、重试次数、User-Agent 等常量
   _types.py            # NOT_GIVEN 哨兵（with_options 精确 override 用）
-  sse.py               # SSEDecoder（行协议解码）+ EventStream/SyncEventStream（流连接上下文管理器，自动重连）
+  sse.py               # SSEDecoder（行协议解码，热事件自动类型化）+ AsyncEventStream/EventStream（流连接上下文管理器，自动重连）+ route()
+  router.py            # AsyncEventRouter/EventRouter（按事件类型订阅、顺序分发、until/timeout 收口；stream.route() 返回）
   models/              # pydantic 模型，按业务实体拆文件，__init__ 统一 re-export
     base.py            #   OpencodeModel 基类 + id_alias 生成器（camelCase/大写ID 映射）
     session.py         #   Session / 请求体 / PermissionRule / ModelID ...
     message.py         #   Message(role 判联合) / MessageWithParts
     part.py            #   Part(type 判联合, 11 种) / ToolState / 请求侧 PromptPart
     discover.py        #   Health / Agent / Provider / Command / Skill（发现类端点）
-    event.py           #   Event（SSE 事件泛型）
+    event.py           #   Event（SSE 事件泛型）+ EventType（开放集枚举，57 成员）+ 6 个热事件类型化子类 + EVENT_CATALOG/typed_event
     interaction.py     #   PermissionRequest / QuestionRequest 等（pending 交互请求）
     vcs.py             #   VcsInfo / VcsFileStatus / VcsFileDiff
     mcp.py             #   MCPStatus(status 判联合) / McpLocalConfig / McpRemoteConfig
@@ -221,6 +222,11 @@ provider 的 `baseURL` 要用 `http://host.docker.internal:8000/v1`；
   server 级（health/config/provider/agent/command/event）走 `client.server.*`。
 - 双客户端对等：**`OpenCodeClient`（sync）与 `AsyncOpenCodeClient`（async）方法签名完全一致**，
   仅 async 侧多 `await`。新增端点必须同时实现双类。
+- **sync/async 命名约定：裸名 = sync，`Async` 前缀 = async**（对齐官方 SDK 与
+  httpx 的生态约定）。全家族统一：`OpenCodeClient`/`AsyncOpenCodeClient`、
+  `EventStream`/`AsyncEventStream`、`EventRouter`/`AsyncEventRouter`。
+  历史例外已统一（2026-08-23 重命名：原 async 裸名 `EventStream`/`EventRouter`
+  与 `Sync` 前缀对调）。新增双类组件一律遵循，**禁止 `Sync` 前缀**。
 - 裸响应视图：每个资源类带 `with_raw_response` 属性，返回对应的
   `*WithRawResponse` 代理类（镜像全部方法、签名一致，成功时返回未解析的
   `httpx.Response`；重试与非 2xx 错误映射与正常视图共享，只改成功返回值）。
@@ -233,13 +239,25 @@ provider 的 `baseURL` 要用 `http://host.docker.internal:8000/v1`；
   `OpenCodeTransportError` 子类。映射逻辑只在 `errors.make_api_error`/`make_transport_error`。
 - 429/5xx/连接错误自动重试（`max_retries`，指数退避 + `Retry-After`）；
   `with_options(...)` 用 `NOT_GIVEN` 哨兵精确 override 配置。
-- 事件流（`/event`）是 SSE：async `client.server.stream_events()` 返回 `EventStream`
-  、sync 返回 `SyncEventStream`；直接迭代 `stream.aiter_events()`/`stream.iter_events()`
-  得到 `Event`（`type` + `properties: dict`，v1 事件不建模 94 个具体类型）。
+- 事件流（`/event`）是 SSE：async `client.server.stream_events()` 返回 `AsyncEventStream`
+  、sync 返回 `EventStream`；直接迭代 `stream.aiter_events()`/`stream.iter_events()`
+  得到 `Event`（`type` + `properties: dict`）。**热事件自动类型化**：解码时查
+  `EVENT_CATALOG` 升级为子类（`message.part.updated`→`part: Part`、
+  `message.part.delta`、`message.updated`、`session.idle`、`permission.asked`、
+  `question.asked` 共 6 个），未知类型与 payload 解析失败一律回落基类 `Event`
+  （流永不断）。`EventType` 是开放集 `StrEnum`（57 成员，种子取自服务端 `/doc`
+  导出的 v1 事件面；服务端可加新类型，未入枚举者照样以基类流过）。
+  **事件 Router**：`stream.route(session_id)` 返回 `AsyncEventRouter`/`EventRouter`
+  （`on(type, handler)` 订阅、按到达序顺序分发、`run(until=, timeout=)` 统一收口
+  until/超时/handler 抛错/干净 EOF；handler 抛错向外传播）。裸迭代器
+  `aiter_events()`/`iter_events()` 原样保留。
   流内建自动重连：仅**传输错误**触发（指数退避 0.5s→8s cap，预算
   `max_reconnect_attempts`，收任意行重置预算，耗尽抛 `OpenCodeTransportError`
   子类）；**干净 EOF 结束迭代**。在途半帧丢弃（服务端不重放事件）。
   `SSEDecoder` 与 `iter_lines`/`aiter_lines` 直通保留供高级用法。
+  新增热事件类型化：加 `EventType` 成员（若缺）+ 子类（复用现有模型）+
+  `EVENT_CATALOG` 条目；事件面权威源是 `.agent/learning_log/get_opencode_api/
+  opencode_rest_api.json` 的 `EventXxx` schema 组，不是生成 SDK（有漂移）。
 - 不要修改 `temp/` 下的参考仓库。
 - 从官方 SDK 移植代码时：参考仓库是 Stainless 生成的重型代码（`_client.py`、
   `_resource.py`、generated types），本项目保持轻量手写风格，只挑选需要的部分，

@@ -11,7 +11,19 @@ from __future__ import annotations
 
 from .base import OpencodeModel
 from .discover import Agent, Command, Health, Model, Provider, ProviderList, ServerConfig, Skill
-from .event import Event
+from .event import (
+    EVENT_CATALOG,
+    Event,
+    EventType,
+    MessagePartDeltaEvent,
+    MessagePartDeltaPayload,
+    MessagePartUpdatedEvent,
+    MessageUpdatedEvent,
+    PermissionAskedEvent,
+    QuestionAskedEvent,
+    SessionIdleEvent,
+    typed_event,
+)
 from .interaction import (
     PermissionRequest,
     PermissionTool,
@@ -104,7 +116,9 @@ __all__ = [
     "Command",
     "CompactionPart",
     "CreateSessionRequest",
+    "EVENT_CATALOG",
     "Event",
+    "EventType",
     "FilePart",
     "FilePartInput",
     "FilePartRange",
@@ -115,7 +129,11 @@ __all__ = [
     "FilePartText",
     "Health",
     "Message",
+    "MessagePartDeltaEvent",
+    "MessagePartDeltaPayload",
+    "MessagePartUpdatedEvent",
     "MessageTime",
+    "MessageUpdatedEvent",
     "MessageWithParts",
     "MCPStatus",
     "MCPStatusConnected",
@@ -134,6 +152,7 @@ __all__ = [
     "PartBase",
     "PartTime",
     "PatchPart",
+    "PermissionAskedEvent",
     "PermissionRequest",
     "PermissionRule",
     "PermissionRuleset",
@@ -144,6 +163,7 @@ __all__ = [
     "Provider",
     "ProviderList",
     "QuestionAnswer",
+    "QuestionAskedEvent",
     "QuestionInfo",
     "QuestionOption",
     "QuestionRequest",
@@ -152,6 +172,7 @@ __all__ = [
     "RetryPart",
     "ServerConfig",
     "Session",
+    "SessionIdleEvent",
     "SessionShare",
     "SessionSnapshot",
     "SessionTime",
@@ -178,4 +199,5 @@ __all__ = [
     "VcsFileDiff",
     "VcsFileStatus",
     "VcsInfo",
+    "typed_event",
 ]

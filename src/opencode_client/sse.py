@@ -3,9 +3,9 @@
 Classes in this module:
 
 - :class:`SSEDecoder` — a WHATWG ``text/event-stream`` line decoder;
-- :class:`EventStream` — **async** context manager that keeps the long-lived
+- :class:`AsyncEventStream` — **async** context manager that keeps the long-lived
   ``GET /event`` connection open, with automatic reconnection;
-- :class:`SyncEventStream` — the synchronous equivalent.
+- :class:`EventStream` — the synchronous equivalent.
 
 Reconnection
 ------------
@@ -46,7 +46,8 @@ import httpx
 
 from .constants import DEFAULT_STREAM_RECONNECT_ATTEMPTS
 from .errors import make_transport_error
-from .models import Event
+from .models import Event, typed_event
+from .router import AsyncEventRouter, EventRouter
 
 
 def _reconnect_delay(attempt: int) -> float:
@@ -81,7 +82,13 @@ class SSEDecoder:
         self._data: list[str] = []
 
     def _take_event(self) -> Event | None:
-        """Build and clear the pending event, or return ``None`` if nothing is pending."""
+        """Build and clear the pending event, or return ``None`` if nothing is pending.
+
+        Known hot types are upgraded to their typed event subclass (see
+        :func:`opencode_client.models.typed_event`); unknown types and
+        payloads that no longer validate degrade to the base
+        :class:`~opencode_client.models.Event`.
+        """
         if not self._data:
             return None
         data = "\n".join(self._data)
@@ -90,7 +97,7 @@ class SSEDecoder:
             raw: dict[str, Any] = json.loads(data)
         except ValueError:
             raw = {"type": "message", "properties": {"raw": data}}
-        return Event.model_validate(raw)
+        return typed_event(raw)
 
     def flush(self) -> Event | None:
         """Dispatch a pending event left without its trailing blank line.
@@ -135,7 +142,7 @@ class SSEDecoder:
             yield final
 
 
-class EventStream:
+class AsyncEventStream:
     """Async context manager wrapping the ``/event`` SSE stream with auto-reconnect.
 
     Usage::
@@ -173,7 +180,7 @@ class EventStream:
         self._reconnects_used = 0
         self._connections_opened = 0
 
-    async def __aenter__(self) -> EventStream:
+    async def __aenter__(self) -> AsyncEventStream:
         """Open the streaming connection; a failure raises a wrapped transport error."""
         try:
             await self._open()
@@ -201,6 +208,19 @@ class EventStream:
         """How many ``/event`` connections were established (initial + reconnects)."""
         return self._connections_opened
 
+    def route(self, session_id: str | None = None) -> AsyncEventRouter:
+        """Create a subscription router over this stream.
+
+        The returned :class:`~opencode_client.router.AsyncEventRouter`
+        dispatches decoded events to handlers by type; see its docstring
+        for the run/stop semantics.  When ``session_id`` is given, only
+        events for that session are dispatched.
+
+        Args:
+            session_id: Restrict dispatch to this session's events.
+        """
+        return AsyncEventRouter(self, session_id=session_id)
+
     def aiter_lines(self) -> AsyncIterator[str]:
         """Yield raw lines from the *current* connection.
 
@@ -209,7 +229,7 @@ class EventStream:
         """
         response = self._response
         if response is None:
-            raise RuntimeError("EventStream is not open")
+            raise RuntimeError("AsyncEventStream is not open")
         return response.aiter_lines()
 
     async def aiter_events(self) -> AsyncIterator[Event]:
@@ -269,7 +289,7 @@ class EventStream:
             raise make_transport_error(exc) from exc
 
 
-class SyncEventStream:
+class EventStream:
     """Synchronous context manager wrapping the ``/event`` SSE stream with auto-reconnect.
 
     Usage::
@@ -278,7 +298,7 @@ class SyncEventStream:
             for event in stream.iter_events():
                 print(event.type)
 
-    Behaves exactly like :class:`EventStream` (same reconnection policy);
+    Behaves exactly like :class:`AsyncEventStream` (same reconnection policy);
     the blocking equivalent of every operation.
 
     Args:
@@ -304,7 +324,7 @@ class SyncEventStream:
         self._reconnects_used = 0
         self._connections_opened = 0
 
-    def __enter__(self) -> SyncEventStream:
+    def __enter__(self) -> EventStream:
         """Open the streaming connection; a failure raises a wrapped transport error."""
         try:
             self._open()
@@ -332,6 +352,19 @@ class SyncEventStream:
         """How many ``/event`` connections were established (initial + reconnects)."""
         return self._connections_opened
 
+    def route(self, session_id: str | None = None) -> EventRouter:
+        """Create a subscription router over this stream.
+
+        The returned :class:`~opencode_client.router.EventRouter`
+        dispatches decoded events to handlers by type; see its docstring
+        for the run/stop semantics.  When ``session_id`` is given, only
+        events for that session are dispatched.
+
+        Args:
+            session_id: Restrict dispatch to this session's events.
+        """
+        return EventRouter(self, session_id=session_id)
+
     def iter_lines(self) -> Iterator[str]:
         """Yield raw lines from the *current* connection.
 
@@ -340,7 +373,7 @@ class SyncEventStream:
         """
         response = self._response
         if response is None:
-            raise RuntimeError("SyncEventStream is not open")
+            raise RuntimeError("EventStream is not open")
         return response.iter_lines()
 
     def iter_events(self) -> Iterator[Event]:
