@@ -14,10 +14,11 @@ dist/
 .coverage
 htmlcov/
 
-# 本地环境
+# 本地环境（.env.template 是提交进仓库的模板，显式放行）
 .DS_Store
 .env
 .env.*
+!.env.template
 
 # 参考仓库（第三方 SDK clone，不参与提交）
 temp/
