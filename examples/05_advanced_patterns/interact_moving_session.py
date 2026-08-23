@@ -45,6 +45,10 @@ MAX_WAIT_SECONDS = 180.0  # 整个 turn 的兜底超时
 async def watch_until_idle(client: AsyncOpenCodeClient, session_id: str, idle: asyncio.Event) -> int:
     """Read /event until this session reports idle; flip the ``idle`` event.
 
+    与 stream_events.py 同一套分流：思考增量 / 正文增量 / 工具状态迁移
+    （part 类型靠 message.part.updated 的 properties.part 学习，delta 的
+    field 对思考和正文都是 "text"，无法直接区分）。
+
     Args:
         client: 已打开的客户端。
         session_id: 只对这一会话的 idle 敏感（/event 是全局广播）。
@@ -54,15 +58,43 @@ async def watch_until_idle(client: AsyncOpenCodeClient, session_id: str, idle: a
         收到的事件条数。
     """
     count = 0
+    part_types: dict[str, str] = {}  # partID -> part.type
+    tool_status: dict[str, str] = {}  # 每个 tool part 最近一次状态（只打印变化）
+    thinking: set[str] = set()  # 正在输出思考块的 partID
     # 同 stream_events.py：演示场景下明确“不自动重连”（idle 后服务端可能关流，
     # 避免监听协程在空连接上无限退避重连）；生产用法见该文件注释。
     async with client.server.stream_events(max_reconnect_attempts=0) as stream:
         async for event in stream.aiter_events():  # 自动解码 + 断流自动重连
             count += 1
-            # 只把“交互类”事件单独标注，其余统一成一行普通事件。
-            label = "interaction" if event.type in ("permission.updated", "question.updated") else "event"
-            print(f"[{label}] {event.type}")
-            if event.type == "session.idle" and event.properties.get("sessionID") == session_id:
+            props = event.properties
+            if props.get("sessionID") != session_id:
+                continue
+            if event.type == "message.part.updated":
+                part = props.get("part", {})
+                pid, ptype = part.get("id"), part.get("type")
+                if pid:
+                    part_types[pid] = ptype
+                if ptype == "tool":
+                    status = part.get("state", {}).get("status")
+                    if tool_status.get(pid) != status:
+                        tool_status[pid] = status
+                        print(f"[tool] {part.get('tool')} -> {status}", flush=True)
+                elif ptype == "reasoning":
+                    # 空 text = 刚创建（开块）；带上 text 的收尾 updated = 合块。
+                    if not part.get("text") and pid not in thinking:
+                        thinking.add(pid)
+                        print("--- 思考开始 ---", flush=True)
+                    elif part.get("text") and pid in thinking:
+                        thinking.discard(pid)
+                        print("--- 思考结束 ---", flush=True)
+            elif event.type == "message.part.delta" and props.get("field") == "text":
+                # 按 partID 分流：reasoning 的思考增量 / text 的正文增量。
+                if part_types.get(props.get("partID", "")) in ("text", "reasoning"):
+                    print(props.get("delta", ""), end="", flush=True)
+            # 交互类事件单独标注（主轮询循环也靠 list_* 端点看到它们）。
+            elif event.type in ("permission.updated", "question.updated"):
+                print(f"[interaction] {event.type}", flush=True)
+            if event.type == "session.idle":
                 idle.set()  # 通知主循环：turn 结束，停止轮询
                 return count
     return count

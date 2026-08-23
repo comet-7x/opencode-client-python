@@ -38,6 +38,18 @@ MAX_LISTEN_SECONDS = 300.0  # 兜底超时：防止流因某种原因永远等�
 async def listen_until_idle(client: AsyncOpenCodeClient, session_id: str) -> int:
     """Read the ``/event`` stream until this session reports ``session.idle``.
 
+    演示三类事件的区分与渲染：
+    - **思考**（reasoning part 的增量）——模型内部推理，extended-thinking 模型才有；
+    - **正文**（text part 的增量）——给用户看的回答；
+    - **工具调用**（tool part 的状态迁移）——pending → running → completed。
+
+    协议要点（官方源码 packages/opencode/src/session/processor.ts 证实）：
+    思考与正文的 ``message.part.delta`` 里 ``field`` 都是 ``"text"``，delta
+    本身无法区分二者；必须用 delta 的 ``partID`` 关联
+    ``message.part.updated`` 事件（``properties.part`` 是完整 part 对象，含
+    ``type``）学到的 part 类型。时序有保证：part 先 updated（创建）后才有
+    delta，映射不会迟到。
+
     Args:
         client: 已打开的客户端（用于发起流连接）。
         session_id: 只关心这个会话的事件（/event 是全服务器广播）。
@@ -46,6 +58,9 @@ async def listen_until_idle(client: AsyncOpenCodeClient, session_id: str) -> int
         收到的事件条数（便于外层做简单校验）。
     """
     count = 0
+    part_types: dict[str, str] = {}  # partID -> part.type（从 updated 事件学习）
+    tool_status: dict[str, str] = {}  # partID -> 最近一次工具状态（只打印变化）
+    thinking: set[str] = set()  # 正在输出思考块的 partID
     # stream_events() 返回 EventStream，是 async 上下文管理器：
     # 退出时一定关闭底层连接，即使中间抛了错。
     #
@@ -59,17 +74,44 @@ async def listen_until_idle(client: AsyncOpenCodeClient, session_id: str) -> int
         async for event in stream.aiter_events():
             count += 1
             # 服务器把 ~94 种事件统一成 {type, properties}，这里按 type 分支。
-            if event.type == "message.part.delta":
-                # 增量文本：只打印 field==text 的 delta，end="" 让它拼接成一句。
-                props = event.properties
-                if props.get("field") == "text":
+            props = event.properties
+            # /event 是全局广播（所有会话），必须过滤出本会话。
+            if props.get("sessionID") != session_id:
+                continue
+            handled = False
+            if event.type == "message.part.updated":
+                part = props.get("part", {})
+                pid, ptype = part.get("id"), part.get("type")
+                if pid:
+                    part_types[pid] = ptype
+                if ptype == "tool":
+                    # 工具 part：每次状态迁移都会发一次 updated，只打印变化。
+                    status = part.get("state", {}).get("status")
+                    if tool_status.get(pid) != status:
+                        tool_status[pid] = status
+                        print(f"\n[tool] {part.get('tool')} -> {status}", flush=True)
+                elif ptype == "reasoning":
+                    # 思考 part：text 还是空 = 刚创建（开块），有内容 = 推理结束（合块）。
+                    if not part.get("text") and pid not in thinking:
+                        thinking.add(pid)
+                        print("\n--- 思考开始 ---", flush=True)
+                    elif part.get("text") and pid in thinking:
+                        thinking.discard(pid)
+                        print("--- 思考结束 ---\n", flush=True)
+                handled = True
+            elif event.type == "message.part.delta":
+                # 增量文本：按 partID 分流到 思考 / 正文（field 两者都是 "text"）。
+                ptype = part_types.get(props.get("partID", ""), "")
+                if props.get("field") == "text" and ptype in ("text", "reasoning"):
+                    # 演示里直接打印；真实产品常把 reasoning 折进可展开的灰色区。
                     print(props.get("delta", ""), end="", flush=True)
-            else:
-                # 其他事件类型用一行摘要，避免刷屏。
-                print(f"\n[event] {event.type}")
+                    handled = True
+            if not handled:
+                # 其余事件类型用一行摘要，避免刷屏。
+                print(f"[event] {event.type}", flush=True)
             # —— 结束信号：该会话进入 idle，说明本轮 turn（含所有工具调用）已结束。
-            #    /event 是全局广播，必须用 sessionID 过滤，否则会误判别的会话结束。
-            if event.type == "session.idle" and event.properties.get("sessionID") == session_id:
+            if event.type == "session.idle":
+                print("\nturn 结束。", flush=True)
                 return count
     return count  # 流被干净关闭（EOF）时兜底返回
 

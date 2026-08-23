@@ -258,8 +258,10 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
             return_value=httpx.Response(200, json=True)
         )
         sse = (
-            f"data: {json.dumps({'type': 'message.part.delta', 'properties': {'sessionID': 'ses_e', 'field': 'text', 'delta': 'hello '}})}\n\n"
-            f"data: {json.dumps({'type': 'message.part.delta', 'properties': {'sessionID': 'ses_e', 'field': 'text', 'delta': 'world'}})}\n\n"
+            f"data: {json.dumps({'type': 'message.part.updated', 'properties': {'sessionID': 'ses_e', 'part': {'id': 'prt_t', 'type': 'text', 'text': '', 'messageID': 'msg_a', 'sessionID': 'ses_e'}}})}\n\n"
+            f"data: {json.dumps({'type': 'message.part.delta', 'properties': {'sessionID': 'ses_e', 'partID': 'prt_t', 'field': 'text', 'delta': 'hello '}})}\n\n"
+            f"data: {json.dumps({'type': 'message.part.delta', 'properties': {'sessionID': 'ses_e', 'partID': 'prt_t', 'field': 'text', 'delta': 'world'}})}\n\n"
+            f"data: {json.dumps({'type': 'message.part.updated', 'properties': {'sessionID': 'ses_e', 'part': {'id': 'prt_t', 'type': 'text', 'text': 'hello world', 'messageID': 'msg_a', 'sessionID': 'ses_e'}}})}\n\n"
             f"data: {json.dumps({'type': 'session.idle', 'properties': {'sessionID': 'ses_e'}})}\n\n"
         ).encode()
         router.get("/event").mock(

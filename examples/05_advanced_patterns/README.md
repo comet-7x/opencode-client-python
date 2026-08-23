@@ -8,7 +8,7 @@
 |---|---|---|
 | `client_reuse.py` | **复用 Client + 超时配置** | 一个连接池跑多次调用 vs 每次都新建；`timeout=`/`max_retries=` 参数；`with_options()` 派生新配置而不动原 client |
 | `error_handling.py` | **异常捕获与降级** | `OpenCodeApiError` 的分层族谱（404/429/5xx 各有子类）；怎么捕获后降级而不是崩溃；`status_code`/`payload` 怎么用 |
-| `stream_events.py` | **事件流 + 流式增量** | `prompt_async`（fire-and-forget）+ `stream_events()` 的 `aiter_events()`；断流自动重连 |
+| `stream_events.py` | **事件流 + 流式增量** | `prompt_async`（fire-and-forget）+ `stream_events()` 的 `aiter_events()`；按 `partID` 区分**思考/正文/工具调用**三类事件（delta 的 `field` 对思考和正文都是 `text`）；断流自动重连 |
 | `interact_moving_session.py` | **权限/问答交互循环** | 轮询 `list_permissions`/`list_questions` 并应答，让一个会要权限的 turn 走完到 `session.idle`；`--respond` 额外演示 `sessions.respond_permission`（会话级端点）与 `server.reject_question`（整题拒绝） |
 | `raw_response.py` | **裸响应视图** | `<resource>.with_raw_response.<method>(...)` 返回未解析的 `httpx.Response`（头/状态码/原始 body）；重试与错误映射与正常视图一致；`stream_events` 无 raw 变体 |
 
