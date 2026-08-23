@@ -166,10 +166,14 @@ one-shot response).
 
 ## Running a local server (Docker)
 
-A running `opencode serve` is required. The Makefile manages it via Docker
-(default port **20001**, image `ghcr.io/anomalyco/opencode:1.18.21` — latest
-version listed at <https://github.com/anomalyco/opencode/pkgs/container/opencode>;
-bump `OC_IMAGE` at the top of the Makefile to upgrade):
+A running `opencode serve` is required. It is declared in
+[docker-compose.yml](docker-compose.yml); the Makefile targets below are thin
+wrappers around `docker compose`. Default port **20001**, image
+`ghcr.io/anomalyco/opencode:1.18.21` (latest listed at
+<https://github.com/anomalyco/opencode/pkgs/container/opencode>).
+Overrides (`OC_IMAGE` / `OC_PORT` / `OC_HOST`) go in a local `.env` —
+`cp .env.template .env` — or as one-off env prefixes
+(`OC_PORT=20002 docker compose up -d`):
 
 ```sh
 make docker-pull        # pull the official image

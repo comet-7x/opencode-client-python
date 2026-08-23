@@ -155,10 +155,12 @@ session = Session.model_validate(raw.json())  # 需要的话自己解析
 
 ## 本地服务（Docker）
 
-需要一个运行中的 `opencode serve`。Makefile 用 Docker 统一管理（默认端口
-**20001**，镜像 `ghcr.io/anomalyco/opencode:1.18.21`——最新版本见
-<https://github.com/anomalyco/opencode/pkgs/container/opencode> 发布页 "Latest"，
-升级时改 Makefile 顶部的 `OC_IMAGE`）：
+需要一个运行中的 `opencode serve`。服务声明在
+[docker-compose.yml](docker-compose.yml)，下面的 Makefile 目标是 `docker compose`
+的薄包装（默认端口 **20001**，镜像 `ghcr.io/anomalyco/opencode:1.18.21`，
+最新版本见 <https://github.com/anomalyco/opencode/pkgs/container/opencode>）。
+覆盖 `OC_IMAGE` / `OC_PORT` / `OC_HOST` 可写进本地 `.env`（`cp .env.template .env`），
+也可临时前置环境变量（`OC_PORT=20002 docker compose up -d`）：
 
 ```sh
 make docker-pull        # 拉取官方镜像

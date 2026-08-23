@@ -159,9 +159,17 @@ make docker-stop        # 停止并移除容器（配置持久化在 ~/.config/o
 make docker-tui         # 交互式 TUI（临时容器）
 ```
 
-**镜像版本**：Makefile 顶部的 `OC_IMAGE` 是当前 pin 的版本；最新版本在
+**配置**：`docker-compose.yml` 是唯一声明源，可覆盖变量 `OC_IMAGE` /
+`OC_PORT` / `OC_HOST` 经 `.env` 提供——`cp .env.template .env` 后修改
+（`.env` 被 gitignore，`.env.template` 是入库模板，见其内注释）；
+不设 `.env` 时回落 compose 文件里的 `${VAR:-默认}` 兜底。临时一次性
+覆盖直接前置环境变量：`OC_PORT=20002 docker compose up -d`。
+Makefile 的 `OC_*` 默认值需与 compose 的兜底值同步修改。
+
+**镜像版本**：当前 pin 的版本见 `.env.template` / Makefile 顶部的
+`OC_IMAGE`（与 compose 兜底值三处同步）；最新版本在
 https://github.com/anomalyco/opencode/pkgs/container/opencode （发布页 "Latest"）
-查询，升级只改 `OC_IMAGE` 一行。
+查询，升级改 `.env` 的 `OC_IMAGE` 即可（发版基线同步改 Makefile/compose）。
 
 **排查坑**（本机实测踩出）：
 - 镜像 entrypoint 已是 `opencode`，compose 的 `command` 只写子命令
