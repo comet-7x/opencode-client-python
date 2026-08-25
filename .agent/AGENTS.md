@@ -35,6 +35,8 @@ src/opencode_client/
     interaction.py     #   PermissionRequest / QuestionRequest 等（pending 交互请求）
     vcs.py             #   VcsInfo / VcsFileStatus / VcsFileDiff
     mcp.py             #   MCPStatus(status 判联合) / McpLocalConfig / McpRemoteConfig
+    files.py           #   FileNode / FileContent(text|binary 判联合) / FileChange /
+                       #   TextMatch(snake_case wire 特例) / Symbol(LSP) / FormatterStatus
   resources/           # API 资源层：按端点域分组，组合持有 client（非继承），每域 sync/async 双类
                        #   + 各带 *WithRawResponse 裸响应代理（with_raw_response 属性，见约定）
     base.py            #   Resource(sync)/AsyncResource 基类 + query_params 助手
@@ -43,9 +45,11 @@ src/opencode_client/
     server.py          #   ServerResource/AsyncServerResource（health/config/provider/agent/command/skill + permission/question 交互 + event）
     vcs.py             #   VcsResource/AsyncVcsResource（/vcs info/status/diff/diff_raw/apply）
     mcp.py             #   McpResource/AsyncMcpResource（/mcp status/add）
+    files.py           #   FilesResource/AsyncFilesResource（/file list/read/status +
+                       #   /find text/file/symbol + /formatter）
 tests/                 # pytest + respx 测试（test_client.py 等）
 examples/              # 教学示例，按功能模块分子目录（quickstart / sessions /
-                       #   server / events / vcs / mcp / client），
+                       #   server / events / vcs / mcp / files / client），
                        #   各目录带 README.md；test_examples.py
                        #   用 importlib 加载 + respx 驱动各脚本 cli() 做离线冒烟
 temp/repositories/     # 参考仓库（opencode 官方源码 + Python SDK；不参与构建，
@@ -80,7 +84,7 @@ temp/repositories/     # 参考仓库（opencode 官方源码 + Python SDK；不
 - 模型与资源解耦：资源层只依赖 `models` 的公开名，不 import 子模块路径
  （`from ..models import Session`，不要 `from ..models.session import ...`）。
 - **examples 只按功能模块分目录**：一个功能模块一个文件夹
- （quickstart / sessions / server / events / vcs / mcp / client），
+ （quickstart / sessions / server / events / vcs / mcp / files / client），
  新示例放进所属模块的文件夹；**禁止按难度/模式分类**
  （不出现 `advanced_patterns`、`advanced` 之类目录），也**不使用数字前缀**。
  客户端本体能力（连接配置、错误处理、裸响应）归入 `client/`。

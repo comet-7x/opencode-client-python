@@ -245,6 +245,7 @@ Runnable, commented walkthroughs organized by scenario — start at
 | `events/` | SSE event stream: raw iteration + typed router |
 | `vcs/` | Repo info / status / diff / raw diff / patch apply |
 | `mcp/` | MCP server status + registration |
+| `files/` | Directory listing, file reads, text/filename/symbol search, formatters |
 | `client/` | Client reuse, error handling, raw responses |
 
 Every script runs offline under the test suite via `respx`, so

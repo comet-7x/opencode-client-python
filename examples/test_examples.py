@@ -257,6 +257,58 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
         # —— mcp（04 mcp_servers）。
         router.get("/mcp").mock(return_value=httpx.Response(200, json={"docs": {"status": "connected"}}))
         router.post("/mcp").mock(return_value=httpx.Response(200, json={"name": "added", "status": "connected"}))
+        # —— files（browse_files / search_code）。
+        router.get("/file").mock(
+            return_value=httpx.Response(
+                200,
+                json=[
+                    {"name": "src", "path": "src", "absolute": "/tmp/proj/src", "type": "directory", "ignored": False},
+                    {"name": "a.py", "path": "a.py", "absolute": "/tmp/proj/a.py", "type": "file", "ignored": False},
+                ],
+            )
+        )
+        router.get("/file/content").mock(
+            return_value=httpx.Response(200, json={"type": "text", "content": "print('hi')\n"})
+        )
+        router.get("/file/status").mock(
+            return_value=httpx.Response(200, json=[{"path": "a.py", "added": 2, "removed": 1, "status": "modified"}])
+        )
+        router.get("/formatter").mock(
+            return_value=httpx.Response(200, json=[{"name": "ruff", "extensions": [".py"], "enabled": True}])
+        )
+        router.get("/find").mock(
+            return_value=httpx.Response(
+                200,
+                json=[
+                    {
+                        "path": {"text": "a.py"},
+                        "lines": {"text": "print('hi')\n"},
+                        "line_number": 0,
+                        "absolute_offset": 0,
+                        "submatches": [{"match": {"text": "hi"}, "start": 7, "end": 9}],
+                    }
+                ],
+            )
+        )
+        router.get("/find/file").mock(return_value=httpx.Response(200, json=["a.py"]))
+        router.get("/find/symbol").mock(
+            return_value=httpx.Response(
+                200,
+                json=[
+                    {
+                        "name": "main",
+                        "kind": 12,
+                        "location": {
+                            "uri": "file:///tmp/proj/a.py",
+                            "range": {
+                                "start": {"line": 0, "character": 0},
+                                "end": {"line": 0, "character": 4},
+                            },
+                        },
+                    }
+                ],
+            )
+        )
         # —— 交互轮询（05 interact）：各挂一个 pending，主循环一轮内应答完。
         #     注意 route() 对同 method+path 的多次注册是“追加别名”，最后一次生效，
         #     所以 reply 端点只保留一个 payload（与 loop 消费的 per_1/que_1 匹配）。
@@ -371,6 +423,14 @@ class TestExamplesSmoke:
     def test_mcp_servers(self) -> None:
         mod = _load("mcp.mcp_servers")
         _run_cli(mod, "--url", BASE)
+
+    def test_browse_files(self) -> None:
+        mod = _load("files.browse_files")
+        _run_cli(mod, "--url", BASE, "--path", "src", "--read", "a.py")
+
+    def test_search_code(self) -> None:
+        mod = _load("files.search_code")
+        _run_cli(mod, "--url", BASE, "--pattern", "hi", "--find-file", "a", "--symbol", "main")
 
     def test_error_handling(self) -> None:
         mod = _load("client.error_handling")

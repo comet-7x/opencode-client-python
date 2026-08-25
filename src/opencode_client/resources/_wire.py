@@ -13,7 +13,7 @@ request and parse the response, never in *what* is sent or how it is shaped.
 
 from __future__ import annotations
 
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 from urllib.parse import quote
 
 import httpx
@@ -24,6 +24,10 @@ from ..models import (
     Agent,
     Command,
     CreateSessionRequest,
+    FileChange,
+    FileContent,
+    FileNode,
+    FormatterStatus,
     Health,
     McpLocalConfig,
     McpRemoteConfig,
@@ -39,6 +43,8 @@ from ..models import (
     SessionFileDiff,
     SessionStatus,
     Skill,
+    Symbol,
+    TextMatch,
     TextPartInput,
     Todo,
     UpdateSessionRequest,
@@ -53,6 +59,7 @@ __all__ = [
     "command_body",
     "create_body",
     "diff_query",
+    "find_file_query",
     "fork_body",
     "init_body",
     "messages_query",
@@ -130,6 +137,20 @@ class TypeAdapters:
     session_diffs: TypeAdapter[list[SessionFileDiff]] = TypeAdapter(list[SessionFileDiff])
     #: ``PATCH /session/{id}/message/{mid}/part/{pid}``.
     part: TypeAdapter[Part] = TypeAdapter(Part)
+    #: ``GET /file``.
+    file_nodes: TypeAdapter[list[FileNode]] = TypeAdapter(list[FileNode])
+    #: ``GET /file/content`` — text/binary discriminated union.
+    file_content: TypeAdapter[FileContent] = TypeAdapter(FileContent)
+    #: ``GET /file/status``.
+    file_changes: TypeAdapter[list[FileChange]] = TypeAdapter(list[FileChange])
+    #: ``GET /find``.
+    text_matches: TypeAdapter[list[TextMatch]] = TypeAdapter(list[TextMatch])
+    #: ``GET /find/file`` — plain paths.
+    found_paths: TypeAdapter[list[str]] = TypeAdapter(list[str])
+    #: ``GET /find/symbol``.
+    symbols: TypeAdapter[list[Symbol]] = TypeAdapter(list[Symbol])
+    #: ``GET /formatter``.
+    formatter_statuses: TypeAdapter[list[FormatterStatus]] = TypeAdapter(list[FormatterStatus])
 
 
 #: Shared response validators keyed by response shape.
@@ -579,3 +600,33 @@ def diff_query(message_id: str | None) -> dict[str, Any]:
     query: dict[str, Any] = {}
     _optional(query, "messageID", message_id)
     return query
+
+
+def find_file_query(
+    query: str,
+    dirs: bool | None,
+    type: Literal["file", "directory"] | None,
+    limit: int | None,
+) -> dict[str, Any]:
+    """Collect the query params for ``GET /find/file`` (``query`` is required).
+
+    The server derives its search type from ``dirs`` when ``type`` is absent
+    (``dirs=False`` means files only); the client forwards both as given so
+    callers can express exactly what they mean.
+
+    Args:
+        query: Filename fragment to search for.
+        dirs: Whether directories are included (sent as a string boolean).
+        type: Restrict results to files or directories.
+        limit: Maximum number of paths (server default is 10).
+
+    Returns:
+        A dict of only the supplied params plus the required ``query``.
+    """
+    params: dict[str, Any] = {"query": query}
+    if dirs is not None:
+        # wire quirk: a string boolean, not a real bool
+        params["dirs"] = "true" if dirs else "false"
+    _optional(params, "type", type)
+    _optional(params, "limit", limit)
+    return params

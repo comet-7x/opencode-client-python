@@ -1,25 +1,24 @@
 # 📋 任务看板
 
- > 每次工作前看这里；每次完成后更新这里。最后更新：2026-08-24（IT-012 完成）
+ > 每次工作前看这里；每次完成后更新这里。最后更新：2026-08-24（IT-013 完成）
 
 ## 当前位置
 
 - **宏观**：M5 发布准备 —— ✅ 完成（IT-008：本地 dist + tag v0.1.0；PyPI 后续）
-- **微观**：IT-012 code review 问题修复 ✅（2026-08-24；1H+3M+6L+1I 全修，
-  +22 回归测试，`make check` 214 passed 全绿；报告只留本地 `temp/code_review/`，不入库）
+- **微观**：IT-013 files 域 ✅（2026-08-24；`/file*`+`/find*`+`/formatter` 7 端点，
+  新资源域 `client.files.*`，+18 测试，`make check` 232 passed 全绿）
 - **仓库**：已推送 `origin/develop` + tag `v0.1.0`；日常命令走 Makefile（`make check` 全门禁）
-- **下一步行动**：功能面继续扩张的候选：① 文件/搜索域
-  （find/file/formatter 新资源域）② PyPI 发布（换名 `opencode-client-python`
-  等 + token）③ 余下端点（auth 凭证、TUI/PTY；注意 pin 镜像 v1.18.21 的
-  OpenAPI 已无 /mcp/* 路径，现有 client.mcp.* 基于旧版，升级镜像时需核实）
+- **下一步行动**：收口 IT-013；之后候选：① PyPI 发布（换名
+  `opencode-client-python` 等 + token）② 余下端点（auth 凭证、TUI/PTY；
+  注意 pin 镜像 v1.18.21 的 OpenAPI 已无 /mcp/* 路径，现有 client.mcp.*
+  基于旧版，升级镜像时需核实）
 - **备注**：本地 `opencode serve` 统一 Docker 管理（Makefile `docker-*` 目标，
   默认 20001；镜像慢走域名代理 + tag 还原）；examples 按资源域组织为
   00~05 六个编号目录
 
 ```
 宏观  [█████] M1 ✅ ─ M2 ✅ ── M3 ✅ ── M4 ✅ ── M5 ✅
- 微观  [████████] IT-001 ✅  IT-002 ✅  IT-003 ✅  IT-004 ✅  IT-005 ✅  IT-006 ✅
-               IT-007 ✅  IT-008 ✅  IT-009 ✅  IT-010 ✅  IT-011 ✅  IT-012 ✅
+ 微观  [█████████] IT-001 ✅ … IT-011 ✅  IT-012 ✅  IT-013 ✅
 ```
 
 ## 宏观里程碑（详见 macro/ROADMAP.md）
@@ -48,6 +47,7 @@
 | IT-010 | 事件 Router + 类型化热事件：`EventType` 开放集 + 6 热事件子类 + `AsyncEventRouter`/`EventRouter` | ✅ | 2026-08-23 |
 | IT-011 | session 域补全：status/children/todo/diff/revert/unrevert/init/command/shell/part 编辑（11 端点×4 类） | ✅ | 2026-08-24 |
 | IT-012 | code review 问题修复：默认超时/重试幂等/Router 超时语义/异常分层 + 6 Low + 1 Info | ✅ | 2026-08-24 |
+| IT-013 | files 域：list/read/status + search_text/files/symbols + formatter（7 端点×4 类） | ✅ | 2026-08-24 |
 
 ## 阻塞 / 风险
 

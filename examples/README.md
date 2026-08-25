@@ -18,6 +18,7 @@
 | `events/` | 事件流（`client.server.stream_events()`） | 裸流迭代区分思考/正文/工具调用；事件 Router 按类型订阅 + 类型化热事件 |
 | `vcs/` | 版本控制（`client.vcs.*`） | info / status / diff / diff_raw / apply（看改动、落盘 diff、打补丁） |
 | `mcp/` | MCP 服务器（`client.mcp.*`） | status（判别联合收窄）/ add（local·remote 两种 config） |
+| `files/` | 文件系统与搜索（`client.files.*`） | 目录浏览、读文件（text/binary 判联合）、git 视角状态；文本/文件名/符号三路搜索；formatter 状态 |
 | `client/` | 客户端本体 | 复用连接池、超时配置、异常捕获降级、`with_raw_response` 裸响应 |
 
 新增示例时放进对应**功能模块**的文件夹；不要按难度或"进阶模式"分类
