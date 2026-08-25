@@ -13,6 +13,7 @@ __all__ = [
     "McpConfig",
     "McpLocalConfig",
     "McpOAuthConfig",
+    "McpOAuthStart",
     "McpRemoteConfig",
     "MCPStatus",
     "MCPStatusConnected",
@@ -116,3 +117,19 @@ McpConfig = Annotated[
     McpLocalConfig | McpRemoteConfig,
     pydantic.Field(discriminator="type"),
 ]
+
+
+# -- oauth (response-side) ----------------------------------------------------
+
+
+class McpOAuthStart(OpencodeModel):
+    """Kick-off document for the browser OAuth flow (``POST /mcp/{name}/auth``).
+
+    Open ``authorization_url`` in a browser; the provider redirects back with
+    a code that completes the flow via
+    :meth:`McpResource.complete_oauth`.  ``oauth_state`` is the anti-CSRF
+    token to verify on the way back.
+    """
+
+    authorization_url: str
+    oauth_state: str

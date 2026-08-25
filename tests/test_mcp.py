@@ -1,4 +1,4 @@
-"""Tests for the MCP endpoints (status + add, sync + async)."""
+"""Tests for the MCP endpoints (status/add + OAuth/connect lifecycle, sync + async)."""
 
 from __future__ import annotations
 
@@ -14,12 +14,14 @@ from opencode_client import (
     AsyncOpenCodeClient,
     McpLocalConfig,
     McpOAuthConfig,
+    McpOAuthStart,
     McpRemoteConfig,
     MCPStatusConnected,
     MCPStatusFailed,
     MCPStatusNeedsAuth,
     MCPStatusNeedsClientRegistration,
     OpenCodeClient,
+    OpenCodeNotFoundError,
 )
 
 BASE = "http://localhost:4096"
@@ -113,3 +115,99 @@ class TestMcpAsync:
         assert result["fs"]["status"] == "connected"
         sent = json.loads(mock_server.post("/mcp").calls.last.request.content)
         assert sent["config"]["command"] == ["uvx", "mcp-server"]
+
+
+class TestMcpLifecycleSync:
+    """OAuth lifecycle + connect/disconnect (the six /mcp/{name} endpoints)."""
+
+    def test_start_oauth_parses_camel_case_document(self, mock_server: respx.MockRouter) -> None:
+        route = mock_server.post("/mcp/notes/auth").mock(
+            return_value=httpx.Response(
+                200, json={"authorizationUrl": "https://auth.example/authorize", "oauthState": "st-1"}
+            )
+        )
+        with OpenCodeClient(BASE) as client:
+            started = client.mcp.start_oauth("notes")
+        assert isinstance(started, McpOAuthStart)
+        assert started.authorization_url == "https://auth.example/authorize"
+        assert started.oauth_state == "st-1"
+        assert route.calls.last.request.url.path == "/mcp/notes/auth"
+
+    def test_complete_oauth_sends_code_and_parses_status(self, mock_server: respx.MockRouter) -> None:
+        route = mock_server.post("/mcp/notes/auth/callback").mock(
+            return_value=httpx.Response(200, json={"status": "connected"})
+        )
+        with OpenCodeClient(BASE) as client:
+            status = client.mcp.complete_oauth("notes", code="abc123")
+        assert isinstance(status, MCPStatusConnected)
+        sent = json.loads(route.calls.last.request.content)
+        assert sent == {"code": "abc123"}
+
+    def test_authenticate_returns_status(self, mock_server: respx.MockRouter) -> None:
+        mock_server.post("/mcp/notes/auth/authenticate").mock(
+            return_value=httpx.Response(200, json={"status": "connected"})
+        )
+        with OpenCodeClient(BASE) as client:
+            status = client.mcp.authenticate("notes")
+        assert status.status == "connected"
+
+    def test_remove_oauth(self, mock_server: respx.MockRouter) -> None:
+        route = mock_server.delete("/mcp/notes/auth").mock(return_value=httpx.Response(200, json={"success": True}))
+        with OpenCodeClient(BASE) as client:
+            assert client.mcp.remove_oauth("notes") is True
+        assert route.calls.last.request.method == "DELETE"
+
+    def test_connect_disconnect(self, mock_server: respx.MockRouter) -> None:
+        mock_server.post("/mcp/fs/connect").mock(return_value=httpx.Response(200, json=True))
+        mock_server.post("/mcp/fs/disconnect").mock(return_value=httpx.Response(200, json=True))
+        with OpenCodeClient(BASE) as client:
+            assert client.mcp.connect("fs") is True
+            assert client.mcp.disconnect("fs") is True
+
+    def test_unknown_server_maps_to_not_found(self, mock_server: respx.MockRouter) -> None:
+        mock_server.post("/mcp/ghost/connect").mock(
+            return_value=httpx.Response(404, json={"name": "NotFound", "data": {"message": "no server"}})
+        )
+        with OpenCodeClient(BASE) as client:
+            with pytest.raises(OpenCodeNotFoundError):
+                client.mcp.connect("ghost")
+
+
+class TestMcpLifecycleAsync:
+    async def test_full_browser_flow(self, mock_server: respx.MockRouter) -> None:
+        mock_server.post("/mcp/r/auth").mock(
+            return_value=httpx.Response(
+                200, json={"authorizationUrl": "https://auth.example/authorize", "oauthState": "st"}
+            )
+        )
+        mock_server.post("/mcp/r/auth/callback").mock(return_value=httpx.Response(200, json={"status": "needs_auth"}))
+        async with AsyncOpenCodeClient(BASE) as client:
+            started = await client.mcp.start_oauth("r")
+            status = await client.mcp.complete_oauth("r", code="c0de")
+        assert isinstance(started, McpOAuthStart)
+        assert isinstance(status, MCPStatusNeedsAuth)
+
+    async def test_authenticate_remove_connect_disconnect(self, mock_server: respx.MockRouter) -> None:
+        mock_server.post("/mcp/r/auth/authenticate").mock(
+            return_value=httpx.Response(200, json={"status": "failed", "error": "nope"})
+        )
+        mock_server.delete("/mcp/r/auth").mock(return_value=httpx.Response(200, json={"success": True}))
+        mock_server.post("/mcp/r/connect").mock(return_value=httpx.Response(200, json=True))
+        mock_server.post("/mcp/r/disconnect").mock(return_value=httpx.Response(200, json=True))
+        async with AsyncOpenCodeClient(BASE) as client:
+            status = await client.mcp.authenticate("r")
+            removed = await client.mcp.remove_oauth("r")
+            connected = await client.mcp.connect("r")
+            disconnected = await client.mcp.disconnect("r")
+        assert isinstance(status, MCPStatusFailed)
+        assert (removed, connected, disconnected) == (True, True, True)
+
+    async def test_raw_start_oauth_returns_unparsed_response(self, mock_server: respx.MockRouter) -> None:
+        mock_server.post("/mcp/r/auth").mock(
+            return_value=httpx.Response(
+                200, json={"authorizationUrl": "https://auth.example/authorize", "oauthState": "st"}
+            )
+        )
+        async with AsyncOpenCodeClient(BASE) as client:
+            response = await client.mcp.with_raw_response.start_oauth("r")
+        assert response.json()["oauthState"] == "st"

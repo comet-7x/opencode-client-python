@@ -1,6 +1,6 @@
 """Models for the /session endpoints and their nested types."""
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, TypeAlias
 
 import pydantic
 
@@ -171,7 +171,7 @@ class SessionStatusRetry(OpencodeModel):
 
 
 #: Discriminated union of the three session states (``type`` tag).
-SessionStatus = Annotated[
+SessionStatus: TypeAlias = Annotated[
     SessionStatusIdle | SessionStatusBusy | SessionStatusRetry,
     pydantic.Field(discriminator="type"),
 ]

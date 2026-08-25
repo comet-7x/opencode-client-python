@@ -6,7 +6,7 @@ request-side part inputs accepted by the prompt endpoints, and the
 shared helper models those parts depend on.
 """
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, TypeAlias
 
 import pydantic
 from pydantic import Field
@@ -131,7 +131,7 @@ class FilePartSourceResource(OpencodeModel):
     uri: str
 
 
-FilePartSource = Annotated[
+FilePartSource: TypeAlias = Annotated[
     FilePartSourceFile | FilePartSourceSymbol | FilePartSourceResource,
     pydantic.Field(discriminator="type"),
 ]
@@ -187,7 +187,7 @@ class ToolStateError(OpencodeModel):
     time: dict[str, float]
 
 
-ToolState = Annotated[
+ToolState: TypeAlias = Annotated[
     ToolStatePending | ToolStateRunning | ToolStateCompleted | ToolStateError,
     pydantic.Field(discriminator="status"),
 ]
@@ -271,7 +271,7 @@ class CompactionPart(PartBase):
     tail_start_id: str | None = Field(default=None, alias="tail_start_id")
 
 
-Part = Annotated[
+Part: TypeAlias = Annotated[
     TextPart
     | FilePart
     | ToolPart
@@ -341,7 +341,7 @@ class SubtaskPartInput(OpencodeModel):
     command: str | None = None
 
 
-PromptPart = Annotated[
+PromptPart: TypeAlias = Annotated[
     TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput,
     pydantic.Field(discriminator="type"),
 ]

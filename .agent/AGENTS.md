@@ -34,7 +34,7 @@ src/opencode_client/
     event.py           #   Event（SSE 事件泛型）+ EventType（开放集枚举，57 成员）+ 6 个热事件类型化子类 + EVENT_CATALOG/typed_event
     interaction.py     #   PermissionRequest / QuestionRequest 等（pending 交互请求）
     vcs.py             #   VcsInfo / VcsFileStatus / VcsFileDiff
-    mcp.py             #   MCPStatus(status 判联合) / McpLocalConfig / McpRemoteConfig
+    mcp.py             #   MCPStatus(status 判联合) / McpLocalConfig / McpRemoteConfig / McpOAuthStart
     files.py           #   FileNode / FileContent(text|binary 判联合) / FileChange /
                        #   TextMatch(snake_case wire 特例) / Symbol(LSP) / FormatterStatus
   resources/           # API 资源层：按端点域分组，组合持有 client（非继承），每域 sync/async 双类
@@ -44,7 +44,7 @@ src/opencode_client/
     sessions.py        #   SessionsResource/AsyncSessionsResource（/session 全套 CRUD/prompt/messages/summarize/permission）
     server.py          #   ServerResource/AsyncServerResource（health/config/provider/agent/command/skill + permission/question 交互 + event）
     vcs.py             #   VcsResource/AsyncVcsResource（/vcs info/status/diff/diff_raw/apply）
-    mcp.py             #   McpResource/AsyncMcpResource（/mcp status/add）
+    mcp.py             #   McpResource/AsyncMcpResource（/mcp status/add + OAuth 生命周期 + connect/disconnect）
     files.py           #   FilesResource/AsyncFilesResource（/file list/read/status +
                        #   /find text/file/symbol + /formatter）
 tests/                 # pytest + respx 测试（test_client.py 等）

@@ -13,6 +13,7 @@ request and parse the response, never in *what* is sent or how it is shaped.
 
 from __future__ import annotations
 
+import builtins
 from typing import Any, Literal, TypeVar
 from urllib.parse import quote
 
@@ -30,6 +31,7 @@ from ..models import (
     FormatterStatus,
     Health,
     McpLocalConfig,
+    McpOAuthStart,
     McpRemoteConfig,
     MCPStatus,
     MessageWithParts,
@@ -127,6 +129,13 @@ class TypeAdapters:
     skill_list: TypeAdapter[list[Skill]] = TypeAdapter(list[Skill])
     #: ``GET /mcp`` — server name -> status union.
     mcp_status: TypeAdapter[dict[str, MCPStatus]] = TypeAdapter(dict[str, MCPStatus])
+    #: ``POST /mcp/{name}/auth`` — browser-flow kick-off document.
+    mcp_oauth_start: TypeAdapter[McpOAuthStart] = TypeAdapter(McpOAuthStart)
+    #: ``DELETE /mcp/{name}/auth`` — ``{"success": true}`` envelope.
+    # the class attribute named ``bool`` above shadows the builtin here
+    mcp_oauth_remove: TypeAdapter[dict[str, builtins.bool]] = TypeAdapter(dict[str, builtins.bool])
+    #: ``POST /mcp/{name}/auth/{authenticate,callback}`` — one server's status.
+    mcp_single_status: TypeAdapter[MCPStatus] = TypeAdapter(MCPStatus)
     #: ``POST /mcp`` result document.
     mcp_add: TypeAdapter[dict[str, Any]] = TypeAdapter(dict[str, Any])
     #: ``GET /session/status`` — session id -> status union.

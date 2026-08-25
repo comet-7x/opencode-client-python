@@ -43,15 +43,15 @@ disconnect(name)             -> bool
 
 ## 任务
 
-- [ ] 模型：`models/mcp.py` 加 `McpOAuthStart`；导出三处注册
-- [ ] `_wire.py`：`oauth_start`/`oauth_status` TypeAdapter
-- [ ] `resources/mcp.py`：6 方法 ×4 类（raw 视图同步）；路径参数走 path_segment
-- [ ] 测试：`tests/test_mcp.py` 补 6 端点 sync+async+404+raw 抽查
-- [ ] 示例：`examples/mcp/mcp_servers.py` 增加 OAuth 流演示段；
+- [x] 模型：`models/mcp.py` 加 `McpOAuthStart`；导出三处注册
+- [x] `_wire.py`：`oauth_start`/`oauth_status` TypeAdapter
+- [x] `resources/mcp.py`：6 方法 ×4 类（raw 视图同步）；路径参数走 path_segment
+- [x] 测试：`tests/test_mcp.py` 补 6 端点 sync+async+404+raw 抽查
+- [x] 示例：`examples/mcp/mcp_servers.py` 增加 OAuth 流演示段；
       冒烟 fixture 补路由
-- [ ] 文档：修正 AGENTS.md 里「OpenAPI 已无 /mcp/*」的过时备注；
+- [x] 文档：修正 AGENTS.md 里「OpenAPI 已无 /mcp/*」的过时备注；
       README 双语表无需动（域级描述不变）
-- [ ] `make check` 全绿；IT-014/BOARD 归档
+- [x] `make check` 全绿；IT-014/BOARD 归档
 
 ## 决策记录
 
@@ -59,3 +59,33 @@ disconnect(name)             -> bool
   finishAuth）：Python 名取语义（用 code 完成 OAuth），docstring 注明映射。
 - `authenticate` 与 `start_oauth+complete_oauth` 是两条独立流（headless vs
   browser），示例里都演示但默认只跑 start_oauth 展示 URL 形态。
+
+
+## 完成记录
+
+2026-08-24 完成：
+
+- **模型**：`McpOAuthStart`（authorization_url/oauth_state 走 id_alias 驼峰），
+  三处导出注册。
+- **wire**：`TYPE_ADAPTERS` 新增 `mcp_oauth_start` / `mcp_single_status` /
+  `mcp_oauth_remove`。
+- **资源**：6 方法 ×4 类（start_oauth/complete_oauth/authenticate/
+  remove_oauth/connect/disconnect），`_name_path()` 统一走 path_segment
+  编码；remove_oauth 解开 wire 的 `{"success": true}` 信封返回 bool。
+- **测试**：test_mcp.py +10（浏览器流、无头流、信封解包、404 映射、
+  sync+async+raw 抽查）。
+- **示例**：mcp_servers.py 加 `--oauth <name>` 演示段（start_oauth 展示
+  URL 形态 → authenticate → connect/disconnect；含"服务端拒绝 OAuth"
+  分支的现场演示）；冒烟 fixture 补 4 条路由，+1 用例。
+- **文档**：AGENTS.md 结构树更新 mcp 行；BOARD 过时备注更正。
+- 结果：**`make check` 全绿（242 passed / 5 skipped，+10）**。
+
+### 踩坑
+
+- **遮蔽陷阱再现**：`TypeAdapters.bool = TypeAdapter(bool)` 这个类属性会把
+  类体内后续表达式与注解里的内置 `bool` 一起遮住——
+  `dict[str, bool]` 实际解析成 `dict[str, TypeAdapter(bool)]`，运行时
+  PydanticSchemaGenerationError、静态期 mypy "not valid as a type"。
+  与 IT-013 的 `list` 遮蔽同源：**类体内引用内置名一律 `builtins.X`**。
+- wire 的 DELETE /auth 返回的不是裸布尔而是 `{"success": true}` 信封，
+  资源层负责解包（OpenAPI schema 已写明，实现前应先看响应形状）。

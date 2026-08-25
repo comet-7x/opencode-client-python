@@ -1,11 +1,16 @@
-"""04 mcp_servers: list MCP server states and register a new one.
+"""mcp_servers: list MCP server states, register one, and drive its lifecycle.
 
-``client.mcp.*`` covers the ``/mcp`` endpoints. ``status()`` returns a
+``client.mcp.*`` covers the whole ``/mcp`` family. ``status()`` returns a
 ``name -> MCPStatus`` map — a discriminated union of five lifecycle states
 (``connected`` / ``disabled`` / ``failed`` / ``needs_auth`` /
 ``needs_client_registration``). ``add()`` registers a new server with either a
-local stdio command or a remote URL. The connect/disconnect/auth flows are
-out of scope for the client library; this script shows the two supported verbs.
+local stdio command or a remote URL. For remote servers that need OAuth,
+``--oauth`` additionally demonstrates the full lifecycle against an existing
+server name:
+
+- ``start_oauth(name)``  -> 拿到 authorizationUrl（真实流程交给用户浏览器打开）
+- ``authenticate(name)`` -> 无头流（服务端能自己完成的场景）
+- ``connect/disconnect`` -> 手动拉起/断开连接
 
 Run (from the repo root):
 
@@ -13,6 +18,7 @@ Run (from the repo root):
     uv run python -m examples.mcp.mcp_servers --directory /path/to/project
     uv run python -m examples.mcp.mcp_servers --name everything --command npx,-y,@modelcontextprotocol/server-everything
     uv run python -m examples.mcp.mcp_servers --name remote --remote-url https://mcp.example.com/sse
+    uv run python -m examples.mcp.mcp_servers --oauth remote   # 演示 OAuth + 连接管理（不真正完成认证）
 """
 
 from __future__ import annotations
@@ -60,7 +66,12 @@ def _print_status(statuses: dict[str, MCPStatus]) -> None:
 
 
 async def main(
-    base_url: str, directory: str | None, name: str | None, command: str | None, remote_url: str | None
+    base_url: str,
+    directory: str | None,
+    name: str | None,
+    command: str | None,
+    remote_url: str | None,
+    oauth_name: str | None,
 ) -> None:
     """Show MCP status; with --name, register a new server then re-check.
 
@@ -70,6 +81,7 @@ async def main(
         name: 给了就注册新 server（配 --command 或 --remote-url 二选一）。
         command: stdio 命令，逗号分隔（如 ``npx,-y,@foo/bar``）。
         remote_url: HTTP/SSE 远程地址。
+        oauth_name: 给了就对这台已注册的 server 演示 OAuth/连接生命周期。
     """
     async with AsyncOpenCodeClient(base_url) as client:
         _print_status(await client.mcp.status(directory=directory))
@@ -98,6 +110,31 @@ async def main(
         print("\n== status after add ==")
         _print_status(await client.mcp.status(directory=directory))
 
+    # —— OAuth / 连接生命周期：针对已注册的远程 server 演示（默认跳过）。
+    #    真实浏览器流是：start_oauth 拿 URL -> 用户在浏览器里授权 ->
+    #    服务端回调带 code -> complete_oauth 用 code 换 token。脚本只演示
+    #    到"拿到 URL"为止；无头流 authenticate 由支持的服务端自行完成认证。
+    if oauth_name is not None:
+        async with AsyncOpenCodeClient(base_url) as client:
+            try:
+                started = await client.mcp.start_oauth(oauth_name, directory=directory)
+                print(f"\n== start_oauth({oauth_name!r}) ==")
+                print(f"authorization_url : {started.authorization_url}")
+                print(f"oauth_state       : {started.oauth_state}")
+                print("（把 authorization_url 交给用户浏览器打开；拿到回调 code 后")
+                print("  用 client.mcp.complete_oauth(name, code) 完成认证。）")
+            except OpenCodeApiError as exc:
+                # 服务端对不支持 OAuth 的 server 会直接报错——这正是要演示的分支之一。
+                print(f"\n== start_oauth({oauth_name!r}) 被拒绝：HTTP {exc.status_code} {exc.payload}")
+
+            status = await client.mcp.authenticate(oauth_name, directory=directory)
+            print(f"\n== authenticate({oauth_name!r}) -> {status.status}")
+
+            connected = await client.mcp.connect(oauth_name, directory=directory)
+            print(f"connect({oauth_name!r}) -> {connected}")
+            disconnected = await client.mcp.disconnect(oauth_name, directory=directory)
+            print(f"disconnect({oauth_name!r}) -> {disconnected}")
+
 
 def cli() -> None:
     """Parse args, run main, translate library errors into exit codes."""
@@ -107,10 +144,13 @@ def cli() -> None:
     parser.add_argument("--name", default=None, help="register a new MCP server under this name")
     parser.add_argument("--command", default=None, help="stdio command, comma-separated argv (e.g. npx,-y,@foo/bar)")
     parser.add_argument("--remote-url", default=None, help="remote HTTP/SSE endpoint URL")
+    parser.add_argument(
+        "--oauth", dest="oauth", default=None, help="demo OAuth/connect lifecycle for this registered server"
+    )
     args = parser.parse_args()
 
     try:
-        asyncio.run(main(args.url, args.directory, args.name, args.command, args.remote_url))
+        asyncio.run(main(args.url, args.directory, args.name, args.command, args.remote_url, args.oauth))
     except OpenCodeApiError as exc:
         print(f"[OpenCodeApiError] HTTP {exc.status_code}: {exc.payload}", file=sys.stderr)
         raise SystemExit(1) from exc

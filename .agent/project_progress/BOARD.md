@@ -5,22 +5,22 @@
 ## 当前位置
 
 - **宏观**：M5 发布准备 —— ✅ 完成（IT-008：本地 dist + tag v0.1.0；PyPI 后续）
-- **微观**：IT-014 mcp 域补全 🚧（2026-08-24 开启；OAuth 生命周期 +
-  connect/disconnect 共 6 端点；核实发现 AGENTS.md「/mcp 已消失」备注有误，
-  真实缺口是客户端只覆盖了 2/8）
+- **微观**：IT-014 mcp 域补全 ✅（2026-08-24；+6 端点共 8 方法，
+  +10 测试，`make check` 242 passed 全绿）
+- IT-013 files 域 ✅（2026-08-24；7 端点，`client.files.*`）
 - IT-013 files 域 ✅（2026-08-24；7 端点，`client.files.*`）
 - **仓库**：已推送 `origin/develop` + tag `v0.1.0`；日常命令走 Makefile（`make check` 全门禁）
-- **下一步行动**：收口 IT-013；之后候选：① PyPI 发布（换名
-  `opencode-client-python` 等 + token）② 余下端点（auth 凭证、TUI/PTY；
-  注意 pin 镜像 v1.18.21 的 OpenAPI 已无 /mcp/* 路径，现有 client.mcp.*
-  基于旧版，升级镜像时需核实）
+- **下一步行动**：候选：① PyPI 发布（换名
+  `opencode-client-python` 等 + token）② 余下端点（TUI/PTY、project、sync 等）
+  （更正：早前「OpenAPI 已无 /mcp/* 路径」的备注有误——v1.18.21 导出里
+  /mcp 家族 8 端点健在，IT-014 已核实并补全）
 - **备注**：本地 `opencode serve` 统一 Docker 管理（Makefile `docker-*` 目标，
   默认 20001；镜像慢走域名代理 + tag 还原）；examples 按资源域组织为
-  00~05 六个编号目录
+  功能模块目录（quickstart/sessions/server/events/vcs/mcp/files/client）
 
 ```
 宏观  [█████] M1 ✅ ─ M2 ✅ ── M3 ✅ ── M4 ✅ ── M5 ✅
- 微观  [█████████] IT-001 ✅ … IT-011 ✅  IT-012 ✅  IT-013 ✅  IT-014 🚧
+ 微观  [█████████] IT-001 ✅ … IT-011 ✅  IT-012 ✅  IT-013 ✅  IT-014 ✅
 ```
 
 ## 宏观里程碑（详见 macro/ROADMAP.md）
@@ -50,7 +50,7 @@
 | IT-011 | session 域补全：status/children/todo/diff/revert/unrevert/init/command/shell/part 编辑（11 端点×4 类） | ✅ | 2026-08-24 |
 | IT-012 | code review 问题修复：默认超时/重试幂等/Router 超时语义/异常分层 + 6 Low + 1 Info | ✅ | 2026-08-24 |
 | IT-013 | files 域：list/read/status + search_text/files/symbols + formatter（7 端点×4 类） | ✅ | 2026-08-24 |
-| IT-014 | mcp 域补全：OAuth start/callback/authenticate/remove + connect/disconnect（6 端点×4 类） | 🚧 | 2026-08-24 |
+| IT-014 | mcp 域补全：OAuth start/callback/authenticate/remove + connect/disconnect（6 端点×4 类） | ✅ | 2026-08-24 |
 
 ## 阻塞 / 风险
 

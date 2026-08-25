@@ -171,6 +171,7 @@ from .models.files import (
     TextMatch,
     TextSubmatch,
 )
+from .models.mcp import McpOAuthStart
 from .router import AsyncEventRouter, EventRouter
 from .sse import AsyncEventStream, EventStream, SSEDecoder
 
@@ -216,6 +217,7 @@ __all__ = [
     "McpConfig",
     "McpLocalConfig",
     "McpOAuthConfig",
+    "McpOAuthStart",
     "McpRemoteConfig",
     "Message",
     "MessagePartDeltaEvent",

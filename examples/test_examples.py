@@ -257,6 +257,18 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
         # —— mcp（04 mcp_servers）。
         router.get("/mcp").mock(return_value=httpx.Response(200, json={"docs": {"status": "connected"}}))
         router.post("/mcp").mock(return_value=httpx.Response(200, json={"name": "added", "status": "connected"}))
+        # —— mcp 生命周期（--oauth remote 演示段）。
+        router.post("/mcp/remote/auth").mock(
+            return_value=httpx.Response(
+                200,
+                json={"authorizationUrl": "https://auth.example/authorize", "oauthState": "st-1"},
+            )
+        )
+        router.post("/mcp/remote/auth/authenticate").mock(
+            return_value=httpx.Response(200, json={"status": "needs_auth"})
+        )
+        router.post("/mcp/remote/connect").mock(return_value=httpx.Response(200, json=True))
+        router.post("/mcp/remote/disconnect").mock(return_value=httpx.Response(200, json=True))
         # —— files（browse_files / search_code）。
         router.get("/file").mock(
             return_value=httpx.Response(
@@ -423,6 +435,10 @@ class TestExamplesSmoke:
     def test_mcp_servers(self) -> None:
         mod = _load("mcp.mcp_servers")
         _run_cli(mod, "--url", BASE)
+
+    def test_mcp_oauth_lifecycle(self) -> None:
+        mod = _load("mcp.mcp_servers")
+        _run_cli(mod, "--url", BASE, "--oauth", "remote")
 
     def test_browse_files(self) -> None:
         mod = _load("files.browse_files")
