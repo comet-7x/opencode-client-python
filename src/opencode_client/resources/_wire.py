@@ -27,14 +27,18 @@ from ..models import (
     McpRemoteConfig,
     MCPStatus,
     MessageWithParts,
+    Part,
     PermissionRequest,
     PromptModel,
     PromptPart,
     ProviderList,
     QuestionRequest,
     Session,
+    SessionFileDiff,
+    SessionStatus,
     Skill,
     TextPartInput,
+    Todo,
     UpdateSessionRequest,
     VcsFileDiff,
     VcsFileStatus,
@@ -44,14 +48,19 @@ from .base import query_params
 
 __all__ = [
     "TYPE_ADAPTERS",
+    "command_body",
     "create_body",
+    "diff_query",
     "fork_body",
+    "init_body",
     "messages_query",
     "mcp_add_body",
     "permission_body",
     "prompt_body",
     "request_spec",
+    "revert_body",
     "session_list_query",
+    "shell_body",
     "summarize_body",
     "update_body",
     "validate_response",
@@ -110,6 +119,14 @@ class TypeAdapters:
     mcp_status: TypeAdapter[dict[str, MCPStatus]] = TypeAdapter(dict[str, MCPStatus])
     #: ``POST /mcp`` result document.
     mcp_add: TypeAdapter[dict[str, Any]] = TypeAdapter(dict[str, Any])
+    #: ``GET /session/status`` — session id -> status union.
+    status_map: TypeAdapter[dict[str, SessionStatus]] = TypeAdapter(dict[str, SessionStatus])
+    #: ``GET /session/{id}/todo``.
+    todo_list: TypeAdapter[list[Todo]] = TypeAdapter(list[Todo])
+    #: ``GET /session/{id}/diff``.
+    session_diffs: TypeAdapter[list[SessionFileDiff]] = TypeAdapter(list[SessionFileDiff])
+    #: ``PATCH /session/{id}/message/{mid}/part/{pid}``.
+    part: TypeAdapter[Part] = TypeAdapter(Part)
 
 
 #: Shared response validators keyed by response shape.
@@ -423,3 +440,115 @@ def mcp_add_body(name: str, config: McpLocalConfig | McpRemoteConfig | dict[str,
     else:
         config_wire = dict(config)
     return {"name": name, "config": config_wire}
+
+
+def command_body(
+    command: str,
+    arguments: str,
+    agent: str | None = None,
+    model: PromptModel | str | None = None,
+    variant: str | None = None,
+    message_id: str | None = None,
+    parts: list[PromptPart] | None = None,
+) -> dict[str, Any]:
+    """Build the ``POST /session/{id}/command`` body.
+
+    Unlike ``prompt``, the wire format carries the model as a single
+    ``"provider/model"`` string (verified against the server's
+    ``CommandInput`` schema), so a :class:`PromptModel` is flattened here.
+
+    Args:
+        command: The command name to execute.
+        arguments: Free-text arguments passed to the command.
+        agent: The agent to act as.
+        model: Target model; a :class:`PromptModel` is joined into
+            ``"provider/model"``, or pass an already-joined string.
+        variant: Model variant override.
+        message_id: Caller-chosen message id (for idempotency).
+        parts: Optional file attachments alongside the command.
+
+    Returns:
+        The JSON body dict.
+    """
+    body: dict[str, Any] = {"command": command, "arguments": arguments}
+    if agent is not None:
+        body["agent"] = agent
+    if model is not None:
+        body["model"] = f"{model.provider_id}/{model.model_id}" if isinstance(model, PromptModel) else model
+    if variant is not None:
+        body["variant"] = variant
+    if message_id is not None:
+        body["messageID"] = message_id
+    if parts is not None:
+        body["parts"] = [p.to_wire() for p in parts]
+    return body
+
+
+def shell_body(
+    command: str,
+    agent: str,
+    model: PromptModel | dict[str, Any] | None = None,
+    message_id: str | None = None,
+) -> dict[str, Any]:
+    """Build the ``POST /session/{id}/shell`` body.
+
+    Args:
+        command: The shell command to run.
+        agent: The agent to attribute the run to (required by the server).
+        model: Target model as :class:`PromptModel` or raw ``{providerID,
+            modelID}`` dict (the shell wire format keeps the object shape).
+        message_id: Caller-chosen message id (for idempotency).
+
+    Returns:
+        The JSON body dict.
+    """
+    body: dict[str, Any] = {"agent": agent, "command": command}
+    if model is not None:
+        body["model"] = model.to_wire() if isinstance(model, PromptModel) else model
+    if message_id is not None:
+        body["messageID"] = message_id
+    return body
+
+
+def revert_body(message_id: str, part_id: str | None = None) -> dict[str, Any]:
+    """Build the ``POST /session/{id}/revert`` body.
+
+    Args:
+        message_id: Revert messages up to and including this one.
+        part_id: Optionally revert only up to this part within the message.
+
+    Returns:
+        The JSON body dict.
+    """
+    body: dict[str, Any] = {"messageID": message_id}
+    if part_id is not None:
+        body["partID"] = part_id
+    return body
+
+
+def init_body(provider_id: str, model_id: str, message_id: str) -> dict[str, Any]:
+    """Build the ``POST /session/{id}/init`` body.
+
+    Args:
+        provider_id: Provider that runs the project initialization.
+        model_id: Model that runs the project initialization.
+        message_id: Caller-chosen message id for the init turn.
+
+    Returns:
+        The JSON body dict.
+    """
+    return {"providerID": provider_id, "modelID": model_id, "messageID": message_id}
+
+
+def diff_query(message_id: str | None) -> dict[str, Any]:
+    """Collect the optional filters for ``GET /session/{id}/diff``.
+
+    Args:
+        message_id: Restrict the diff to messages up to this one.
+
+    Returns:
+        A dict of only the supplied (non-``None``) query params.
+    """
+    query: dict[str, Any] = {}
+    _optional(query, "messageID", message_id)
+    return query

@@ -13,6 +13,7 @@ opencode 的核心抽象是 **session（会话）**：一段与 agent 的对话�
 | `delete_session.py` | `sessions.delete(id)` | 返回值含义、删除不存在的会话会怎样 |
 | `list_messages.py` | `sessions.list_messages(id)` | 会话内的消息历史：`MessageWithParts` 的联合类型与 part 遍历 |
 | `session_lifecycle.py` | `sessions.update/get/fork/abort/share/unshare/summarize/delete_message` | 建删列查之外的全部会话动词，一次在一个临时会话上走完 |
+| `session_state_history.py` | `sessions.status/children/list_todos/diff/revert/unrevert` | 会话的运行状态（idle/busy/retry）、子会话、todo 列表、文件改动与历史回退/恢复 |
 
 ## 适用场景
 
@@ -36,6 +37,7 @@ uv run python -m examples.01_session_management.list_sessions --limit 5
 uv run python -m examples.01_session_management.delete_session --session ses_XXXX
 uv run python -m examples.01_session_management.list_messages --session ses_XXXX
 uv run python -m examples.01_session_management.session_lifecycle
+uv run python -m examples.01_session_management.session_state_history
 ```
 
 均支持 `--url` 指定服务地址，`--help` 查看各脚本全部参数。

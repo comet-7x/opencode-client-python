@@ -269,6 +269,33 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
         router.route(method="POST", path__regex=r"/session/[^/]+/permissions/[^/]+").mock(
             return_value=httpx.Response(200, json=True)
         )
+        # —— session_state_history（01）。
+        router.get("/session/status").mock(
+            return_value=httpx.Response(200, json={"ses_e": {"type": "busy"}, "ses_other": {"type": "idle"}})
+        )
+        router.route(method="GET", path__regex=r"/session/[^/]+/children").mock(
+            return_value=httpx.Response(200, json=[_session_payload("ses_child")])
+        )
+        router.route(method="GET", path__regex=r"/session/[^/]+/todo").mock(
+            return_value=httpx.Response(
+                200,
+                json=[
+                    {"content": "create demo.txt", "status": "completed", "priority": "medium"},
+                ],
+            )
+        )
+        router.route(method="GET", path__regex=r"/session/[^/]+/diff").mock(
+            return_value=httpx.Response(
+                200,
+                json=[{"file": "demo.txt", "additions": 1, "deletions": 0, "status": "added"}],
+            )
+        )
+        router.route(method="POST", path__regex=r"/session/[^/]+/revert$").mock(
+            return_value=httpx.Response(200, json=_session_payload() | {"revert": {"messageID": "msg_a"}})
+        )
+        router.route(method="POST", path__regex=r"/session/[^/]+/unrevert").mock(
+            return_value=httpx.Response(200, json=_session_payload())
+        )
         # part.updated 的 wire 形状（/doc 导出）：sessionID + part + time 均必填。
         sse = (
             f"data: {json.dumps(_part_updated_event(''))}\n\n"
@@ -323,6 +350,10 @@ class TestExamplesSmoke:
 
     def test_session_lifecycle(self) -> None:
         mod = _load("01_session_management.session_lifecycle")
+        _run_cli(mod, "--url", BASE)
+
+    def test_session_state_history(self) -> None:
+        mod = _load("01_session_management.session_state_history")
         _run_cli(mod, "--url", BASE)
 
     def test_explore_server(self) -> None:

@@ -38,7 +38,7 @@ import httpx
 
 from ._types import NOT_GIVEN, NotGiven
 from .constants import DEFAULT_CONNECT_TIMEOUT, DEFAULT_MAX_RETRIES, DEFAULT_USER_AGENT
-from .errors import OpenCodeServerError, make_api_error, make_transport_error
+from .errors import make_api_error, make_transport_error
 from .resources.mcp import AsyncMcpResource, McpResource
 from .resources.server import AsyncServerResource, ServerResource
 from .resources.sessions import AsyncSessionsResource, SessionsResource
@@ -286,7 +286,6 @@ class OpenCodeClient:
                 attempt += 1
                 continue
             raise make_api_error(response)
-        raise OpenCodeServerError(500, "unreachable")  # pragma: no cover
 
 
 class AsyncOpenCodeClient:
@@ -409,7 +408,6 @@ class AsyncOpenCodeClient:
                 attempt += 1
                 continue
             raise make_api_error(response)
-        raise OpenCodeServerError(500, "unreachable")  # pragma: no cover
 
 
 def _options_to_kwargs(opts: ClientOptions) -> dict[str, Any]:

@@ -16,6 +16,24 @@
 
 ## 关键记录
 
+### 2026-08-24 — IT-011 session 域补全（11 端点 ×4 类）
+- sessions 15 → **26 方法**：`status`/`children`/`list_todos`/`diff`/
+  `revert`/`unrevert`/`init`/`command`/`shell`/`delete_part`/`update_part`，
+  sync/async/raw×2 四类逐字镜像（raw 一致性锁自动通过）。
+- 新模型：`SessionStatus`（idle/busy/retry 判联合）、`Todo`、
+  `SessionFileDiff`（仅 additions/deletions 必填，与 VcsFileDiff 的差异点）。
+- wire 差异核实（服务端 groups/session.ts + handlers/session.ts）：
+  `command.model` 是 `"provider/model"` 字符串、`shell.model` 保持对象且
+  agent 必填、`update_part` 服务端校验三 ID 与路径一致否则 400；
+  revert/unrevert/shell 的 busy → 409 → 现有 `OpenCodeConflictError` 直接命中。
+- 测试 +16（`tests/test_sessions_extra.py`）+ examples 冒烟 +1
+  （`01_session_management/session_state_history.py`）；结果：**192 passed /
+  5 skipped**，全门禁绿。
+- 踩坑：`Part` 判联合不能 `model_validate`（用具体子类构造）；respx 未发送
+  的 query key 不在 params dict 里（断言 `not in` 而非 `is None`）。
+- 另：删除 client.py send() 两处不可达的 `raise ... # pragma: no cover`
+  兜底（mypy/pyright 均可证明 while True 不 fall-through），连带清理未用 import。
+
 ### 2026-08-23 — IT-010 事件 Router + 类型化热事件
 - **契约层**（`models/event.py`）：`EventType`（`StrEnum` 开放集，57 成员，
   种子 = 服务端 `/doc` 导出的 v1 事件面）；6 热事件子类复用现有模型

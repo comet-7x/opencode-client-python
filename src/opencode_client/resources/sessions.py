@@ -19,20 +19,29 @@ import httpx
 from ..models import (
     CreateSessionRequest,
     MessageWithParts,
+    Part,
     PromptModel,
     PromptPart,
     Session,
+    SessionFileDiff,
+    SessionStatus,
+    Todo,
     UpdateSessionRequest,
 )
 from ._wire import (
     TYPE_ADAPTERS,
+    command_body,
     create_body,
+    diff_query,
     fork_body,
+    init_body,
     messages_query,
     permission_body,
     prompt_body,
     request_spec,
+    revert_body,
     session_list_query,
+    shell_body,
     summarize_body,
     update_body,
     validate_response,
@@ -192,6 +201,108 @@ class SessionsResource(Resource):
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
+    # -- state & history ---------------------------------------------------
+
+    def status(self) -> dict[str, SessionStatus]:
+        """Report the run state of every active session (idle/busy/retry)."""
+        response = self._send("GET", "/session/status", **request_spec())
+        return validate_response(response, TYPE_ADAPTERS.status_map)
+
+    def children(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> list[Session]:
+        """List the child sessions spawned by this session (subagents/tasks).
+
+        Raises:
+            OpenCodeApiError: If the session does not exist (404).
+        """
+        response = self._send(
+            "GET", f"/session/{session_id}/children", **request_spec(directory=directory, workspace=workspace)
+        )
+        return validate_response(response, TYPE_ADAPTERS.sessions)
+
+    def list_todos(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> list[Todo]:
+        """List the session's todo list written by the todo tool.
+
+        Raises:
+            OpenCodeApiError: If the session does not exist (404).
+        """
+        response = self._send(
+            "GET", f"/session/{session_id}/todo", **request_spec(directory=directory, workspace=workspace)
+        )
+        return validate_response(response, TYPE_ADAPTERS.todo_list)
+
+    def diff(
+        self,
+        session_id: str,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> list[SessionFileDiff]:
+        """List the file changes made by the session's messages.
+
+        Args:
+            message_id: Only include changes up to this message.
+
+        Returns:
+            Per-file addition/deletion stats with optional patch text.
+        """
+        query = diff_query(message_id)
+        response = self._send(
+            "GET",
+            f"/session/{session_id}/diff",
+            **request_spec(directory=directory, workspace=workspace, query=query),
+        )
+        return validate_response(response, TYPE_ADAPTERS.session_diffs)
+
+    def revert(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> Session:
+        """Revert messages up to and including ``message_id``.
+
+        Raises:
+            OpenCodeConflictError: If the session is busy (409).
+        """
+        json_body = revert_body(message_id, part_id)
+        response = self._send(
+            "POST",
+            f"/session/{session_id}/revert",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+        return validate_response(response, TYPE_ADAPTERS.session)
+
+    def unrevert(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> Session:
+        """Restore previously reverted messages.
+
+        Raises:
+            OpenCodeConflictError: If the session is busy (409).
+        """
+        response = self._send(
+            "POST", f"/session/{session_id}/unrevert", **request_spec(directory=directory, workspace=workspace)
+        )
+        return validate_response(response, TYPE_ADAPTERS.session)
+
+    def init(
+        self,
+        session_id: str,
+        provider_id: str,
+        model_id: str,
+        message_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> bool:
+        """Run project initialization (AGENTS.md discovery) with the given model."""
+        json_body = init_body(provider_id, model_id, message_id)
+        response = self._send(
+            "POST",
+            f"/session/{session_id}/init",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+        return validate_response(response, TYPE_ADAPTERS.bool)
+
     # -- interaction ------------------------------------------------------
 
     def respond_permission(
@@ -309,6 +420,121 @@ class SessionsResource(Resource):
             f"/session/{session_id}/prompt_async",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
+
+    def command(
+        self,
+        session_id: str,
+        command: str,
+        arguments: str,
+        agent: str | None = None,
+        model: PromptModel | str | None = None,
+        variant: str | None = None,
+        message_id: str | None = None,
+        parts: list[PromptPart] | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> MessageWithParts:
+        """Execute a configured command (``/init``, custom commands) in the session.
+
+        Args:
+            command: The command name to execute.
+            arguments: Free-text arguments passed to the command.
+            agent: The agent to act as.
+            model: Target model; a :class:`PromptModel` is joined into
+                ``"provider/model"`` (the wire format for commands), or pass
+                an already-joined string.
+            variant: Model variant override.
+            message_id: Caller-chosen message id (for idempotency).
+            parts: Optional file attachments alongside the command.
+
+        Returns:
+            The assistant message with its parts.
+        """
+        json_body = command_body(
+            command,
+            arguments,
+            agent=agent,
+            model=model,
+            variant=variant,
+            message_id=message_id,
+            parts=parts,
+        )
+        response = self._send(
+            "POST",
+            f"/session/{session_id}/command",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+        return validate_response(response, TYPE_ADAPTERS.message)
+
+    def shell(
+        self,
+        session_id: str,
+        command: str,
+        agent: str,
+        model: PromptModel | dict[str, Any] | None = None,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> MessageWithParts:
+        """Run a shell command as a user message (``!cmd`` semantics).
+
+        Args:
+            command: The shell command to run.
+            agent: The agent to attribute the run to (required by the server).
+            model: Target model as :class:`PromptModel` or raw dict; session
+                default if omitted.
+
+        Returns:
+            The created user message with its parts (tool output follows via events).
+        """
+        json_body = shell_body(command, agent, model=model, message_id=message_id)
+        response = self._send(
+            "POST",
+            f"/session/{session_id}/shell",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+        return validate_response(response, TYPE_ADAPTERS.message)
+
+    def delete_part(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> bool:
+        """Delete one part of a message. Returns ``True`` on success."""
+        response = self._send(
+            "DELETE",
+            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            **request_spec(directory=directory, workspace=workspace),
+        )
+        return validate_response(response, TYPE_ADAPTERS.bool)
+
+    def update_part(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str,
+        part: Part,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> Part:
+        """Replace one part of a message with the given part.
+
+        Args:
+            part: The new part; its ``id``/``message_id``/``session_id`` must
+                match the path parameters or the server rejects with 400.
+
+        Returns:
+            The updated part.
+        """
+        response = self._send(
+            "PATCH",
+            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            **request_spec(directory=directory, workspace=workspace, json_body=part.to_wire()),
+        )
+        return validate_response(response, TYPE_ADAPTERS.part)
 
     def delete_message(
         self,
@@ -475,6 +701,112 @@ class AsyncSessionsResource(AsyncResource):
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
+    # -- state & history ---------------------------------------------------
+
+    async def status(self) -> dict[str, SessionStatus]:
+        """Report the run state of every active session (idle/busy/retry)."""
+        response = await self._send("GET", "/session/status", **request_spec())
+        return validate_response(response, TYPE_ADAPTERS.status_map)
+
+    async def children(
+        self, session_id: str, directory: str | None = None, workspace: str | None = None
+    ) -> list[Session]:
+        """List the child sessions spawned by this session (subagents/tasks).
+
+        Raises:
+            OpenCodeApiError: If the session does not exist (404).
+        """
+        response = await self._send(
+            "GET", f"/session/{session_id}/children", **request_spec(directory=directory, workspace=workspace)
+        )
+        return validate_response(response, TYPE_ADAPTERS.sessions)
+
+    async def list_todos(
+        self, session_id: str, directory: str | None = None, workspace: str | None = None
+    ) -> list[Todo]:
+        """List the session's todo list written by the todo tool.
+
+        Raises:
+            OpenCodeApiError: If the session does not exist (404).
+        """
+        response = await self._send(
+            "GET", f"/session/{session_id}/todo", **request_spec(directory=directory, workspace=workspace)
+        )
+        return validate_response(response, TYPE_ADAPTERS.todo_list)
+
+    async def diff(
+        self,
+        session_id: str,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> list[SessionFileDiff]:
+        """List the file changes made by the session's messages.
+
+        Args:
+            message_id: Only include changes up to this message.
+
+        Returns:
+            Per-file addition/deletion stats with optional patch text.
+        """
+        query = diff_query(message_id)
+        response = await self._send(
+            "GET",
+            f"/session/{session_id}/diff",
+            **request_spec(directory=directory, workspace=workspace, query=query),
+        )
+        return validate_response(response, TYPE_ADAPTERS.session_diffs)
+
+    async def revert(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> Session:
+        """Revert messages up to and including ``message_id``.
+
+        Raises:
+            OpenCodeConflictError: If the session is busy (409).
+        """
+        json_body = revert_body(message_id, part_id)
+        response = await self._send(
+            "POST",
+            f"/session/{session_id}/revert",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+        return validate_response(response, TYPE_ADAPTERS.session)
+
+    async def unrevert(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> Session:
+        """Restore previously reverted messages.
+
+        Raises:
+            OpenCodeConflictError: If the session is busy (409).
+        """
+        response = await self._send(
+            "POST", f"/session/{session_id}/unrevert", **request_spec(directory=directory, workspace=workspace)
+        )
+        return validate_response(response, TYPE_ADAPTERS.session)
+
+    async def init(
+        self,
+        session_id: str,
+        provider_id: str,
+        model_id: str,
+        message_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> bool:
+        """Run project initialization (AGENTS.md discovery) with the given model."""
+        json_body = init_body(provider_id, model_id, message_id)
+        response = await self._send(
+            "POST",
+            f"/session/{session_id}/init",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+        return validate_response(response, TYPE_ADAPTERS.bool)
+
     # -- interaction ------------------------------------------------------
 
     async def respond_permission(
@@ -592,6 +924,121 @@ class AsyncSessionsResource(AsyncResource):
             f"/session/{session_id}/prompt_async",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
+
+    async def command(
+        self,
+        session_id: str,
+        command: str,
+        arguments: str,
+        agent: str | None = None,
+        model: PromptModel | str | None = None,
+        variant: str | None = None,
+        message_id: str | None = None,
+        parts: list[PromptPart] | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> MessageWithParts:
+        """Execute a configured command (``/init``, custom commands) in the session.
+
+        Args:
+            command: The command name to execute.
+            arguments: Free-text arguments passed to the command.
+            agent: The agent to act as.
+            model: Target model; a :class:`PromptModel` is joined into
+                ``"provider/model"`` (the wire format for commands), or pass
+                an already-joined string.
+            variant: Model variant override.
+            message_id: Caller-chosen message id (for idempotency).
+            parts: Optional file attachments alongside the command.
+
+        Returns:
+            The assistant message with its parts.
+        """
+        json_body = command_body(
+            command,
+            arguments,
+            agent=agent,
+            model=model,
+            variant=variant,
+            message_id=message_id,
+            parts=parts,
+        )
+        response = await self._send(
+            "POST",
+            f"/session/{session_id}/command",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+        return validate_response(response, TYPE_ADAPTERS.message)
+
+    async def shell(
+        self,
+        session_id: str,
+        command: str,
+        agent: str,
+        model: PromptModel | dict[str, Any] | None = None,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> MessageWithParts:
+        """Run a shell command as a user message (``!cmd`` semantics).
+
+        Args:
+            command: The shell command to run.
+            agent: The agent to attribute the run to (required by the server).
+            model: Target model as :class:`PromptModel` or raw dict; session
+                default if omitted.
+
+        Returns:
+            The created user message with its parts (tool output follows via events).
+        """
+        json_body = shell_body(command, agent, model=model, message_id=message_id)
+        response = await self._send(
+            "POST",
+            f"/session/{session_id}/shell",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+        return validate_response(response, TYPE_ADAPTERS.message)
+
+    async def delete_part(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> bool:
+        """Delete one part of a message. Returns ``True`` on success."""
+        response = await self._send(
+            "DELETE",
+            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            **request_spec(directory=directory, workspace=workspace),
+        )
+        return validate_response(response, TYPE_ADAPTERS.bool)
+
+    async def update_part(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str,
+        part: Part,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> Part:
+        """Replace one part of a message with the given part.
+
+        Args:
+            part: The new part; its ``id``/``message_id``/``session_id`` must
+                match the path parameters or the server rejects with 400.
+
+        Returns:
+            The updated part.
+        """
+        response = await self._send(
+            "PATCH",
+            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            **request_spec(directory=directory, workspace=workspace, json_body=part.to_wire()),
+        )
+        return validate_response(response, TYPE_ADAPTERS.part)
 
     async def delete_message(
         self,
@@ -717,6 +1164,76 @@ class SessionsResourceWithRawResponse(Resource):
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
+    def status(self) -> httpx.Response:
+        """Report session run states; return the raw response."""
+        return self._send("GET", "/session/status", **request_spec())
+
+    def children(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List child sessions; return the raw response."""
+        return self._send(
+            "GET", f"/session/{session_id}/children", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    def list_todos(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List the session's todos; return the raw response."""
+        return self._send(
+            "GET", f"/session/{session_id}/todo", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    def diff(
+        self,
+        session_id: str,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """List the session's file changes; return the raw response."""
+        query = diff_query(message_id)
+        return self._send(
+            "GET",
+            f"/session/{session_id}/diff",
+            **request_spec(directory=directory, workspace=workspace, query=query),
+        )
+
+    def revert(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Revert messages; return the raw response."""
+        json_body = revert_body(message_id, part_id)
+        return self._send(
+            "POST",
+            f"/session/{session_id}/revert",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def unrevert(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Restore reverted messages; return the raw response."""
+        return self._send(
+            "POST", f"/session/{session_id}/unrevert", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    def init(
+        self,
+        session_id: str,
+        provider_id: str,
+        model_id: str,
+        message_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Run project initialization; return the raw response."""
+        json_body = init_body(provider_id, model_id, message_id)
+        return self._send(
+            "POST",
+            f"/session/{session_id}/init",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
     def respond_permission(
         self,
         session_id: str,
@@ -809,6 +1326,84 @@ class SessionsResourceWithRawResponse(Resource):
             "POST",
             f"/session/{session_id}/prompt_async",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def command(
+        self,
+        session_id: str,
+        command: str,
+        arguments: str,
+        agent: str | None = None,
+        model: PromptModel | str | None = None,
+        variant: str | None = None,
+        message_id: str | None = None,
+        parts: list[PromptPart] | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Execute a command; return the raw response."""
+        json_body = command_body(
+            command,
+            arguments,
+            agent=agent,
+            model=model,
+            variant=variant,
+            message_id=message_id,
+            parts=parts,
+        )
+        return self._send(
+            "POST",
+            f"/session/{session_id}/command",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def shell(
+        self,
+        session_id: str,
+        command: str,
+        agent: str,
+        model: PromptModel | dict[str, Any] | None = None,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Run a shell command; return the raw response."""
+        json_body = shell_body(command, agent, model=model, message_id=message_id)
+        return self._send(
+            "POST",
+            f"/session/{session_id}/shell",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    def delete_part(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Delete one part; return the raw response."""
+        return self._send(
+            "DELETE",
+            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            **request_spec(directory=directory, workspace=workspace),
+        )
+
+    def update_part(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str,
+        part: Part,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Replace one part; return the raw response."""
+        return self._send(
+            "PATCH",
+            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            **request_spec(directory=directory, workspace=workspace, json_body=part.to_wire()),
         )
 
     def delete_message(
@@ -948,6 +1543,82 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
+    async def status(self) -> httpx.Response:
+        """Report session run states; return the raw response."""
+        return await self._send("GET", "/session/status", **request_spec())
+
+    async def children(
+        self, session_id: str, directory: str | None = None, workspace: str | None = None
+    ) -> httpx.Response:
+        """List child sessions; return the raw response."""
+        return await self._send(
+            "GET", f"/session/{session_id}/children", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    async def list_todos(
+        self, session_id: str, directory: str | None = None, workspace: str | None = None
+    ) -> httpx.Response:
+        """List the session's todos; return the raw response."""
+        return await self._send(
+            "GET", f"/session/{session_id}/todo", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    async def diff(
+        self,
+        session_id: str,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """List the session's file changes; return the raw response."""
+        query = diff_query(message_id)
+        return await self._send(
+            "GET",
+            f"/session/{session_id}/diff",
+            **request_spec(directory=directory, workspace=workspace, query=query),
+        )
+
+    async def revert(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Revert messages; return the raw response."""
+        json_body = revert_body(message_id, part_id)
+        return await self._send(
+            "POST",
+            f"/session/{session_id}/revert",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def unrevert(
+        self, session_id: str, directory: str | None = None, workspace: str | None = None
+    ) -> httpx.Response:
+        """Restore reverted messages; return the raw response."""
+        return await self._send(
+            "POST", f"/session/{session_id}/unrevert", **request_spec(directory=directory, workspace=workspace)
+        )
+
+    async def init(
+        self,
+        session_id: str,
+        provider_id: str,
+        model_id: str,
+        message_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Run project initialization; return the raw response."""
+        json_body = init_body(provider_id, model_id, message_id)
+        return await self._send(
+            "POST",
+            f"/session/{session_id}/init",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
     async def respond_permission(
         self,
         session_id: str,
@@ -1040,6 +1711,84 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
             "POST",
             f"/session/{session_id}/prompt_async",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def command(
+        self,
+        session_id: str,
+        command: str,
+        arguments: str,
+        agent: str | None = None,
+        model: PromptModel | str | None = None,
+        variant: str | None = None,
+        message_id: str | None = None,
+        parts: list[PromptPart] | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Execute a command; return the raw response."""
+        json_body = command_body(
+            command,
+            arguments,
+            agent=agent,
+            model=model,
+            variant=variant,
+            message_id=message_id,
+            parts=parts,
+        )
+        return await self._send(
+            "POST",
+            f"/session/{session_id}/command",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def shell(
+        self,
+        session_id: str,
+        command: str,
+        agent: str,
+        model: PromptModel | dict[str, Any] | None = None,
+        message_id: str | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Run a shell command; return the raw response."""
+        json_body = shell_body(command, agent, model=model, message_id=message_id)
+        return await self._send(
+            "POST",
+            f"/session/{session_id}/shell",
+            **request_spec(directory=directory, workspace=workspace, json_body=json_body),
+        )
+
+    async def delete_part(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Delete one part; return the raw response."""
+        return await self._send(
+            "DELETE",
+            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            **request_spec(directory=directory, workspace=workspace),
+        )
+
+    async def update_part(
+        self,
+        session_id: str,
+        message_id: str,
+        part_id: str,
+        part: Part,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Replace one part; return the raw response."""
+        return await self._send(
+            "PATCH",
+            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            **request_spec(directory=directory, workspace=workspace, json_body=part.to_wire()),
         )
 
     async def delete_message(

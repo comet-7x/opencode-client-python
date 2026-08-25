@@ -1,26 +1,25 @@
 # 📋 任务看板
 
- > 每次工作前看这里；每次完成后更新这里。最后更新：2026-08-23
+ > 每次工作前看这里；每次完成后更新这里。最后更新：2026-08-24
 
 ## 当前位置
 
 - **宏观**：M5 发布准备 —— ✅ 完成（IT-008：本地 dist + tag v0.1.0；PyPI 后续）
-- **微观**：无进行中迭代（IT-001~010 已归档；IT-010 事件 Router + 类型化
-  热事件已交付）
+- **微观**：IT-011 session 域补全 ✅（2026-08-24；sessions 15 → 26 方法，
+  sync/async/raw 四类镜像）
 - **仓库**：已推送 `origin/develop` + tag `v0.1.0`；日常命令走 Makefile（`make check` 全门禁）
-- **下一步行动**：功能面全部收尾（`with_raw_response`、事件 Router 已补齐）。
-  候选：① 引用功能（检索工具 + 引用展示，`temp/docs/citation-tools-design.md`，
-  流式消费建在 IT-010 Router 上）② PyPI 发布（换名 `opencode-client-python`
-  等 + token；v0.1.0 之后的增量可随下次发版带出）③ 余下端点（share 实跑、
-  MCP connect/auth 流）
+- **下一步行动**：功能面继续扩张的候选：① 文件/搜索域（find/file/formatter
+  新资源域）② PyPI 发布（换名 `opencode-client-python` 等 + token）③ 余下端点
+  （auth 凭证、TUI/PTY；注意 pin 镜像 v1.18.21 的 OpenAPI 已无 /mcp/* 路径，
+  现有 client.mcp.* 基于旧版，升级镜像时需核实）
 - **备注**：本地 `opencode serve` 统一 Docker 管理（Makefile `docker-*` 目标，
-  默认 20001；镜像慢走域名代理 + tag 还原）；examples 按资源域全量补齐为
-  00~05 六个编号目录，37 个公开方法 + raw 视图全覆盖
+  默认 20001；镜像慢走域名代理 + tag 还原）；examples 按资源域组织为
+  00~05 六个编号目录
 
 ```
 宏观  [█████] M1 ✅ ─ M2 ✅ ── M3 ✅ ── M4 ✅ ── M5 ✅
- 微观  [██████] IT-001 ✅  IT-002 ✅  IT-003 ✅  IT-004 ✅  IT-005 ✅  IT-006 ✅
-             IT-007 ✅  IT-008 ✅  IT-009 ✅  IT-010 ✅
+ 微观  [███████] IT-001 ✅  IT-002 ✅  IT-003 ✅  IT-004 ✅  IT-005 ✅  IT-006 ✅
+              IT-007 ✅  IT-008 ✅  IT-009 ✅  IT-010 ✅  IT-011 ✅
 ```
 
 ## 宏观里程碑（详见 macro/ROADMAP.md）
@@ -47,6 +46,7 @@
 | IT-008 | M5 发布准备：LICENSE/CHANGELOG/打包/发版（本地 dist + tag v0.1.0） | ✅ | 2026-08-22 |
 | IT-009 | with_raw_response 裸响应视图：8 个 raw 代理类 + 镜像一致性锁 + 示例 | ✅ | 2026-08-23 |
 | IT-010 | 事件 Router + 类型化热事件：`EventType` 开放集 + 6 热事件子类 + `AsyncEventRouter`/`EventRouter` | ✅ | 2026-08-23 |
+| IT-011 | session 域补全：status/children/todo/diff/revert/unrevert/init/command/shell/part 编辑（11 端点×4 类） | ✅ | 2026-08-24 |
 
 ## 阻塞 / 风险
 

@@ -1,6 +1,8 @@
 """Models for the /session endpoints and their nested types."""
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
+
+import pydantic
 
 from .base import OpencodeModel
 
@@ -10,11 +12,18 @@ __all__ = [
     "PermissionRule",
     "PermissionRuleset",
     "Session",
+    "SessionFileDiff",
     "SessionShare",
     "SessionSnapshot",
+    "SessionStatus",
+    "SessionStatusBusy",
+    "SessionStatusIdle",
+    "SessionStatusRetry",
+    "SessionStatusRetryAction",
     "SessionTime",
     "SessionTokenCache",
     "SessionTokens",
+    "Todo",
     "UpdateSessionRequest",
 ]
 
@@ -121,3 +130,70 @@ class UpdateSessionRequest(OpencodeModel):
     metadata: dict[str, Any] | None = None
     permission: PermissionRuleset | None = None
     time: dict[str, float] | None = None
+
+
+# ---------------------------------------------------------------------------
+# Status / todo / message diff (GET /session/status, .../todo, .../diff)
+# ---------------------------------------------------------------------------
+
+
+class SessionStatusIdle(OpencodeModel):
+    """Session status: no turn is running."""
+
+    type: Literal["idle"]
+
+
+class SessionStatusBusy(OpencodeModel):
+    """Session status: a turn is currently running."""
+
+    type: Literal["busy"]
+
+
+class SessionStatusRetryAction(OpencodeModel):
+    """Suggested remediation shown alongside a retrying session."""
+
+    reason: str
+    provider: str
+    title: str
+    message: str
+    label: str
+    link: str | None = None
+
+
+class SessionStatusRetry(OpencodeModel):
+    """Session status: the last turn failed and will be retried."""
+
+    type: Literal["retry"]
+    attempt: int
+    message: str
+    next: int
+    action: SessionStatusRetryAction | None = None
+
+
+#: Discriminated union of the three session states (``type`` tag).
+SessionStatus = Annotated[
+    SessionStatusIdle | SessionStatusBusy | SessionStatusRetry,
+    pydantic.Field(discriminator="type"),
+]
+
+
+class Todo(OpencodeModel):
+    """One task on a session's todo list (``GET /session/{id}/todo``)."""
+
+    content: str
+    status: Literal["pending", "in_progress", "completed", "cancelled"]
+    priority: Literal["high", "medium", "low"]
+
+
+class SessionFileDiff(OpencodeModel):
+    """One file changed by a session's messages (``GET /session/{id}/diff``).
+
+    Unlike :class:`~opencode_client.models.VcsFileDiff` only the line counts
+    are guaranteed; ``file``/``patch``/``status`` may be absent.
+    """
+
+    file: str | None = None
+    patch: str | None = None
+    additions: float
+    deletions: float
+    status: Literal["added", "deleted", "modified"] | None = None
