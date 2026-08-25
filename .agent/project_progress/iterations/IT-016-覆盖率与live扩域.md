@@ -49,3 +49,33 @@ search_files）、mcp status、vcs info/status、formatter、async 孪生。
   第二个位置参数判成 dirs(bool)。显式传 `directory=workdir`。
 - files 搜索类 live 测试用 `tmp_path_factory.mktemp` 自造一次性工作区 +
   已知内容文件，避免依赖服务端 worktree 里恰好有什么文件。
+
+## 追加（同日）：examples 覆盖率提升
+
+用户要求提高 examples 覆盖率。基线：examples 平均 **73%**（最低
+mcp_servers 43%）。措施与结果：
+
+- **修真 bug**：`mcp_servers.py` 的 `--oauth` 块放在 `if name is None:
+  return` 之后——单独传 `--oauth` 永远走不到（冒烟没断言输出所以漏检）。
+  改为 `if name is not None:` 包住注册流，oauth 块无条件可达。
+- **interact_moving_session 竞态修复**：`while not idle.is_set()` 会让快速
+  turn 的 idle 抢在首轮轮询前就绪 → pending 交互永远不应答。改为先答一轮
+  再检查 idle。
+- **fixture 增强**：/mcp 状态图加 failed/disabled/needs_auth（覆盖判联合
+  收窄分支）；消息 parts 加 tool/reasoning/step-finish；文件内容带 diff；
+  参数级特例路由（二进制读取 / 读 404 / 空目录 / 搜索空命中 / 空项目域）。
+- **新用例**：mcp add 流、OAuth 被拒分支、删不存在会话（DELETE 404 特例
+  路由）、list_messages 自动取最新、vcs --save/--apply、搜索空命中、
+  无参数退出码、browse_files 二进制/空目录/404、explore_projects 空域。
+- **新增 `examples/test_cli_errors.py`**：19 个脚本 × 真实 socket 连接拒绝
+  （端口 9），批量覆盖各 cli() 的 transport 兜底分支（exit 2）。必须独立
+  成文件——test_examples 的 respx autouse fixture 会拦截一切请求，坏 URL
+  到不了网络层。注意 session 级 fixture 不能注入 function 级 monkeypatch。
+
+结果：examples **73% → 91%**；全套 **291 passed**；src 门禁保持 90%。
+`make coverage` 现同时报告 src + examples。
+
+### 新踩坑
+
+- **respx 匹配顺序是"先注册先匹配"**（与直觉相反）：参数特例路由必须注册
+  在同 path 的通用路由之前，否则永不命中。

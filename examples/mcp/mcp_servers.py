@@ -86,29 +86,29 @@ async def main(
     async with AsyncOpenCodeClient(base_url) as client:
         _print_status(await client.mcp.status(directory=directory))
 
-        if name is None:
-            return
-        # —— 组装请求侧 config：两种形态都是判别联合（判别键 type）。
-        #    McpLocalConfig 起本地子进程；McpRemoteConfig 连远程端点。
-        if command is not None:
-            config: McpLocalConfig | McpRemoteConfig = McpLocalConfig(
-                type="local",
-                command=command.split(","),  # wire 上是 argv 数组，这里用逗号当分隔符
-            )
-        elif remote_url is not None:
-            config = McpRemoteConfig(type="remote", url=remote_url)
-        else:
-            print("给了 --name 就必须配 --command 或 --remote-url 之一。", file=sys.stderr)
-            raise SystemExit(2)
+        # —— 注册新 server：--name 必须配 --command 或 --remote-url 之一。
+        if name is not None:
+            # 组装请求侧 config：两种形态都是判别联合（判别键 type）。
+            # McpLocalConfig 起本地子进程；McpRemoteConfig 连远程端点。
+            if command is not None:
+                config: McpLocalConfig | McpRemoteConfig = McpLocalConfig(
+                    type="local",
+                    command=command.split(","),  # wire 上是 argv 数组，这里用逗号当分隔符
+                )
+            elif remote_url is not None:
+                config = McpRemoteConfig(type="remote", url=remote_url)
+            else:
+                print("给了 --name 就必须配 --command 或 --remote-url 之一。", file=sys.stderr)
+                raise SystemExit(2)
 
-        # add 的返回是"注册后的状态文档"（dict，结构随服务端演进）。
-        result = await client.mcp.add(name, config, directory=directory)
-        print(f"\n== add({name!r}) result ==\n" + json.dumps(result, ensure_ascii=False, indent=2))
+            # add 的返回是"注册后的状态文档"（dict，结构随服务端演进）。
+            result = await client.mcp.add(name, config, directory=directory)
+            print(f"\n== add({name!r}) result ==\n" + json.dumps(result, ensure_ascii=False, indent=2))
 
-        # —— 注册完立刻回读一次 status，确认新 server 出现在名单里（可能还是
-        #    needs_auth/failed，取决于它能不能立刻连上）。
-        print("\n== status after add ==")
-        _print_status(await client.mcp.status(directory=directory))
+            # —— 注册完立刻回读一次 status，确认新 server 出现在名单里（可能还是
+            #    needs_auth/failed，取决于它能不能立刻连上）。
+            print("\n== status after add ==")
+            _print_status(await client.mcp.status(directory=directory))
 
     # —— OAuth / 连接生命周期：针对已注册的远程 server 演示（默认跳过）。
     #    真实浏览器流是：start_oauth 拿 URL -> 用户在浏览器里授权 ->

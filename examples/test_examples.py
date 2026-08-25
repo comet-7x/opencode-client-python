@@ -16,6 +16,7 @@ import importlib
 import json
 import sys
 from collections.abc import Generator
+from pathlib import Path
 from types import ModuleType
 from typing import Any
 
@@ -152,6 +153,10 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
         router.post("/session").mock(return_value=httpx.Response(200, json=_session_payload()))
         # 所有 DELETE /session/{id}（含 fork 分支的清理）都成功。
         # 末尾 $ 锚定：避免吞掉 /session/{id}/share 这类子路径（unshare 另有精确路由）。
+        # ses_missing_a 的 404 特例必须先注册（respx 先注册先匹配）。
+        router.route(method="DELETE", path__regex=r"/session/ses_missing_a$").mock(
+            return_value=httpx.Response(404, json={"name": "NotFound", "data": {"message": "nope"}})
+        )
         router.route(method="DELETE", path__regex=r"/session/[^/]+$").mock(return_value=httpx.Response(200, json=True))
         router.get("/session/ses_e").mock(return_value=httpx.Response(200, json=_session_payload()))
         # list_sessions 会取到的列表（最新在前的语义在真实服务端保证，这里给一条）。
@@ -180,7 +185,51 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
             return_value=httpx.Response(
                 200,
                 json=[
-                    {"info": _assistant_message(), "parts": [TEXT_PART]},
+                    {
+                        "info": _assistant_message(),
+                        "parts": [
+                            TEXT_PART,
+                            # 覆盖 list_messages 的其余 part 分支：tool/reasoning/step-finish
+                            {
+                                "id": "prt_tool",
+                                "sessionID": "ses_e",
+                                "messageID": "msg_a",
+                                "type": "tool",
+                                "callID": "call_1",
+                                "tool": "bash",
+                                "state": {
+                                    "status": "completed",
+                                    "input": {"command": "ls"},
+                                    "output": "a.py",
+                                    "title": "ls",
+                                    "time": {"start": 1.0, "end": 2.0},
+                                },
+                            },
+                            {
+                                "id": "prt_r",
+                                "sessionID": "ses_e",
+                                "messageID": "msg_a",
+                                "type": "reasoning",
+                                "text": "thinking...",
+                                "time": {"start": 1, "end": 2},
+                            },
+                            {
+                                "id": "prt_sf",
+                                "sessionID": "ses_e",
+                                "messageID": "msg_a",
+                                "type": "step-finish",
+                                "reason": "stop",
+                                "cost": 0.5,
+                                "tokens": {
+                                    "total": 2.0,
+                                    "input": 1,
+                                    "output": 1,
+                                    "reasoning": 0,
+                                    "cache": {"read": 0, "write": 0},
+                                },
+                            },
+                        ],
+                    },
                     {"info": _user_message(), "parts": [TEXT_PART]},
                 ],
             )
@@ -255,6 +304,13 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
         )
         router.post("/vcs/apply").mock(return_value=httpx.Response(200, json={"success": True}))
         # —— projects + 系统信息（explore_projects）。
+        # explore_projects 的空分支（--directory /empty-scope 时）。
+        router.get("/project", params={"directory": "/empty-scope"}).mock(return_value=httpx.Response(200, json=[]))
+        router.get("/project/current", params={"directory": "/empty-scope"}).mock(
+            return_value=httpx.Response(404, json={"name": "NotFound", "data": {}})
+        )
+        router.get("/lsp", params={"directory": "/empty-scope"}).mock(return_value=httpx.Response(200, json=[]))
+
         router.get("/project").mock(
             return_value=httpx.Response(
                 200,
@@ -302,7 +358,17 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
         router.put(path__regex=r"/auth/[^/]+").mock(return_value=httpx.Response(200, json=True))
         router.delete(path__regex=r"/auth/[^/]+").mock(return_value=httpx.Response(200, json=True))
         # —— mcp（04 mcp_servers）。
-        router.get("/mcp").mock(return_value=httpx.Response(200, json={"docs": {"status": "connected"}}))
+        router.get("/mcp").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "docs": {"status": "connected"},
+                    "search": {"status": "failed", "error": "spawn ENOENT"},
+                    "notes": {"status": "disabled"},
+                    "authed": {"status": "needs_auth"},
+                },
+            )
+        )
         router.post("/mcp").mock(return_value=httpx.Response(200, json={"name": "added", "status": "connected"}))
         # —— mcp 生命周期（--oauth remote 演示段）。
         router.post("/mcp/remote/auth").mock(
@@ -316,7 +382,14 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
         )
         router.post("/mcp/remote/connect").mock(return_value=httpx.Response(200, json=True))
         router.post("/mcp/remote/disconnect").mock(return_value=httpx.Response(200, json=True))
+        # --oauth local：演示"服务端拒绝 OAuth"分支（400）与其后的连接管理。
+        router.post("/mcp/local/auth").mock(return_value=httpx.Response(400, json={"name": "BadRequest", "data": {}}))
+        router.post("/mcp/local/auth/authenticate").mock(return_value=httpx.Response(200, json={"status": "connected"}))
+        router.post("/mcp/local/connect").mock(return_value=httpx.Response(200, json=True))
+        router.post("/mcp/local/disconnect").mock(return_value=httpx.Response(200, json=True))
         # —— files（browse_files / search_code）。
+        # 参数级路由（特例先注册）：空目录分支。
+        router.get("/file", params={"path": "emptydir"}).mock(return_value=httpx.Response(200, json=[]))
         router.get("/file").mock(
             return_value=httpx.Response(
                 200,
@@ -326,8 +399,25 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
                 ],
             )
         )
+        # 参数级路由（先于通用路由的特例）：二进制 / 404。
+        router.get("/file/content", params={"path": "logo.png"}).mock(
+            return_value=httpx.Response(
+                200, json={"type": "binary", "content": "aGVsbG8=", "encoding": "base64", "mimeType": "image/png"}
+            )
+        )
+        router.get("/file/content", params={"path": "missing.txt"}).mock(
+            return_value=httpx.Response(404, json={"name": "NotFound", "data": {"message": "nope"}})
+        )
         router.get("/file/content").mock(
-            return_value=httpx.Response(200, json={"type": "text", "content": "print('hi')\n"})
+            return_value=httpx.Response(
+                200,
+                json={
+                    "type": "text",
+                    "content": "print('hi')\n",
+                    # 覆盖 browse_files 的"未保存改动"展示分支
+                    "diff": "-old\n+new\n",
+                },
+            )
         )
         router.get("/file/status").mock(
             return_value=httpx.Response(200, json=[{"path": "a.py", "added": 2, "removed": 1, "status": "modified"}])
@@ -335,6 +425,11 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
         router.get("/formatter").mock(
             return_value=httpx.Response(200, json=[{"name": "ruff", "extensions": [".py"], "enabled": True}])
         )
+        # search_code 空命中分支（三个搜索目标都传 zzz 时命中这些特例路由）。
+        router.get("/find", params={"pattern": "zzz"}).mock(return_value=httpx.Response(200, json=[]))
+        router.get("/find/file", params={"query": "zzz"}).mock(return_value=httpx.Response(200, json=[]))
+        router.get("/find/symbol", params={"query": "zzz"}).mock(return_value=httpx.Response(200, json=[]))
+
         router.get("/find").mock(
             return_value=httpx.Response(
                 200,
@@ -455,9 +550,19 @@ class TestExamplesSmoke:
         mod = _load("sessions.delete_session")
         _run_cli(mod, "--url", BASE, "--session", "ses_e")
 
+    def test_delete_missing_session(self) -> None:
+        # OpenCodeNotFoundError 分支：删除不存在的会话
+        mod = _load("sessions.delete_session")
+        _run_cli(mod, "--url", BASE, "--session", "ses_missing_a")
+
     def test_list_messages(self) -> None:
         mod = _load("sessions.list_messages")
         _run_cli(mod, "--url", BASE, "--session", "ses_e")
+
+    def test_list_messages_auto_latest(self) -> None:
+        # 不传 --session：自动取最新会话的分支
+        mod = _load("sessions.list_messages")
+        _run_cli(mod, "--url", BASE)
 
     def test_session_lifecycle(self) -> None:
         mod = _load("sessions.session_lifecycle")
@@ -479,13 +584,37 @@ class TestExamplesSmoke:
         mod = _load("vcs.vcs_workflow")
         _run_cli(mod, "--url", BASE, "--directory", "/tmp")
 
+    def test_vcs_workflow_save_and_apply(self, tmp_path: Path) -> None:
+        # --save 落盘 + --apply 打补丁两个 opt-in 分支
+        mod = _load("vcs.vcs_workflow")
+        patch_file = tmp_path / "patch.diff"
+        patch_file.write_text("diff --git a/a.py b/a.py\n+line\n", encoding="utf-8")
+        save_to = tmp_path / "out.diff"
+        _run_cli(mod, "--url", BASE, "--directory", "/tmp", "--save", str(save_to), "--apply", str(patch_file))
+        assert "diff --git" in save_to.read_text(encoding="utf-8")
+
+    def test_explore_projects_empty_scope(self) -> None:
+        # 空项目清单 + current 404 + 空 LSP 三个分支
+        mod = _load("projects.explore_projects")
+        _run_cli(mod, "--url", BASE, "--directory", "/empty-scope")
+
     def test_mcp_servers(self) -> None:
         mod = _load("mcp.mcp_servers")
         _run_cli(mod, "--url", BASE)
 
+    def test_mcp_add_server(self) -> None:
+        # --name 注册流（local config 组装 + add + 回读 status）
+        mod = _load("mcp.mcp_servers")
+        _run_cli(mod, "--url", BASE, "--name", "fs", "--command", "npx,-y,@foo/bar")
+
     def test_mcp_oauth_lifecycle(self) -> None:
         mod = _load("mcp.mcp_servers")
         _run_cli(mod, "--url", BASE, "--oauth", "remote")
+
+    def test_mcp_oauth_rejected(self) -> None:
+        # start_oauth 被服务端拒绝（400）的分支 + 其后的 authenticate/connect/disconnect
+        mod = _load("mcp.mcp_servers")
+        _run_cli(mod, "--url", BASE, "--oauth", "local")
 
     def test_explore_projects(self) -> None:
         mod = _load("projects.explore_projects")
@@ -495,9 +624,33 @@ class TestExamplesSmoke:
         mod = _load("files.browse_files")
         _run_cli(mod, "--url", BASE, "--path", "src", "--read", "a.py")
 
+    def test_browse_files_binary_and_empty(self) -> None:
+        # 二进制判联合分支 + 空目录分支
+        mod = _load("files.browse_files")
+        _run_cli(mod, "--url", BASE, "--path", "emptydir", "--read", "logo.png")
+
+    def test_browse_files_read_404(self) -> None:
+        # OpenCodeApiError 兜底分支：读不存在的文件
+        mod = _load("files.browse_files")
+        with pytest.raises(SystemExit) as excinfo:
+            _run_cli(mod, "--url", BASE, "--read", "missing.txt")
+        assert excinfo.value.code == 1
+
     def test_search_code(self) -> None:
         mod = _load("files.search_code")
         _run_cli(mod, "--url", BASE, "--pattern", "hi", "--find-file", "a", "--symbol", "main")
+
+    def test_search_code_empty_hits(self) -> None:
+        # 三个"无命中"展示分支
+        mod = _load("files.search_code")
+        _run_cli(mod, "--url", BASE, "--pattern", "zzz", "--find-file", "zzz", "--symbol", "zzz")
+
+    def test_search_code_no_args_exits(self) -> None:
+        # 不给任何搜索目标：usage 提示 + exit 2
+        mod = _load("files.search_code")
+        with pytest.raises(SystemExit) as excinfo:
+            _run_cli(mod, "--url", BASE)
+        assert excinfo.value.code == 2
 
     def test_error_handling(self) -> None:
         mod = _load("client.error_handling")

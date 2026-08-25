@@ -187,8 +187,12 @@ async def run_turn(client: AsyncOpenCodeClient, *, allow: bool, model: dict[str,
         idle_task = asyncio.create_task(idle.wait())  # wait() 本身是协程，包成任务参与 wait
         deadline = asyncio.create_task(asyncio.sleep(MAX_WAIT_SECONDS))  # 兜底闹钟
         try:
-            while not idle.is_set():
+            while True:
+                # 无条件先轮询一轮：快速 turn 的 idle 可能被监听流抢先消费，
+                # 若只在"未 idle"时轮询，pending 交互就会永远得不到应答。
                 total_answered += await answer_pending(client, allow=allow)
+                if idle.is_set():
+                    break
                 # 睡 POLL_SECONDS，或更早就绪（idle 到了 / 超期了）就醒。
                 # return_when=FIRST_COMPLETED：任一完成即返回，done/pending 分开。
                 done, _ = await asyncio.wait(
