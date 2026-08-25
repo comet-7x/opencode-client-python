@@ -131,6 +131,10 @@ class _TypedEvent(Event):
     are populated by merging that payload to the top level (payload keys win
     on conflict, e.g. ``permission.asked`` carries the request ``id``).  The
     original ``properties`` dict is preserved as-is for pass-through use.
+
+    Envelope-reserved keys (``type``, ``properties``) are never taken from
+    the payload: overwriting them would corrupt the discriminator used for
+    catalog dispatch before validation even runs.
     """
 
     @model_validator(mode="before")
@@ -143,7 +147,10 @@ class _TypedEvent(Event):
         if not isinstance(payload, dict):
             return source
         merged: dict[str, Any] = dict(source)
-        merged.update(cast("dict[str, Any]", payload))
+        for key, value in cast("dict[str, Any]", payload).items():
+            if key in ("type", "properties"):
+                continue
+            merged[key] = value
         return merged
 
 

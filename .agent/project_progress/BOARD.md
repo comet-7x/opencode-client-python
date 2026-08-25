@@ -1,25 +1,25 @@
 # 📋 任务看板
 
- > 每次工作前看这里；每次完成后更新这里。最后更新：2026-08-24
+ > 每次工作前看这里；每次完成后更新这里。最后更新：2026-08-24（IT-012 完成）
 
 ## 当前位置
 
 - **宏观**：M5 发布准备 —— ✅ 完成（IT-008：本地 dist + tag v0.1.0；PyPI 后续）
-- **微观**：IT-011 session 域补全 ✅（2026-08-24；sessions 15 → 26 方法，
-  sync/async/raw 四类镜像）
+- **微观**：IT-012 code review 问题修复 ✅（2026-08-24；1H+3M+6L+1I 全修，
+  +22 回归测试，`make check` 214 passed 全绿；报告见 `.agent/code_review_2026-08-24.md`）
 - **仓库**：已推送 `origin/develop` + tag `v0.1.0`；日常命令走 Makefile（`make check` 全门禁）
-- **下一步行动**：功能面继续扩张的候选：① 文件/搜索域（find/file/formatter
-  新资源域）② PyPI 发布（换名 `opencode-client-python` 等 + token）③ 余下端点
-  （auth 凭证、TUI/PTY；注意 pin 镜像 v1.18.21 的 OpenAPI 已无 /mcp/* 路径，
-  现有 client.mcp.* 基于旧版，升级镜像时需核实）
+- **下一步行动**：功能面继续扩张的候选：① 文件/搜索域
+  （find/file/formatter 新资源域）② PyPI 发布（换名 `opencode-client-python`
+  等 + token）③ 余下端点（auth 凭证、TUI/PTY；注意 pin 镜像 v1.18.21 的
+  OpenAPI 已无 /mcp/* 路径，现有 client.mcp.* 基于旧版，升级镜像时需核实）
 - **备注**：本地 `opencode serve` 统一 Docker 管理（Makefile `docker-*` 目标，
   默认 20001；镜像慢走域名代理 + tag 还原）；examples 按资源域组织为
   00~05 六个编号目录
 
 ```
 宏观  [█████] M1 ✅ ─ M2 ✅ ── M3 ✅ ── M4 ✅ ── M5 ✅
- 微观  [███████] IT-001 ✅  IT-002 ✅  IT-003 ✅  IT-004 ✅  IT-005 ✅  IT-006 ✅
-              IT-007 ✅  IT-008 ✅  IT-009 ✅  IT-010 ✅  IT-011 ✅
+ 微观  [████████] IT-001 ✅  IT-002 ✅  IT-003 ✅  IT-004 ✅  IT-005 ✅  IT-006 ✅
+               IT-007 ✅  IT-008 ✅  IT-009 ✅  IT-010 ✅  IT-011 ✅  IT-012 ✅
 ```
 
 ## 宏观里程碑（详见 macro/ROADMAP.md）
@@ -47,6 +47,7 @@
 | IT-009 | with_raw_response 裸响应视图：8 个 raw 代理类 + 镜像一致性锁 + 示例 | ✅ | 2026-08-23 |
 | IT-010 | 事件 Router + 类型化热事件：`EventType` 开放集 + 6 热事件子类 + `AsyncEventRouter`/`EventRouter` | ✅ | 2026-08-23 |
 | IT-011 | session 域补全：status/children/todo/diff/revert/unrevert/init/command/shell/part 编辑（11 端点×4 类） | ✅ | 2026-08-24 |
+| IT-012 | code review 问题修复：默认超时/重试幂等/Router 超时语义/异常分层 + 6 Low + 1 Info | ✅ | 2026-08-24 |
 
 ## 阻塞 / 风险
 
@@ -66,3 +67,5 @@
 - [x] M4 集成/断连重连测试 → IT-007 已交付（live 套件 `--live-url` 开关）
 - [x] 发布渠道 → v0.1.0 本地 dist + git tag（用户拍板）；PyPI 后续（名称
       `opencode-client` 被第三方占用，需换名，如 `opencode-client-python`）
+- [x] IT-012 L6：examples 中文注释 → 用户拍板：AGENTS.md 显式豁免教学注释
+      （已落地，见 `.agent/AGENTS.md` 注释风格节）

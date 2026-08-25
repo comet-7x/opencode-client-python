@@ -14,10 +14,12 @@ request and parse the response, never in *what* is sent or how it is shaped.
 from __future__ import annotations
 
 from typing import Any, TypeVar
+from urllib.parse import quote
 
 import httpx
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 
+from ..errors import make_response_error
 from ..models import (
     Agent,
     Command,
@@ -55,6 +57,7 @@ __all__ = [
     "init_body",
     "messages_query",
     "mcp_add_body",
+    "path_segment",
     "permission_body",
     "prompt_body",
     "request_spec",
@@ -145,8 +148,32 @@ def validate_response(response: httpx.Response, adapter: TypeAdapter[_T]) -> _T:
 
     Returns:
         The validated model (or list / scalar) described by ``adapter``.
+
+    Raises:
+        OpenCodeResponseError: The 2xx body no longer matches the expected
+            schema (server/client version drift); wraps the underlying
+            :class:`pydantic.ValidationError`.
     """
-    return adapter.validate_python(response.json())
+    try:
+        return adapter.validate_python(response.json())
+    except ValidationError as exc:
+        raise make_response_error(exc) from exc
+
+
+def path_segment(value: str) -> str:
+    """Percent-encode a single path segment for safe interpolation.
+
+    Ids are normally server-issued tokens, but this is a public API: a
+    caller-supplied string containing reserved characters would otherwise
+    corrupt the request path or silently match a different resource.
+
+    Args:
+        value: The raw path segment.
+
+    Returns:
+        The percent-encoded segment.
+    """
+    return quote(value, safe="")
 
 
 def validate_text(response: httpx.Response) -> str:

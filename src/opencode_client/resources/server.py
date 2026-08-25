@@ -15,13 +15,23 @@ events.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
 from ..models import Agent, Command, Health, PermissionRequest, ProviderList, QuestionRequest, Skill
-from ._wire import TYPE_ADAPTERS, permission_reply_body, question_reply_body, request_spec, validate_response
+from ._wire import (
+    TYPE_ADAPTERS,
+    path_segment,
+    permission_reply_body,
+    question_reply_body,
+    request_spec,
+    validate_response,
+)
 from .base import AsyncResource, Resource, query_params
+
+if TYPE_CHECKING:
+    from ..sse import AsyncEventStream, EventStream
 
 __all__ = [
     "AsyncServerResource",
@@ -124,7 +134,7 @@ class ServerResource(Resource):
         json_body = permission_reply_body(reply, message)
         response = self._send(
             "POST",
-            f"/permission/{request_id}/reply",
+            f"/permission/{path_segment(request_id)}/reply",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
@@ -159,7 +169,7 @@ class ServerResource(Resource):
         json_body = question_reply_body(answers)
         response = self._send(
             "POST",
-            f"/question/{request_id}/reply",
+            f"/question/{path_segment(request_id)}/reply",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
@@ -179,7 +189,9 @@ class ServerResource(Resource):
             ``True`` when the server accepted the rejection.
         """
         response = self._send(
-            "POST", f"/question/{request_id}/reject", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/question/{path_segment(request_id)}/reject",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
@@ -190,7 +202,7 @@ class ServerResource(Resource):
         directory: str | None = None,
         workspace: str | None = None,
         max_reconnect_attempts: int | None = None,
-    ) -> Any:
+    ) -> EventStream:
         """Open the ``/event`` SSE stream as a (sync) context manager.
 
         Args:
@@ -301,7 +313,7 @@ class AsyncServerResource(AsyncResource):
         json_body = permission_reply_body(reply, message)
         response = await self._send(
             "POST",
-            f"/permission/{request_id}/reply",
+            f"/permission/{path_segment(request_id)}/reply",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
@@ -332,7 +344,7 @@ class AsyncServerResource(AsyncResource):
         json_body = question_reply_body(answers)
         response = await self._send(
             "POST",
-            f"/question/{request_id}/reply",
+            f"/question/{path_segment(request_id)}/reply",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
@@ -352,7 +364,9 @@ class AsyncServerResource(AsyncResource):
             ``True`` when the server accepted the rejection.
         """
         response = await self._send(
-            "POST", f"/question/{request_id}/reject", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/question/{path_segment(request_id)}/reject",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
@@ -363,7 +377,7 @@ class AsyncServerResource(AsyncResource):
         directory: str | None = None,
         workspace: str | None = None,
         max_reconnect_attempts: int | None = None,
-    ) -> Any:
+    ) -> AsyncEventStream:
         """Open the ``/event`` SSE stream as an async context manager.
 
         Args:
@@ -441,7 +455,7 @@ class ServerResourceWithRawResponse(Resource):
         json_body = permission_reply_body(reply, message)
         return self._send(
             "POST",
-            f"/permission/{request_id}/reply",
+            f"/permission/{path_segment(request_id)}/reply",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -460,7 +474,7 @@ class ServerResourceWithRawResponse(Resource):
         json_body = question_reply_body(answers)
         return self._send(
             "POST",
-            f"/question/{request_id}/reply",
+            f"/question/{path_segment(request_id)}/reply",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -472,7 +486,9 @@ class ServerResourceWithRawResponse(Resource):
     ) -> httpx.Response:
         """Reject a question request; return the raw response."""
         return self._send(
-            "POST", f"/question/{request_id}/reject", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/question/{path_segment(request_id)}/reject",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
 
@@ -536,7 +552,7 @@ class AsyncServerResourceWithRawResponse(AsyncResource):
         json_body = permission_reply_body(reply, message)
         return await self._send(
             "POST",
-            f"/permission/{request_id}/reply",
+            f"/permission/{path_segment(request_id)}/reply",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -555,7 +571,7 @@ class AsyncServerResourceWithRawResponse(AsyncResource):
         json_body = question_reply_body(answers)
         return await self._send(
             "POST",
-            f"/question/{request_id}/reply",
+            f"/question/{path_segment(request_id)}/reply",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -567,5 +583,7 @@ class AsyncServerResourceWithRawResponse(AsyncResource):
     ) -> httpx.Response:
         """Reject a question request; return the raw response."""
         return await self._send(
-            "POST", f"/question/{request_id}/reject", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/question/{path_segment(request_id)}/reject",
+            **request_spec(directory=directory, workspace=workspace),
         )

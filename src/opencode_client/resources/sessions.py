@@ -36,6 +36,7 @@ from ._wire import (
     fork_body,
     init_body,
     messages_query,
+    path_segment,
     permission_body,
     prompt_body,
     request_spec,
@@ -118,7 +119,9 @@ class SessionsResource(Resource):
         Raises:
             OpenCodeApiError: If the session does not exist (404).
         """
-        response = self._send("GET", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace))
+        response = self._send(
+            "GET", f"/session/{path_segment(session_id)}", **request_spec(directory=directory, workspace=workspace)
+        )
         return validate_response(response, TYPE_ADAPTERS.session)
 
     def update(
@@ -132,7 +135,7 @@ class SessionsResource(Resource):
         json_body = update_body(body)
         response = self._send(
             "PATCH",
-            f"/session/{session_id}",
+            f"/session/{path_segment(session_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
@@ -140,7 +143,7 @@ class SessionsResource(Resource):
     def delete(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> bool:
         """Delete a session. Returns ``True`` on success."""
         response = self._send(
-            "DELETE", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace)
+            "DELETE", f"/session/{path_segment(session_id)}", **request_spec(directory=directory, workspace=workspace)
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
@@ -157,7 +160,7 @@ class SessionsResource(Resource):
         json_body = fork_body(message_id)
         response = self._send(
             "POST",
-            f"/session/{session_id}/fork",
+            f"/session/{path_segment(session_id)}/fork",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
@@ -165,21 +168,27 @@ class SessionsResource(Resource):
     def abort(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> bool:
         """Abort a running session. Returns ``True`` on success."""
         response = self._send(
-            "POST", f"/session/{session_id}/abort", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/abort",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
     def share(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> Session:
         """Publish the session; the updated session carries the share URL."""
         response = self._send(
-            "POST", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/share",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
 
     def unshare(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> Session:
         """Remove the session's share URL."""
         response = self._send(
-            "DELETE", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+            "DELETE",
+            f"/session/{path_segment(session_id)}/share",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
 
@@ -196,16 +205,16 @@ class SessionsResource(Resource):
         json_body = summarize_body(provider_id, model_id, auto)
         response = self._send(
             "POST",
-            f"/session/{session_id}/summarize",
+            f"/session/{path_segment(session_id)}/summarize",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
     # -- state & history ---------------------------------------------------
 
-    def status(self) -> dict[str, SessionStatus]:
+    def status(self, directory: str | None = None, workspace: str | None = None) -> dict[str, SessionStatus]:
         """Report the run state of every active session (idle/busy/retry)."""
-        response = self._send("GET", "/session/status", **request_spec())
+        response = self._send("GET", "/session/status", **request_spec(directory=directory, workspace=workspace))
         return validate_response(response, TYPE_ADAPTERS.status_map)
 
     def children(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> list[Session]:
@@ -215,7 +224,9 @@ class SessionsResource(Resource):
             OpenCodeApiError: If the session does not exist (404).
         """
         response = self._send(
-            "GET", f"/session/{session_id}/children", **request_spec(directory=directory, workspace=workspace)
+            "GET",
+            f"/session/{path_segment(session_id)}/children",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.sessions)
 
@@ -226,7 +237,7 @@ class SessionsResource(Resource):
             OpenCodeApiError: If the session does not exist (404).
         """
         response = self._send(
-            "GET", f"/session/{session_id}/todo", **request_spec(directory=directory, workspace=workspace)
+            "GET", f"/session/{path_segment(session_id)}/todo", **request_spec(directory=directory, workspace=workspace)
         )
         return validate_response(response, TYPE_ADAPTERS.todo_list)
 
@@ -248,7 +259,7 @@ class SessionsResource(Resource):
         query = diff_query(message_id)
         response = self._send(
             "GET",
-            f"/session/{session_id}/diff",
+            f"/session/{path_segment(session_id)}/diff",
             **request_spec(directory=directory, workspace=workspace, query=query),
         )
         return validate_response(response, TYPE_ADAPTERS.session_diffs)
@@ -269,7 +280,7 @@ class SessionsResource(Resource):
         json_body = revert_body(message_id, part_id)
         response = self._send(
             "POST",
-            f"/session/{session_id}/revert",
+            f"/session/{path_segment(session_id)}/revert",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
@@ -281,7 +292,9 @@ class SessionsResource(Resource):
             OpenCodeConflictError: If the session is busy (409).
         """
         response = self._send(
-            "POST", f"/session/{session_id}/unrevert", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/unrevert",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
 
@@ -298,7 +311,7 @@ class SessionsResource(Resource):
         json_body = init_body(provider_id, model_id, message_id)
         response = self._send(
             "POST",
-            f"/session/{session_id}/init",
+            f"/session/{path_segment(session_id)}/init",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
@@ -321,7 +334,7 @@ class SessionsResource(Resource):
         json_body = permission_body(response)
         response_obj = self._send(
             "POST",
-            f"/session/{session_id}/permissions/{permission_id}",
+            f"/session/{path_segment(session_id)}/permissions/{path_segment(permission_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response_obj, TYPE_ADAPTERS.bool)
@@ -340,7 +353,7 @@ class SessionsResource(Resource):
         query = messages_query(limit, before)
         response = self._send(
             "GET",
-            f"/session/{session_id}/message",
+            f"/session/{path_segment(session_id)}/message",
             **request_spec(directory=directory, workspace=workspace, query=query),
         )
         return validate_response(response, TYPE_ADAPTERS.messages)
@@ -380,7 +393,7 @@ class SessionsResource(Resource):
         )
         response = self._send(
             "POST",
-            f"/session/{session_id}/message",
+            f"/session/{path_segment(session_id)}/message",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.message)
@@ -417,7 +430,7 @@ class SessionsResource(Resource):
         )
         self._send(
             "POST",
-            f"/session/{session_id}/prompt_async",
+            f"/session/{path_segment(session_id)}/prompt_async",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -461,7 +474,7 @@ class SessionsResource(Resource):
         )
         response = self._send(
             "POST",
-            f"/session/{session_id}/command",
+            f"/session/{path_segment(session_id)}/command",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.message)
@@ -490,7 +503,7 @@ class SessionsResource(Resource):
         json_body = shell_body(command, agent, model=model, message_id=message_id)
         response = self._send(
             "POST",
-            f"/session/{session_id}/shell",
+            f"/session/{path_segment(session_id)}/shell",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.message)
@@ -506,7 +519,7 @@ class SessionsResource(Resource):
         """Delete one part of a message. Returns ``True`` on success."""
         response = self._send(
             "DELETE",
-            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}/part/{path_segment(part_id)}",
             **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
@@ -531,7 +544,7 @@ class SessionsResource(Resource):
         """
         response = self._send(
             "PATCH",
-            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}/part/{path_segment(part_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=part.to_wire()),
         )
         return validate_response(response, TYPE_ADAPTERS.part)
@@ -546,7 +559,7 @@ class SessionsResource(Resource):
         """Delete one message from a session. Returns ``True`` on success."""
         response = self._send(
             "DELETE",
-            f"/session/{session_id}/message/{message_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}",
             **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
@@ -617,7 +630,7 @@ class AsyncSessionsResource(AsyncResource):
             OpenCodeApiError: If the session does not exist (404).
         """
         response = await self._send(
-            "GET", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace)
+            "GET", f"/session/{path_segment(session_id)}", **request_spec(directory=directory, workspace=workspace)
         )
         return validate_response(response, TYPE_ADAPTERS.session)
 
@@ -632,7 +645,7 @@ class AsyncSessionsResource(AsyncResource):
         json_body = update_body(body)
         response = await self._send(
             "PATCH",
-            f"/session/{session_id}",
+            f"/session/{path_segment(session_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
@@ -640,7 +653,7 @@ class AsyncSessionsResource(AsyncResource):
     async def delete(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> bool:
         """Delete a session. Returns ``True`` on success."""
         response = await self._send(
-            "DELETE", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace)
+            "DELETE", f"/session/{path_segment(session_id)}", **request_spec(directory=directory, workspace=workspace)
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
@@ -657,7 +670,7 @@ class AsyncSessionsResource(AsyncResource):
         json_body = fork_body(message_id)
         response = await self._send(
             "POST",
-            f"/session/{session_id}/fork",
+            f"/session/{path_segment(session_id)}/fork",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
@@ -665,21 +678,27 @@ class AsyncSessionsResource(AsyncResource):
     async def abort(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> bool:
         """Abort a running session. Returns ``True`` on success."""
         response = await self._send(
-            "POST", f"/session/{session_id}/abort", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/abort",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
     async def share(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> Session:
         """Publish the session; the updated session carries the share URL."""
         response = await self._send(
-            "POST", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/share",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
 
     async def unshare(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> Session:
         """Remove the session's share URL."""
         response = await self._send(
-            "DELETE", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+            "DELETE",
+            f"/session/{path_segment(session_id)}/share",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
 
@@ -696,16 +715,16 @@ class AsyncSessionsResource(AsyncResource):
         json_body = summarize_body(provider_id, model_id, auto)
         response = await self._send(
             "POST",
-            f"/session/{session_id}/summarize",
+            f"/session/{path_segment(session_id)}/summarize",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
     # -- state & history ---------------------------------------------------
 
-    async def status(self) -> dict[str, SessionStatus]:
+    async def status(self, directory: str | None = None, workspace: str | None = None) -> dict[str, SessionStatus]:
         """Report the run state of every active session (idle/busy/retry)."""
-        response = await self._send("GET", "/session/status", **request_spec())
+        response = await self._send("GET", "/session/status", **request_spec(directory=directory, workspace=workspace))
         return validate_response(response, TYPE_ADAPTERS.status_map)
 
     async def children(
@@ -717,7 +736,9 @@ class AsyncSessionsResource(AsyncResource):
             OpenCodeApiError: If the session does not exist (404).
         """
         response = await self._send(
-            "GET", f"/session/{session_id}/children", **request_spec(directory=directory, workspace=workspace)
+            "GET",
+            f"/session/{path_segment(session_id)}/children",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.sessions)
 
@@ -730,7 +751,7 @@ class AsyncSessionsResource(AsyncResource):
             OpenCodeApiError: If the session does not exist (404).
         """
         response = await self._send(
-            "GET", f"/session/{session_id}/todo", **request_spec(directory=directory, workspace=workspace)
+            "GET", f"/session/{path_segment(session_id)}/todo", **request_spec(directory=directory, workspace=workspace)
         )
         return validate_response(response, TYPE_ADAPTERS.todo_list)
 
@@ -752,7 +773,7 @@ class AsyncSessionsResource(AsyncResource):
         query = diff_query(message_id)
         response = await self._send(
             "GET",
-            f"/session/{session_id}/diff",
+            f"/session/{path_segment(session_id)}/diff",
             **request_spec(directory=directory, workspace=workspace, query=query),
         )
         return validate_response(response, TYPE_ADAPTERS.session_diffs)
@@ -773,7 +794,7 @@ class AsyncSessionsResource(AsyncResource):
         json_body = revert_body(message_id, part_id)
         response = await self._send(
             "POST",
-            f"/session/{session_id}/revert",
+            f"/session/{path_segment(session_id)}/revert",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
@@ -785,7 +806,9 @@ class AsyncSessionsResource(AsyncResource):
             OpenCodeConflictError: If the session is busy (409).
         """
         response = await self._send(
-            "POST", f"/session/{session_id}/unrevert", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/unrevert",
+            **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.session)
 
@@ -802,7 +825,7 @@ class AsyncSessionsResource(AsyncResource):
         json_body = init_body(provider_id, model_id, message_id)
         response = await self._send(
             "POST",
-            f"/session/{session_id}/init",
+            f"/session/{path_segment(session_id)}/init",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
@@ -825,7 +848,7 @@ class AsyncSessionsResource(AsyncResource):
         json_body = permission_body(response)
         response_obj = await self._send(
             "POST",
-            f"/session/{session_id}/permissions/{permission_id}",
+            f"/session/{path_segment(session_id)}/permissions/{path_segment(permission_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response_obj, TYPE_ADAPTERS.bool)
@@ -844,7 +867,7 @@ class AsyncSessionsResource(AsyncResource):
         query = messages_query(limit, before)
         response = await self._send(
             "GET",
-            f"/session/{session_id}/message",
+            f"/session/{path_segment(session_id)}/message",
             **request_spec(directory=directory, workspace=workspace, query=query),
         )
         return validate_response(response, TYPE_ADAPTERS.messages)
@@ -884,7 +907,7 @@ class AsyncSessionsResource(AsyncResource):
         )
         response = await self._send(
             "POST",
-            f"/session/{session_id}/message",
+            f"/session/{path_segment(session_id)}/message",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.message)
@@ -921,7 +944,7 @@ class AsyncSessionsResource(AsyncResource):
         )
         await self._send(
             "POST",
-            f"/session/{session_id}/prompt_async",
+            f"/session/{path_segment(session_id)}/prompt_async",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -965,7 +988,7 @@ class AsyncSessionsResource(AsyncResource):
         )
         response = await self._send(
             "POST",
-            f"/session/{session_id}/command",
+            f"/session/{path_segment(session_id)}/command",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.message)
@@ -994,7 +1017,7 @@ class AsyncSessionsResource(AsyncResource):
         json_body = shell_body(command, agent, model=model, message_id=message_id)
         response = await self._send(
             "POST",
-            f"/session/{session_id}/shell",
+            f"/session/{path_segment(session_id)}/shell",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
         return validate_response(response, TYPE_ADAPTERS.message)
@@ -1010,7 +1033,7 @@ class AsyncSessionsResource(AsyncResource):
         """Delete one part of a message. Returns ``True`` on success."""
         response = await self._send(
             "DELETE",
-            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}/part/{path_segment(part_id)}",
             **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
@@ -1035,7 +1058,7 @@ class AsyncSessionsResource(AsyncResource):
         """
         response = await self._send(
             "PATCH",
-            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}/part/{path_segment(part_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=part.to_wire()),
         )
         return validate_response(response, TYPE_ADAPTERS.part)
@@ -1050,7 +1073,7 @@ class AsyncSessionsResource(AsyncResource):
         """Delete one message from a session. Returns ``True`` on success."""
         response = await self._send(
             "DELETE",
-            f"/session/{session_id}/message/{message_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}",
             **request_spec(directory=directory, workspace=workspace),
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
@@ -1093,7 +1116,9 @@ class SessionsResourceWithRawResponse(Resource):
 
     def get(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Fetch one session; return the raw response."""
-        return self._send("GET", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace))
+        return self._send(
+            "GET", f"/session/{path_segment(session_id)}", **request_spec(directory=directory, workspace=workspace)
+        )
 
     def update(
         self,
@@ -1106,13 +1131,15 @@ class SessionsResourceWithRawResponse(Resource):
         json_body = update_body(body)
         return self._send(
             "PATCH",
-            f"/session/{session_id}",
+            f"/session/{path_segment(session_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
     def delete(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Delete a session; return the raw response."""
-        return self._send("DELETE", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace))
+        return self._send(
+            "DELETE", f"/session/{path_segment(session_id)}", **request_spec(directory=directory, workspace=workspace)
+        )
 
     def fork(
         self,
@@ -1125,26 +1152,32 @@ class SessionsResourceWithRawResponse(Resource):
         json_body = fork_body(message_id)
         return self._send(
             "POST",
-            f"/session/{session_id}/fork",
+            f"/session/{path_segment(session_id)}/fork",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
     def abort(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Abort a session; return the raw response."""
         return self._send(
-            "POST", f"/session/{session_id}/abort", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/abort",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     def share(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Publish a session; return the raw response."""
         return self._send(
-            "POST", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/share",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     def unshare(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Withdraw a session's share; return the raw response."""
         return self._send(
-            "DELETE", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+            "DELETE",
+            f"/session/{path_segment(session_id)}/share",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     def summarize(
@@ -1160,24 +1193,26 @@ class SessionsResourceWithRawResponse(Resource):
         json_body = summarize_body(provider_id, model_id, auto)
         return self._send(
             "POST",
-            f"/session/{session_id}/summarize",
+            f"/session/{path_segment(session_id)}/summarize",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
-    def status(self) -> httpx.Response:
+    def status(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Report session run states; return the raw response."""
-        return self._send("GET", "/session/status", **request_spec())
+        return self._send("GET", "/session/status", **request_spec(directory=directory, workspace=workspace))
 
     def children(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """List child sessions; return the raw response."""
         return self._send(
-            "GET", f"/session/{session_id}/children", **request_spec(directory=directory, workspace=workspace)
+            "GET",
+            f"/session/{path_segment(session_id)}/children",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     def list_todos(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """List the session's todos; return the raw response."""
         return self._send(
-            "GET", f"/session/{session_id}/todo", **request_spec(directory=directory, workspace=workspace)
+            "GET", f"/session/{path_segment(session_id)}/todo", **request_spec(directory=directory, workspace=workspace)
         )
 
     def diff(
@@ -1191,7 +1226,7 @@ class SessionsResourceWithRawResponse(Resource):
         query = diff_query(message_id)
         return self._send(
             "GET",
-            f"/session/{session_id}/diff",
+            f"/session/{path_segment(session_id)}/diff",
             **request_spec(directory=directory, workspace=workspace, query=query),
         )
 
@@ -1207,14 +1242,16 @@ class SessionsResourceWithRawResponse(Resource):
         json_body = revert_body(message_id, part_id)
         return self._send(
             "POST",
-            f"/session/{session_id}/revert",
+            f"/session/{path_segment(session_id)}/revert",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
     def unrevert(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Restore reverted messages; return the raw response."""
         return self._send(
-            "POST", f"/session/{session_id}/unrevert", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/unrevert",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     def init(
@@ -1230,7 +1267,7 @@ class SessionsResourceWithRawResponse(Resource):
         json_body = init_body(provider_id, model_id, message_id)
         return self._send(
             "POST",
-            f"/session/{session_id}/init",
+            f"/session/{path_segment(session_id)}/init",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1246,7 +1283,7 @@ class SessionsResourceWithRawResponse(Resource):
         json_body = permission_body(response)
         return self._send(
             "POST",
-            f"/session/{session_id}/permissions/{permission_id}",
+            f"/session/{path_segment(session_id)}/permissions/{path_segment(permission_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1262,7 +1299,7 @@ class SessionsResourceWithRawResponse(Resource):
         query = messages_query(limit, before)
         return self._send(
             "GET",
-            f"/session/{session_id}/message",
+            f"/session/{path_segment(session_id)}/message",
             **request_spec(directory=directory, workspace=workspace, query=query),
         )
 
@@ -1293,7 +1330,7 @@ class SessionsResourceWithRawResponse(Resource):
         )
         return self._send(
             "POST",
-            f"/session/{session_id}/message",
+            f"/session/{path_segment(session_id)}/message",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1324,7 +1361,7 @@ class SessionsResourceWithRawResponse(Resource):
         )
         return self._send(
             "POST",
-            f"/session/{session_id}/prompt_async",
+            f"/session/{path_segment(session_id)}/prompt_async",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1353,7 +1390,7 @@ class SessionsResourceWithRawResponse(Resource):
         )
         return self._send(
             "POST",
-            f"/session/{session_id}/command",
+            f"/session/{path_segment(session_id)}/command",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1371,7 +1408,7 @@ class SessionsResourceWithRawResponse(Resource):
         json_body = shell_body(command, agent, model=model, message_id=message_id)
         return self._send(
             "POST",
-            f"/session/{session_id}/shell",
+            f"/session/{path_segment(session_id)}/shell",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1386,7 +1423,7 @@ class SessionsResourceWithRawResponse(Resource):
         """Delete one part; return the raw response."""
         return self._send(
             "DELETE",
-            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}/part/{path_segment(part_id)}",
             **request_spec(directory=directory, workspace=workspace),
         )
 
@@ -1402,7 +1439,7 @@ class SessionsResourceWithRawResponse(Resource):
         """Replace one part; return the raw response."""
         return self._send(
             "PATCH",
-            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}/part/{path_segment(part_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=part.to_wire()),
         )
 
@@ -1416,7 +1453,7 @@ class SessionsResourceWithRawResponse(Resource):
         """Delete one message; return the raw response."""
         return self._send(
             "DELETE",
-            f"/session/{session_id}/message/{message_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}",
             **request_spec(directory=directory, workspace=workspace),
         )
 
@@ -1461,7 +1498,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
     async def get(self, session_id: str, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Fetch one session; return the raw response."""
         return await self._send(
-            "GET", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace)
+            "GET", f"/session/{path_segment(session_id)}", **request_spec(directory=directory, workspace=workspace)
         )
 
     async def update(
@@ -1475,7 +1512,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         json_body = update_body(body)
         return await self._send(
             "PATCH",
-            f"/session/{session_id}",
+            f"/session/{path_segment(session_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1484,7 +1521,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
     ) -> httpx.Response:
         """Delete a session; return the raw response."""
         return await self._send(
-            "DELETE", f"/session/{session_id}", **request_spec(directory=directory, workspace=workspace)
+            "DELETE", f"/session/{path_segment(session_id)}", **request_spec(directory=directory, workspace=workspace)
         )
 
     async def fork(
@@ -1498,7 +1535,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         json_body = fork_body(message_id)
         return await self._send(
             "POST",
-            f"/session/{session_id}/fork",
+            f"/session/{path_segment(session_id)}/fork",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1507,7 +1544,9 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
     ) -> httpx.Response:
         """Abort a session; return the raw response."""
         return await self._send(
-            "POST", f"/session/{session_id}/abort", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/abort",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     async def share(
@@ -1515,7 +1554,9 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
     ) -> httpx.Response:
         """Publish a session; return the raw response."""
         return await self._send(
-            "POST", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/share",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     async def unshare(
@@ -1523,7 +1564,9 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
     ) -> httpx.Response:
         """Withdraw a session's share; return the raw response."""
         return await self._send(
-            "DELETE", f"/session/{session_id}/share", **request_spec(directory=directory, workspace=workspace)
+            "DELETE",
+            f"/session/{path_segment(session_id)}/share",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     async def summarize(
@@ -1539,20 +1582,22 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         json_body = summarize_body(provider_id, model_id, auto)
         return await self._send(
             "POST",
-            f"/session/{session_id}/summarize",
+            f"/session/{path_segment(session_id)}/summarize",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
-    async def status(self) -> httpx.Response:
+    async def status(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Report session run states; return the raw response."""
-        return await self._send("GET", "/session/status", **request_spec())
+        return await self._send("GET", "/session/status", **request_spec(directory=directory, workspace=workspace))
 
     async def children(
         self, session_id: str, directory: str | None = None, workspace: str | None = None
     ) -> httpx.Response:
         """List child sessions; return the raw response."""
         return await self._send(
-            "GET", f"/session/{session_id}/children", **request_spec(directory=directory, workspace=workspace)
+            "GET",
+            f"/session/{path_segment(session_id)}/children",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     async def list_todos(
@@ -1560,7 +1605,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
     ) -> httpx.Response:
         """List the session's todos; return the raw response."""
         return await self._send(
-            "GET", f"/session/{session_id}/todo", **request_spec(directory=directory, workspace=workspace)
+            "GET", f"/session/{path_segment(session_id)}/todo", **request_spec(directory=directory, workspace=workspace)
         )
 
     async def diff(
@@ -1574,7 +1619,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         query = diff_query(message_id)
         return await self._send(
             "GET",
-            f"/session/{session_id}/diff",
+            f"/session/{path_segment(session_id)}/diff",
             **request_spec(directory=directory, workspace=workspace, query=query),
         )
 
@@ -1590,7 +1635,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         json_body = revert_body(message_id, part_id)
         return await self._send(
             "POST",
-            f"/session/{session_id}/revert",
+            f"/session/{path_segment(session_id)}/revert",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1599,7 +1644,9 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
     ) -> httpx.Response:
         """Restore reverted messages; return the raw response."""
         return await self._send(
-            "POST", f"/session/{session_id}/unrevert", **request_spec(directory=directory, workspace=workspace)
+            "POST",
+            f"/session/{path_segment(session_id)}/unrevert",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     async def init(
@@ -1615,7 +1662,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         json_body = init_body(provider_id, model_id, message_id)
         return await self._send(
             "POST",
-            f"/session/{session_id}/init",
+            f"/session/{path_segment(session_id)}/init",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1631,7 +1678,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         json_body = permission_body(response)
         return await self._send(
             "POST",
-            f"/session/{session_id}/permissions/{permission_id}",
+            f"/session/{path_segment(session_id)}/permissions/{path_segment(permission_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1647,7 +1694,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         query = messages_query(limit, before)
         return await self._send(
             "GET",
-            f"/session/{session_id}/message",
+            f"/session/{path_segment(session_id)}/message",
             **request_spec(directory=directory, workspace=workspace, query=query),
         )
 
@@ -1678,7 +1725,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         )
         return await self._send(
             "POST",
-            f"/session/{session_id}/message",
+            f"/session/{path_segment(session_id)}/message",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1709,7 +1756,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         )
         return await self._send(
             "POST",
-            f"/session/{session_id}/prompt_async",
+            f"/session/{path_segment(session_id)}/prompt_async",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1738,7 +1785,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         )
         return await self._send(
             "POST",
-            f"/session/{session_id}/command",
+            f"/session/{path_segment(session_id)}/command",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1756,7 +1803,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         json_body = shell_body(command, agent, model=model, message_id=message_id)
         return await self._send(
             "POST",
-            f"/session/{session_id}/shell",
+            f"/session/{path_segment(session_id)}/shell",
             **request_spec(directory=directory, workspace=workspace, json_body=json_body),
         )
 
@@ -1771,7 +1818,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         """Delete one part; return the raw response."""
         return await self._send(
             "DELETE",
-            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}/part/{path_segment(part_id)}",
             **request_spec(directory=directory, workspace=workspace),
         )
 
@@ -1787,7 +1834,7 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         """Replace one part; return the raw response."""
         return await self._send(
             "PATCH",
-            f"/session/{session_id}/message/{message_id}/part/{part_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}/part/{path_segment(part_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=part.to_wire()),
         )
 
@@ -1801,6 +1848,6 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
         """Delete one message; return the raw response."""
         return await self._send(
             "DELETE",
-            f"/session/{session_id}/message/{message_id}",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}",
             **request_spec(directory=directory, workspace=workspace),
         )

@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import time
+import threading
 from collections.abc import Callable
 from contextlib import suppress
 from typing import Any
@@ -172,30 +172,65 @@ class EventRouter:
 
         Stop conditions: a handler raises (the error propagates), an event
         of type ``until`` is dispatched, the stream ends cleanly, or
-        ``timeout`` seconds elapse (raises :class:`TimeoutError`; checked
-        at each event boundary).  The event stream is left open — closing
-        it is the stream context manager's job.
+        ``timeout`` seconds elapse (raises :class:`TimeoutError`).  The
+        event stream is left open — closing it is the stream context
+        manager's job.
+
+        Unlike :meth:`AsyncEventRouter.run`, whose deadline is enforced by
+        ``asyncio.wait_for``, the sync reader blocks in a plain generator;
+        a real wall-clock budget is enforced by running the loop in a
+        watchdog worker thread.  If the deadline fires while blocked on a
+        silent stream, that worker thread cannot be interrupted and is left
+        as a daemon — it dies with the process, but the socket it holds is
+        not released before then.
 
         Args:
             until: Event type that ends the run, after its handlers ran.
             timeout: Overall wall-clock budget for the run.
+
+        Raises:
+            TimeoutError: If ``timeout`` elapses before any other stop condition.
         """
         iterator = self._stream.iter_events()
-        deadline = None if timeout is None else time.monotonic() + timeout
         try:
-            while True:
-                if deadline is not None and time.monotonic() >= deadline:
-                    raise TimeoutError(f"event router timed out after {timeout}s")
+            if timeout is None:
+                self._loop(iterator, until)
+                return
+            # A blocking next() cannot be interrupted from another thread,
+            # so invert the problem: run the whole loop in a helper thread
+            # and enforce the deadline here in the caller's thread.
+            failure: list[BaseException] = []
+            done = threading.Event()
+
+            def _body() -> None:
                 try:
-                    event = next(iterator)
-                except StopIteration:
-                    return
-                self._dispatch(event)
-                if until is not None and _matches(until, event):
-                    return
+                    self._loop(iterator, until)
+                except BaseException as exc:  # noqa: BLE001 - re-raised below
+                    failure.append(exc)
+                finally:
+                    done.set()
+
+            worker = threading.Thread(target=_body, name="opencode-event-router", daemon=True)
+            worker.start()
+            if not done.wait(timeout):
+                raise TimeoutError(f"event router timed out after {timeout}s")
+            worker.join()
+            if failure:
+                raise failure[0]
         finally:
             with suppress(Exception, BaseException):
                 iterator.close()
+
+    def _loop(self, iterator: Any, until: EventType | str | None) -> None:
+        """Consume events until ``until`` matches or the stream ends cleanly."""
+        while True:
+            try:
+                event = next(iterator)
+            except StopIteration:
+                return
+            self._dispatch(event)
+            if until is not None and _matches(until, event):
+                return
 
     def _dispatch(self, event: Event) -> None:
         """Run every matching handler in subscription order."""

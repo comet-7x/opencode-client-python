@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
+from pydantic import ValidationError
 
 __all__ = [
     "OpenCodeApiError",
@@ -24,6 +25,7 @@ __all__ = [
     "OpenCodeNotFoundError",
     "OpenCodePermissionError",
     "OpenCodeRateLimitError",
+    "OpenCodeResponseError",
     "OpenCodeServerConnectionError",
     "OpenCodeServerError",
     "OpenCodeTimeoutError",
@@ -93,6 +95,23 @@ class OpenCodeServerConnectionError(OpenCodeTransportError):
     """Could not establish or maintain a connection to the server."""
 
 
+class OpenCodeResponseError(OpenCodeError):
+    """A 2xx response body failed schema validation.
+
+    Raised when the server answers success but the payload no longer matches
+    the expected model (schema drift across server versions, missing fields).
+    Carries the original :class:`pydantic.ValidationError` so callers can
+    inspect the offending fields.
+
+    Attributes:
+        validation_error: The underlying pydantic validation failure.
+    """
+
+    def __init__(self, message: str, *, validation_error: ValidationError) -> None:
+        super().__init__(message)
+        self.validation_error = validation_error
+
+
 def _error_class_for_status(status_code: int) -> type[OpenCodeApiError]:
     """Choose the most specific :class:`OpenCodeApiError` subclass for a status code."""
     if status_code == 401:
@@ -144,5 +163,24 @@ def make_transport_error(exc: httpx.HTTPError) -> OpenCodeTransportError:
         error: OpenCodeTransportError = OpenCodeTimeoutError(str(exc))
     else:
         error = OpenCodeServerConnectionError(str(exc))
+    error.__cause__ = exc
+    return error
+
+
+def make_response_error(exc: ValidationError) -> OpenCodeResponseError:
+    """Wrap a response-schema validation failure into our exception hierarchy.
+
+    Shared by the sync and async transports so ``except OpenCodeError``
+    covers every failure mode of this library, including schema drift on
+    2xx responses.
+
+    Args:
+        exc: The :class:`pydantic.ValidationError` raised while parsing a
+            successful (2xx) response body.
+
+    Returns:
+        An :class:`OpenCodeResponseError` chained to ``exc``.
+    """
+    error = OpenCodeResponseError(f"response failed schema validation: {exc}", validation_error=exc)
     error.__cause__ = exc
     return error

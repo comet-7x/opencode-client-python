@@ -31,13 +31,18 @@ from __future__ import annotations
 
 import asyncio
 import time
+from email.utils import parsedate_to_datetime
 from types import TracebackType
 from typing import Any
 
 import httpx
 
 from ._types import NOT_GIVEN, NotGiven
-from .constants import DEFAULT_CONNECT_TIMEOUT, DEFAULT_MAX_RETRIES, DEFAULT_USER_AGENT
+from .constants import (
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_TIMEOUT,
+    DEFAULT_USER_AGENT,
+)
 from .errors import make_api_error, make_transport_error
 from .resources.mcp import AsyncMcpResource, McpResource
 from .resources.server import AsyncServerResource, ServerResource
@@ -45,6 +50,71 @@ from .resources.sessions import AsyncSessionsResource, SessionsResource
 from .resources.vcs import AsyncVcsResource, VcsResource
 
 __all__ = ["AsyncOpenCodeClient", "OpenCodeClient"]
+
+#: Methods whose repetition is safe even when the server already acted on a
+#: lost request; only these (plus provably-unsent non-idempotent requests)
+#: are retried after transport failures.
+_IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE", "PUT", "DELETE"})
+
+#: Timeout type accepted by the clients: a scalar applied to every phase,
+#: or per-phase control via :class:`httpx.Timeout`.
+TimeoutValue = float | httpx.Timeout
+
+
+def _is_retryable_transport_error(method: str, exc: httpx.HTTPError) -> bool:
+    """Whether a transport failure may be safely retried for this method.
+
+    Idempotent methods can always be replayed.  Non-idempotent methods
+    (``POST`` and friends) are only retried when the request provably never
+    reached the server — connection-phase errors.  A read timeout on a
+    ``POST`` means the server may already be processing it; replaying could
+    duplicate side effects (a second prompt turn), so it propagates instead.
+
+    Args:
+        method: HTTP method of the failed request.
+        exc: The transport error raised by httpx.
+
+    Returns:
+        ``True`` when another attempt is safe.
+    """
+    if method.upper() in _IDEMPOTENT_METHODS:
+        return True
+    return isinstance(exc, (httpx.ConnectError, httpx.ConnectTimeout))
+
+
+def _retry_after_seconds(header: str) -> float | None:
+    """Parse a ``Retry-After`` header value into seconds.
+
+    Accepts both RFC 7231 forms: delta-seconds (``"120"``) and HTTP-date.
+    Proxies in front of the opencode server sometimes emit the date form.
+
+    Args:
+        header: The raw ``Retry-After`` value.
+
+    Returns:
+        Seconds to wait (never negative), or ``None`` when unparsable.
+    """
+    if header.isdigit():
+        return float(header)
+    try:
+        target = parsedate_to_datetime(header)
+    except (TypeError, ValueError):
+        return None
+    return max(target.timestamp() - time.time(), 0.0)
+
+
+def _normalize_timeout(timeout: TimeoutValue) -> httpx.Timeout:
+    """Coerce a scalar timeout into an all-phases :class:`httpx.Timeout`.
+
+    Args:
+        timeout: A scalar seconds value or an ``httpx.Timeout`` as-is.
+
+    Returns:
+        The timeout object forwarded to the underlying httpx client.
+    """
+    if isinstance(timeout, httpx.Timeout):
+        return timeout
+    return httpx.Timeout(timeout)
 
 
 def _is_retryable_status(status_code: int) -> bool:
@@ -69,7 +139,7 @@ def _client_kwargs(
     base_url: str,
     username: str | None,
     password: str | None,
-    timeout: float,
+    timeout: TimeoutValue,
     extra: dict[str, Any],
 ) -> dict[str, Any]:
     """Common httpx client settings shared by the sync and async transports.
@@ -78,7 +148,7 @@ def _client_kwargs(
         base_url: Server base URL.
         username: Basic-auth username (used only with ``password``).
         password: Basic-auth password; omit for unauthenticated servers.
-        timeout: Timeout in seconds for connecting and reading.
+        timeout: Scalar seconds or per-phase :class:`httpx.Timeout`.
         extra: Extra settings forwarded to the underlying httpx client.
 
     Returns:
@@ -87,7 +157,7 @@ def _client_kwargs(
     return {
         "base_url": base_url.rstrip("/"),
         "auth": _auth(username, password),
-        "timeout": timeout,
+        "timeout": _normalize_timeout(timeout),
         "headers": {"User-Agent": DEFAULT_USER_AGENT},
         **extra,
     }
@@ -96,7 +166,9 @@ def _client_kwargs(
 def _backoff_seconds(attempt: int, response: httpx.Response | None = None) -> float:
     """Delay before retry ``attempt`` (1-based), honouring ``Retry-After`` when present.
 
-    Exponential backoff: 0.5s, 1s, 2s ... capped at 8s.
+    Exponential backoff: 0.5s, 1s, 2s ... capped at 8s.  A ``Retry-After``
+    header wins when present — both the delta-seconds and HTTP-date forms
+    are accepted.
 
     Args:
         attempt: The 1-based retry index (1 = wait before the 2nd attempt).
@@ -107,8 +179,10 @@ def _backoff_seconds(attempt: int, response: httpx.Response | None = None) -> fl
     """
     if response is not None:
         retry_after = response.headers.get("Retry-After")
-        if retry_after is not None and retry_after.isdigit():
-            return float(retry_after)
+        if retry_after is not None:
+            parsed = _retry_after_seconds(retry_after)
+            if parsed is not None:
+                return parsed
     backoff: float = min(0.5 * (2.0 ** (attempt - 1)), 8.0)
     return backoff
 
@@ -120,7 +194,7 @@ class ClientOptions:
         base_url: Server base URL.
         username: Basic-auth username (used only with ``password``).
         password: Basic-auth password.
-        timeout: Timeout in seconds.
+        timeout: Scalar seconds or per-phase :class:`httpx.Timeout`.
         max_retries: Number of retries for failed (429/5xx/connection) requests.
         extra: Extra kwargs for the underlying httpx client.
     """
@@ -130,7 +204,7 @@ class ClientOptions:
         base_url: str,
         username: str | None = "opencode",
         password: str | None = None,
-        timeout: float = DEFAULT_CONNECT_TIMEOUT,
+        timeout: TimeoutValue = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         **extra: Any,
     ) -> None:
@@ -145,7 +219,7 @@ class ClientOptions:
         self,
         *,
         base_url: str | NotGiven = NOT_GIVEN,
-        timeout: float | NotGiven = NOT_GIVEN,
+        timeout: TimeoutValue | NotGiven = NOT_GIVEN,
         max_retries: int | NotGiven = NOT_GIVEN,
     ) -> ClientOptions:
         """Return a copy with any of the given options replaced.
@@ -175,7 +249,11 @@ class OpenCodeClient:
         base_url: Server base URL, e.g. ``http://127.0.0.1:4096``.
         username: Basic-auth username; used only when ``password`` is set.
         password: Basic-auth password; omit for unauthenticated servers.
-        timeout: Timeout in seconds for connecting and reading.
+        timeout: Scalar seconds applied to every phase, or an
+            :class:`httpx.Timeout` for per-phase control.  The default
+            allows 60s to read a response (blocking calls like
+            ``sessions.prompt()`` wait for the whole LLM turn) but only 5s
+            to connect.
         max_retries: How many times to retry failed requests (first attempt is free).
         **kwargs: Extra settings forwarded to :class:`httpx.Client`
             (proxies, ssl, headers, ...).
@@ -193,7 +271,7 @@ class OpenCodeClient:
         base_url: str,
         username: str | None = "opencode",
         password: str | None = None,
-        timeout: float = DEFAULT_CONNECT_TIMEOUT,
+        timeout: TimeoutValue = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         **kwargs: Any,
     ) -> None:
@@ -215,8 +293,8 @@ class OpenCodeClient:
         return self._opts.base_url
 
     @property
-    def timeout(self) -> float:
-        """The effective request timeout in seconds."""
+    def timeout(self) -> TimeoutValue:
+        """The effective request timeout (scalar seconds or per-phase)."""
         return self._opts.timeout
 
     @property
@@ -245,7 +323,7 @@ class OpenCodeClient:
         self,
         *,
         base_url: str | NotGiven = NOT_GIVEN,
-        timeout: float | NotGiven = NOT_GIVEN,
+        timeout: TimeoutValue | NotGiven = NOT_GIVEN,
         max_retries: int | NotGiven = NOT_GIVEN,
     ) -> OpenCodeClient:
         """Return a copy of this client with a subset of options overridden.
@@ -259,6 +337,11 @@ class OpenCodeClient:
 
     def send(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
         """Send a request with retries, raising mapped errors on failure.
+
+        Retries apply to 429/5xx responses always, and to transport failures
+        only when replay is safe (idempotent methods, or non-idempotent ones
+        that failed before reaching the server — see
+        :func:`_is_retryable_transport_error`).
 
         Args:
             method: HTTP method (``GET``, ``POST``, ...).
@@ -274,7 +357,7 @@ class OpenCodeClient:
             try:
                 response = self._http.request(method, path, **kwargs)
             except httpx.HTTPError as exc:
-                if attempt < self._opts.max_retries:
+                if attempt < self._opts.max_retries and _is_retryable_transport_error(method, exc):
                     time.sleep(_backoff_seconds(attempt + 1))
                     attempt += 1
                     continue
@@ -282,6 +365,8 @@ class OpenCodeClient:
             if 200 <= response.status_code < 300:
                 return response
             if _is_retryable_status(response.status_code) and attempt < self._opts.max_retries:
+                # close the abandoned response so its connection returns to the pool
+                response.close()
                 time.sleep(_backoff_seconds(attempt + 1, response))
                 attempt += 1
                 continue
@@ -298,7 +383,9 @@ class AsyncOpenCodeClient:
         base_url: Server base URL, e.g. ``http://127.0.0.1:4096``.
         username: Basic-auth username; used only when ``password`` is set.
         password: Basic-auth password; omit for unauthenticated servers.
-        timeout: Timeout in seconds for connecting and reading.
+        timeout: Scalar seconds applied to every phase, or an
+            :class:`httpx.Timeout` for per-phase control (same default as
+            the sync client).
         max_retries: How many times to retry failed requests (first attempt is free).
         **kwargs: Extra settings forwarded to :class:`httpx.AsyncClient`
             (proxies, ssl, headers, ...).
@@ -315,7 +402,7 @@ class AsyncOpenCodeClient:
         base_url: str,
         username: str | None = "opencode",
         password: str | None = None,
-        timeout: float = DEFAULT_CONNECT_TIMEOUT,
+        timeout: TimeoutValue = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         **kwargs: Any,
     ) -> None:
@@ -337,8 +424,8 @@ class AsyncOpenCodeClient:
         return self._opts.base_url
 
     @property
-    def timeout(self) -> float:
-        """The effective request timeout in seconds."""
+    def timeout(self) -> TimeoutValue:
+        """The effective request timeout (scalar seconds or per-phase)."""
         return self._opts.timeout
 
     @property
@@ -367,7 +454,7 @@ class AsyncOpenCodeClient:
         self,
         *,
         base_url: str | NotGiven = NOT_GIVEN,
-        timeout: float | NotGiven = NOT_GIVEN,
+        timeout: TimeoutValue | NotGiven = NOT_GIVEN,
         max_retries: int | NotGiven = NOT_GIVEN,
     ) -> AsyncOpenCodeClient:
         """Return a copy of this client with a subset of options overridden.
@@ -381,6 +468,11 @@ class AsyncOpenCodeClient:
 
     async def send(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
         """Send a request with retries, raising mapped errors on failure.
+
+        Retries apply to 429/5xx responses always, and to transport failures
+        only when replay is safe (idempotent methods, or non-idempotent ones
+        that failed before reaching the server — see
+        :func:`_is_retryable_transport_error`).
 
         Args:
             method: HTTP method (``GET``, ``POST``, ...).
@@ -396,7 +488,7 @@ class AsyncOpenCodeClient:
             try:
                 response = await self._http.request(method, path, **kwargs)
             except httpx.HTTPError as exc:
-                if attempt < self._opts.max_retries:
+                if attempt < self._opts.max_retries and _is_retryable_transport_error(method, exc):
                     await asyncio.sleep(_backoff_seconds(attempt + 1))
                     attempt += 1
                     continue
@@ -404,6 +496,8 @@ class AsyncOpenCodeClient:
             if 200 <= response.status_code < 300:
                 return response
             if _is_retryable_status(response.status_code) and attempt < self._opts.max_retries:
+                # close the abandoned response so its connection returns to the pool
+                await response.aclose()
                 await asyncio.sleep(_backoff_seconds(attempt + 1, response))
                 attempt += 1
                 continue

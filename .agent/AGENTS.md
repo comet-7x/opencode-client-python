@@ -96,6 +96,8 @@ temp/repositories/     # 参考仓库（opencode 官方源码 + Python SDK；不
 - 典型场景：绕过某个限制/怪癖（如 `# wire field is snake_case, not camelCase`）、
   非显然的时序（如 `# let the stream attach before the turn starts`）。
 - 注释用英文，与现有代码保持一致。
+- **例外**：`examples/` 是教学材料，其行内注释**允许用中文**（服务学习
+  目标）；`src/`、`tests/` 内仍一律英文。
 
 ## 导出规则
 
