@@ -33,6 +33,7 @@ from opencode_client import (
     OpenCodeApiError,
     OpenCodeTransportError,
     Project,
+    UpdateProjectRequest,
 )
 
 BASE_URL = "http://127.0.0.1:4096"
@@ -57,14 +58,18 @@ def _print_projects(projects: list[Project], current_id: str | None) -> None:
         print(f"      worktree: {project.worktree}")
 
 
-async def main(base_url: str, directory: str | None, write_log: bool, auth_demo: bool) -> None:
-    """走 projects -> paths -> lsp 三步；可选演示写日志与凭证往返。
+async def main(
+    base_url: str, directory: str | None, write_log: bool, auth_demo: bool, git_init: bool, rename_to: str | None
+) -> None:
+    """走 projects -> paths -> lsp -> directories；可选演示写日志/凭证/git init/改名。
 
     Args:
         base_url: server base URL。
         directory: 可选作用域（影响 current/paths/lsp 的定位）。
         write_log: 给了就往服务端日志写一条。
         auth_demo: 给了就做一次"写入假凭证 -> 删除"的往返演示。
+        git_init: 给了就对作用域工作树执行 projects.git_init（写操作！）。
+        rename_to: 给了就把当前项目改名（PATCH /project/{id}，写操作！）。
     """
     async with AsyncOpenCodeClient(base_url) as client:
         projects = await client.projects.list(directory=directory)
@@ -86,6 +91,32 @@ async def main(base_url: str, directory: str | None, write_log: bool, auth_demo:
             print("（未挂载语言服务器）")
         for server in servers:
             print(f"- {server.name}: {server.status}  root={server.root}")
+
+    # —— git_init 是写操作（真的会 init 仓库），做成显式开关。
+    if git_init:
+        async with AsyncOpenCodeClient(base_url) as client:
+            project = await client.projects.git_init(directory=directory)
+            print(f"\n== git_init -> {project.id}（vcs={project.vcs}，worktree={project.worktree}）")
+
+    async with AsyncOpenCodeClient(base_url) as client:
+        # 当前项目的附属目录：同一项目可以在多个目录下被打开过。
+        try:
+            current = await client.projects.current(directory=directory)
+            dirs = await client.projects.directories(current.id, directory=directory)
+            print(f"\n== Directories of {current.id} ==")
+            for entry in dirs:
+                strategy = f"（{entry.strategy}）" if entry.strategy else ""
+                print(f"- {entry.directory}{strategy}")
+
+            # 改名演示：PATCH /project/{id} 只提交要改的字段。
+            if rename_to:
+                updated = await client.projects.update(
+                    current.id, UpdateProjectRequest(name=rename_to), directory=directory
+                )
+                print(f"\n== update(name={rename_to!r}) -> {updated.name}")
+        except OpenCodeApiError:
+            # 没有 scoped 项目时 current 可能 404——跳过目录展示。
+            print("\n== Directories ==（无当前项目，跳过）")
 
         if write_log:
             ok = await client.server.write_log(
@@ -115,10 +146,12 @@ def cli() -> None:
     parser.add_argument(
         "--auth-demo", dest="auth_demo", action="store_true", help="demo set/remove credentials roundtrip"
     )
+    parser.add_argument("--git-init", dest="git_init", action="store_true", help="run projects.git_init (writes!)")
+    parser.add_argument("--rename", default=None, help="rename the current project via PATCH (writes!)")
     args = parser.parse_args()
 
     try:
-        asyncio.run(main(args.url, args.directory, args.log, args.auth_demo))
+        asyncio.run(main(args.url, args.directory, args.log, args.auth_demo, args.git_init, args.rename))
     except OpenCodeApiError as exc:
         print(f"[OpenCodeApiError] HTTP {exc.status_code}: {exc.payload}", file=sys.stderr)
         raise SystemExit(1) from exc

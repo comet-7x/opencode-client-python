@@ -79,3 +79,30 @@ mcp_servers 43%）。措施与结果：
 
 - **respx 匹配顺序是"先注册先匹配"**（与直觉相反）：参数特例路由必须注册
   在同 path 的通用路由之前，否则永不命中。
+
+## 追加 2（同日）：示例对 API 面的全覆盖
+
+用户澄清需求：examples 的"覆盖率"指**示例对源码能力面的场景覆盖**。
+用脚本对 7 个资源域 69 个公开方法做了 `examples/` 引用审计，基线 61/69，
+缺口：sessions.command/init/shell/update_part/delete_part、
+mcp.remove_oauth、projects.directories/git_init/update。
+
+补齐方式（全部并入既有脚本，不开新目录）：
+
+- **session_lifecycle.py**：prompt 变体三兄弟（command/shell/init——
+  init 需 provider/model，缺省时跳过）+ part 编辑（update_part 用完整
+  响应侧 TextPart 构造，delete_part 收尾）
+- **mcp_servers.py**：--oauth 流末尾补 remove_oauth
+- **explore_projects.py**：常驻展示 current 项目的 directories；
+  新增 --git-init / --rename 两个显式写操作开关
+
+结果：**69/69 全覆盖**；冒烟 +3 用例（part 编辑路由、PATCH project、
+DELETE mcp auth）；`make check` 292 passed 全绿。
+
+### 踩坑
+
+- update_part 的 body 是**响应侧 Part 模型**（需三元组 id），不是请求侧
+  Input 模型——pyright 直接拦下了 TextPartInput 误用，类型系统帮了大忙。
+- 多轮 python 脚本改示例时 replace 锚点被 ruff format 重排打断，出现两次
+  "替换成功但 argparse/main 签名没同步"的低级错——**多步文本编辑后必须
+  立即跑该文件的冒烟测试**，不要攒到最后。

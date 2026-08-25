@@ -237,6 +237,33 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
         router.route(method="DELETE", path__regex=r"/session/[^/]+/message/[^/]+").mock(
             return_value=httpx.Response(200, json=True)
         )
+        # —— part 编辑（session_lifecycle 的 update_part/delete_part）。
+        router.route(method="PATCH", path__regex=r"/session/[^/]+/message/[^/]+/part/[^/]+").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "id": "prt_t",
+                    "sessionID": "ses_e",
+                    "messageID": "msg_a",
+                    "type": "text",
+                    "text": "[edited by update_part demo]",
+                },
+            )
+        )
+        router.route(method="DELETE", path__regex=r"/session/[^/]+/message/[^/]+/part/[^/]+").mock(
+            return_value=httpx.Response(200, json=True)
+        )
+        # —— prompt 变体端点（command/shell）：响应与 prompt 同构（info+parts）。
+        msg_doc = {"info": _assistant_message(), "parts": [TEXT_PART]}
+        router.route(method="POST", path__regex=r"/session/[^/]+/command$").mock(
+            return_value=httpx.Response(200, json=msg_doc)
+        )
+        router.route(method="POST", path__regex=r"/session/[^/]+/shell$").mock(
+            return_value=httpx.Response(200, json=msg_doc)
+        )
+        router.route(method="POST", path__regex=r"/session/[^/]+/init$").mock(
+            return_value=httpx.Response(200, json=True)
+        )
         router.post("/session/ses_e/message").mock(
             return_value=httpx.Response(200, json={"info": _assistant_message(), "parts": [TEXT_PART]})
         )
@@ -326,6 +353,35 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
                 ],
             )
         )
+        router.post("/project/git/init").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "id": "prj_1",
+                    "worktree": "/tmp/proj",
+                    "vcs": "git",
+                    "time": {"created": 1000, "updated": 2000},
+                    "sandboxes": [],
+                },
+            )
+        )
+        router.route(method="PATCH", path__regex=r"/project/[^/]+$").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "id": "prj_1",
+                    "worktree": "/tmp/proj",
+                    "name": "renamed",
+                    "time": {"created": 1000, "updated": 3000},
+                    "sandboxes": [],
+                },
+            )
+        )
+        router.route(method="GET", path__regex=r"/project/[^/]+/directories").mock(
+            return_value=httpx.Response(
+                200, json=[{"directory": "/tmp/proj", "strategy": "worktree"}, {"directory": "/other"}]
+            )
+        )
         router.get("/project/current").mock(
             return_value=httpx.Response(
                 200,
@@ -382,11 +438,13 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
         )
         router.post("/mcp/remote/connect").mock(return_value=httpx.Response(200, json=True))
         router.post("/mcp/remote/disconnect").mock(return_value=httpx.Response(200, json=True))
+        router.delete("/mcp/remote/auth").mock(return_value=httpx.Response(200, json={"success": True}))
         # --oauth local：演示"服务端拒绝 OAuth"分支（400）与其后的连接管理。
         router.post("/mcp/local/auth").mock(return_value=httpx.Response(400, json={"name": "BadRequest", "data": {}}))
         router.post("/mcp/local/auth/authenticate").mock(return_value=httpx.Response(200, json={"status": "connected"}))
         router.post("/mcp/local/connect").mock(return_value=httpx.Response(200, json=True))
         router.post("/mcp/local/disconnect").mock(return_value=httpx.Response(200, json=True))
+        router.delete("/mcp/local/auth").mock(return_value=httpx.Response(200, json={"success": True}))
         # —— files（browse_files / search_code）。
         # 参数级路由（特例先注册）：空目录分支。
         router.get("/file", params={"path": "emptydir"}).mock(return_value=httpx.Response(200, json=[]))
@@ -597,6 +655,11 @@ class TestExamplesSmoke:
         # 空项目清单 + current 404 + 空 LSP 三个分支
         mod = _load("projects.explore_projects")
         _run_cli(mod, "--url", BASE, "--directory", "/empty-scope")
+
+    def test_explore_projects_rename(self) -> None:
+        # projects.update（PATCH）演示分支
+        mod = _load("projects.explore_projects")
+        _run_cli(mod, "--url", BASE, "--rename", "renamed")
 
     def test_mcp_servers(self) -> None:
         mod = _load("mcp.mcp_servers")

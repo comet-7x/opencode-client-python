@@ -32,6 +32,7 @@ from opencode_client import (
     OpenCodeApiError,
     OpenCodeNotFoundError,  # get 不存在的会话时演示用
     OpenCodeTransportError,
+    TextPart,
     UpdateSessionRequest,
 )
 
@@ -105,6 +106,7 @@ async def main(base_url: str, provider_id: str | None, model_id: str | None) -> 
             #    模型从 list_providers 动态选，不硬编码（环境不同名字会变）。
             providers = await client.server.list_providers()
             pid = provider_id or (providers.connected[0] if providers.connected else None)
+            mid: str | None = None
             if pid and pid in {p.id: p for p in providers.all}:
                 provider = next(p for p in providers.all if p.id == pid)
                 mid = model_id or (providers.default.get(pid) or next(iter(provider.models), None))
@@ -124,6 +126,41 @@ async def main(base_url: str, provider_id: str | None, model_id: str | None) -> 
             user_message = next(m for m in messages if m.info.role == "user")
             deleted = await client.sessions.delete_message(session.id, user_message.info.id)
             print(f"delete_msg: 删除 {user_message.info.id} -> {deleted}（回复 {reply.info.id} 保留）")
+
+            # —— prompt 的三个变体端点：command（斜杠命令）/ shell（直接跑命令）/
+            #    init（让 agent 生成 AGENTS.md）。它们与 prompt 共享会话，只是
+            #    输入形态不同。shell 最直观：不经过模型，直接把命令结果喂进上下文。
+            shelled = await client.sessions.shell(session.id, "echo shell-demo", agent="build")
+            print(f"shell     : assistant 回复 {shelled.info.id}")
+            commanded = await client.sessions.command(session.id, "test", "demo arguments")
+            print(f"command   : assistant 回复 {commanded.info.id}")
+
+            # —— init：让 agent 基于指定消息生成 AGENTS.md（写 worktree，演示调用形态）。
+            if pid and mid:
+                inited = await client.sessions.init(session.id, pid, mid, reply.info.id)
+                print(f"init      : {inited}")
+            else:
+                print("init      : 无法确定 provider/model，跳过")
+
+            # —— part 编辑：改完再删 assistant 回复里的第一个 text part。
+            #    PATCH /part 的 body 是完整的 Part 形状（响应侧模型，含三元组 id）。
+            parts = next(m for m in messages if m.info.role == "assistant").parts
+            text_part = next(p for p in parts if isinstance(p, TextPart))
+            edited = await client.sessions.update_part(
+                session.id,
+                reply.info.id,
+                text_part.id,
+                TextPart(
+                    id=text_part.id,
+                    session_id=session.id,
+                    message_id=reply.info.id,
+                    type="text",
+                    text="[edited by update_part demo]",
+                ),
+            )
+            print(f"update_part: {edited.id} -> ok")
+            removed = await client.sessions.delete_part(session.id, reply.info.id, text_part.id)
+            print(f"delete_part: {text_part.id} -> {removed}")
 
             # —— 收尾：把 fork 出来的分支也删掉，不留垃圾。
             await client.sessions.delete(branch.id)

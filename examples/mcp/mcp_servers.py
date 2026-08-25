@@ -135,6 +135,10 @@ async def main(
             disconnected = await client.mcp.disconnect(oauth_name, directory=directory)
             print(f"disconnect({oauth_name!r}) -> {disconnected}")
 
+            # 凭证管理：演示移除（真实场景里移除前应确认，这里仅展示调用形态）。
+            removed = await client.mcp.remove_oauth(oauth_name, directory=directory)
+            print(f"remove_oauth({oauth_name!r}) -> {removed}")
+
 
 def cli() -> None:
     """Parse args, run main, translate library errors into exit codes."""
