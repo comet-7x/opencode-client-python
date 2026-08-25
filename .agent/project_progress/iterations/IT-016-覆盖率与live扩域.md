@@ -106,3 +106,36 @@ DELETE mcp auth）；`make check` 292 passed 全绿。
 - 多轮 python 脚本改示例时 replace 锚点被 ruff format 重排打断，出现两次
   "替换成功但 argparse/main 签名没同步"的低级错——**多步文本编辑后必须
   立即跑该文件的冒烟测试**，不要攒到最后。
+
+## 追加 3（同日）：全端点真实服务扫描
+
+用户要求用客户端类逐一访问真实服务（opencode 1.18.22 @ 127.0.0.1:37217）。
+编写 `temp/live_sweep.py`（本地工具，不入库）：62 项检查覆盖 7 个资源域
+全部公开方法 + event 流，**53 PASS / 1 WARN / 8 SKIP / 0 FAIL**（206s，
+含多个真实 LLM turn）。
+
+设计原则：
+- 只读端点全部实测；有副作用的端点用一次性会话自清理（session 全生命周期、
+  auth 假 provider 往返）；不可撤销的变更类端点显式 SKIP 并注明理由
+- 自动应答器：后台任务轮询 list_permissions 并 reply "once"，否则 init 的
+  文件写权限会卡死 turn
+- 模型相关慢调用（shell/command/init/summarize）用 `with_options(timeout=200)`
+  + `asyncio.wait_for(190)` 放宽
+
+### 关键发现（已核实服务端源码）
+
+1. `sessions.command` 对未注册的自定义命令返回 **500 UnknownError**——
+   服务端 `SessionPrompt.command` 先查 commands.get()，查不到发 Error 事件
+   （`temp/repositories/opencode/packages/opencode/src/session/prompt.ts:1356`）。
+   扫描器改为仅在 list_commands 非空时执行第一个注册命令。
+2. **IT-012 H1 修复的实战验证**：shell/command/init/summarize 四个端点都是
+   真实 LLM turn，实测耗时远超默认读超时；`with_options(timeout=...)`
+   放宽后全部通过。若还是旧的 5s 标量超时，这四个端点必然失败且重试会
+   重复发送。
+3. 权限机制实测：init 触发文件写权限 → list_permissions 出现 pending →
+   reply_permission("once") 应答后 turn 继续，整链路符合预期。
+4. `vcs.diff(mode)` 需要 mode 参数（git|branch），扫描脚本首版漏传——
+   客户端 API 是对的。
+
+报告：`temp/live_sweep_report.{json,md}`（不入库）。重跑：
+`uv run python temp/live_sweep.py --url http://127.0.0.1:37217`
