@@ -549,6 +549,26 @@ class SessionsResource(Resource):
         )
         return validate_response(response, TYPE_ADAPTERS.part)
 
+    def get_message(
+        self,
+        session_id: str,
+        message_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> MessageWithParts:
+        """Fetch one message with its parts.
+
+        Args:
+            session_id: The owning session's id.
+            message_id: The target ``msg_...`` id.
+        """
+        response = self._send(
+            "GET",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}",
+            **request_spec(directory=directory, workspace=workspace),
+        )
+        return validate_response(response, TYPE_ADAPTERS.message)
+
     def delete_message(
         self,
         session_id: str,
@@ -1063,6 +1083,26 @@ class AsyncSessionsResource(AsyncResource):
         )
         return validate_response(response, TYPE_ADAPTERS.part)
 
+    async def get_message(
+        self,
+        session_id: str,
+        message_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> MessageWithParts:
+        """Fetch one message with its parts.
+
+        Args:
+            session_id: The owning session's id.
+            message_id: The target ``msg_...`` id.
+        """
+        response = await self._send(
+            "GET",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}",
+            **request_spec(directory=directory, workspace=workspace),
+        )
+        return validate_response(response, TYPE_ADAPTERS.message)
+
     async def delete_message(
         self,
         session_id: str,
@@ -1441,6 +1481,20 @@ class SessionsResourceWithRawResponse(Resource):
             "PATCH",
             f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}/part/{path_segment(part_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=part.to_wire()),
+        )
+
+    def get_message(
+        self,
+        session_id: str,
+        message_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Fetch one message; return the raw response."""
+        return self._send(
+            "GET",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     def delete_message(
@@ -1836,6 +1890,20 @@ class AsyncSessionsResourceWithRawResponse(AsyncResource):
             "PATCH",
             f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}/part/{path_segment(part_id)}",
             **request_spec(directory=directory, workspace=workspace, json_body=part.to_wire()),
+        )
+
+    async def get_message(
+        self,
+        session_id: str,
+        message_id: str,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Fetch one message; return the raw response."""
+        return await self._send(
+            "GET",
+            f"/session/{path_segment(session_id)}/message/{path_segment(message_id)}",
+            **request_spec(directory=directory, workspace=workspace),
         )
 
     async def delete_message(

@@ -181,7 +181,17 @@ from .models.project import (
     ProjectTime,
     UpdateProjectRequest,
 )
-from .models.system import LogEntry, LSPStatus, ServerPaths
+from .models.system import (
+    GlobalEvent,
+    LogEntry,
+    LSPStatus,
+    ProviderAuthAuthorization,
+    ProviderAuthMethod,
+    ProviderAuthPrompt,
+    ProviderAuthPromptSelect,
+    ProviderAuthPromptText,
+    ServerPaths,
+)
 from .router import AsyncEventRouter, EventRouter
 from .sse import AsyncEventStream, EventStream, SSEDecoder
 
@@ -264,8 +274,14 @@ __all__ = [
     "ProjectIcon",
     "ProjectTime",
     "UpdateProjectRequest",
+    "GlobalEvent",
     "LSPStatus",
     "LogEntry",
+    "ProviderAuthAuthorization",
+    "ProviderAuthMethod",
+    "ProviderAuthPrompt",
+    "ProviderAuthPromptSelect",
+    "ProviderAuthPromptText",
     "ServerPaths",
     "Part",
     "PartBase",

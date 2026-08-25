@@ -107,6 +107,71 @@ class ServerResource(Resource):
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
+    def get_global_config(self) -> dict[str, Any]:
+        """Read the global (user-level) configuration.
+
+        Distinct from :meth:`get_config`, which reads the instance-scoped
+        config.  Wire path: ``GET /global/config``.
+        """
+        response = self._send("GET", "/global/config")
+        return validate_response(response, TYPE_ADAPTERS.any_dict)
+
+    def update_global_config(self, body: dict[str, Any]) -> dict[str, Any]:
+        """Patch the global configuration; only supplied keys change.
+
+        Warning: this mutates the server owner's ``opencode.json``.
+
+        Args:
+            body: A partial Config object (same schema as the instance one).
+        """
+        response = self._send("PATCH", "/global/config", json=body)
+        return validate_response(response, TYPE_ADAPTERS.any_dict)
+
+    def dispose_instance(self, directory: str | None = None, workspace: str | None = None) -> bool:
+        """Dispose the scoped instance's state.
+
+        Warning: disruptive on the server side — the instance drops its
+        session runtime.  Intended for lifecycle management tooling.
+        """
+        response = self._send("POST", "/instance/dispose", **request_spec(directory=directory, workspace=workspace))
+        return validate_response(response, TYPE_ADAPTERS.bool)
+
+    def dispose_global(self) -> bool:
+        """Dispose global server state.
+
+        Warning: disruptive — this tears down server-held state.
+        """
+        response = self._send("POST", "/global/dispose")
+        return validate_response(response, TYPE_ADAPTERS.bool)
+
+    def upgrade_global(self, target: str | None = None) -> dict[str, Any]:
+        """Ask the server to upgrade itself (``POST /global/upgrade``).
+
+        Warning: actually restarts/upgrades the opencode binary.
+
+        Args:
+            target: Optional version tag to upgrade to.
+        """
+        json_body = {"target": target} if target is not None else None
+        response = self._send("POST", "/global/upgrade", json=json_body)
+        return validate_response(response, TYPE_ADAPTERS.any_dict)
+
+    def stream_global_events(
+        self,
+        max_reconnect_attempts: int | None = None,
+    ) -> EventStream:
+        """Open the global SSE stream (``GET /global/event``) as an async context manager.
+
+        Events arrive wrapped in a GlobalEvent envelope
+        (``directory``/``project``/``workspace``/``payload``) spanning all
+        instances the server hosts; see
+        :class:`~opencode_client.GlobalEvent` for the loose shape.
+        """
+        from ..sse import EventStream
+
+        request = self._client.http.build_request("GET", "/global/event")
+        return EventStream(self._client.http, request, max_reconnect_attempts=max_reconnect_attempts)
+
     def get_config(self, directory: str | None = None, workspace: str | None = None) -> dict[str, Any]:
         """Read the effective server configuration (optionally scoped)."""
         response = self._send("GET", "/config", **request_spec(directory=directory, workspace=workspace))
@@ -322,6 +387,73 @@ class AsyncServerResource(AsyncResource):
         )
         return validate_response(response, TYPE_ADAPTERS.bool)
 
+    async def get_global_config(self) -> dict[str, Any]:
+        """Read the global (user-level) configuration.
+
+        Distinct from :meth:`get_config`, which reads the instance-scoped
+        config.  Wire path: ``GET /global/config``.
+        """
+        response = await self._send("GET", "/global/config")
+        return validate_response(response, TYPE_ADAPTERS.any_dict)
+
+    async def update_global_config(self, body: dict[str, Any]) -> dict[str, Any]:
+        """Patch the global configuration; only supplied keys change.
+
+        Warning: this mutates the server owner's ``opencode.json``.
+
+        Args:
+            body: A partial Config object (same schema as the instance one).
+        """
+        response = await self._send("PATCH", "/global/config", json=body)
+        return validate_response(response, TYPE_ADAPTERS.any_dict)
+
+    async def dispose_instance(self, directory: str | None = None, workspace: str | None = None) -> bool:
+        """Dispose the scoped instance's state.
+
+        Warning: disruptive on the server side — the instance drops its
+        session runtime.  Intended for lifecycle management tooling.
+        """
+        response = await self._send(
+            "POST", "/instance/dispose", **request_spec(directory=directory, workspace=workspace)
+        )
+        return validate_response(response, TYPE_ADAPTERS.bool)
+
+    async def dispose_global(self) -> bool:
+        """Dispose global server state.
+
+        Warning: disruptive — this tears down server-held state.
+        """
+        response = await self._send("POST", "/global/dispose")
+        return validate_response(response, TYPE_ADAPTERS.bool)
+
+    async def upgrade_global(self, target: str | None = None) -> dict[str, Any]:
+        """Ask the server to upgrade itself (``POST /global/upgrade``).
+
+        Warning: actually restarts/upgrades the opencode binary.
+
+        Args:
+            target: Optional version tag to upgrade to.
+        """
+        json_body = {"target": target} if target is not None else None
+        response = await self._send("POST", "/global/upgrade", json=json_body)
+        return validate_response(response, TYPE_ADAPTERS.any_dict)
+
+    def stream_global_events(
+        self,
+        max_reconnect_attempts: int | None = None,
+    ) -> AsyncEventStream:
+        """Open the global SSE stream (``GET /global/event``) as an async context manager.
+
+        Events arrive wrapped in a GlobalEvent envelope
+        (``directory``/``project``/``workspace``/``payload``) spanning all
+        instances the server hosts; see
+        :class:`~opencode_client.GlobalEvent` for the loose shape.
+        """
+        from ..sse import AsyncEventStream
+
+        request = self._client.http.build_request("GET", "/global/event")
+        return AsyncEventStream(self._client.http, request, max_reconnect_attempts=max_reconnect_attempts)
+
     async def get_config(self, directory: str | None = None, workspace: str | None = None) -> dict[str, Any]:
         """Read the effective server configuration (optionally scoped)."""
         response = await self._send("GET", "/config", **request_spec(directory=directory, workspace=workspace))
@@ -509,6 +641,26 @@ class ServerResourceWithRawResponse(Resource):
         json_body = log_body(service, level, message, extra)
         return self._send("POST", "/log", **request_spec(directory=directory, workspace=workspace, json_body=json_body))
 
+    def get_global_config(self) -> httpx.Response:
+        """Read the global configuration; return the raw response."""
+        return self._send("GET", "/global/config")
+
+    def update_global_config(self, body: dict[str, Any]) -> httpx.Response:
+        """Patch the global configuration; return the raw response."""
+        return self._send("PATCH", "/global/config", json=body)
+
+    def dispose_instance(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Dispose the scoped instance; return the raw response."""
+        return self._send("POST", "/instance/dispose", **request_spec(directory=directory, workspace=workspace))
+
+    def dispose_global(self) -> httpx.Response:
+        """Dispose global server state; return the raw response."""
+        return self._send("POST", "/global/dispose")
+
+    def upgrade_global(self, target: str | None = None) -> httpx.Response:
+        """Ask the server to upgrade itself; return the raw response."""
+        return self._send("POST", "/global/upgrade", json={"target": target} if target is not None else None)
+
     def get_config(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Read the effective configuration; return the raw response."""
         return self._send("GET", "/config", **request_spec(directory=directory, workspace=workspace))
@@ -626,6 +778,26 @@ class AsyncServerResourceWithRawResponse(AsyncResource):
         return await self._send(
             "POST", "/log", **request_spec(directory=directory, workspace=workspace, json_body=json_body)
         )
+
+    async def get_global_config(self) -> httpx.Response:
+        """Read the global configuration; return the raw response."""
+        return await self._send("GET", "/global/config")
+
+    async def update_global_config(self, body: dict[str, Any]) -> httpx.Response:
+        """Patch the global configuration; return the raw response."""
+        return await self._send("PATCH", "/global/config", json=body)
+
+    async def dispose_instance(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Dispose the scoped instance; return the raw response."""
+        return await self._send("POST", "/instance/dispose", **request_spec(directory=directory, workspace=workspace))
+
+    async def dispose_global(self) -> httpx.Response:
+        """Dispose global server state; return the raw response."""
+        return await self._send("POST", "/global/dispose")
+
+    async def upgrade_global(self, target: str | None = None) -> httpx.Response:
+        """Ask the server to upgrade itself; return the raw response."""
+        return await self._send("POST", "/global/upgrade", json={"target": target} if target is not None else None)
 
     async def get_config(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Read the effective configuration; return the raw response."""

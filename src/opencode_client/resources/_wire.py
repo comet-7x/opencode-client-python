@@ -43,6 +43,8 @@ from ..models import (
     ProjectDirectory,
     PromptModel,
     PromptPart,
+    ProviderAuthAuthorization,
+    ProviderAuthMethod,
     ProviderList,
     QuestionRequest,
     ServerPaths,
@@ -144,6 +146,8 @@ class TypeAdapters:
     mcp_single_status: TypeAdapter[MCPStatus] = TypeAdapter(MCPStatus)
     #: ``POST /mcp`` result document.
     mcp_add: TypeAdapter[dict[str, Any]] = TypeAdapter(dict[str, Any])
+    #: Loose dict payloads: /config family and upgrade results.
+    any_dict: TypeAdapter[dict[str, Any]] = TypeAdapter(dict[str, Any])
     #: ``GET /session/status`` — session id -> status union.
     status_map: TypeAdapter[dict[str, SessionStatus]] = TypeAdapter(dict[str, SessionStatus])
     #: ``GET /session/{id}/todo``.
@@ -176,6 +180,12 @@ class TypeAdapters:
     server_paths: TypeAdapter[ServerPaths] = TypeAdapter(ServerPaths)
     #: ``GET /lsp``.
     lsp_statuses: TypeAdapter[list[LSPStatus]] = TypeAdapter(list[LSPStatus])
+    #: ``GET /provider/auth`` — provider id -> auth methods.
+    provider_auth_methods: TypeAdapter[dict[str, list[ProviderAuthMethod]]] = TypeAdapter(
+        dict[str, list[ProviderAuthMethod]]
+    )
+    #: ``POST /provider/{id}/oauth/authorize``.
+    provider_auth_authorization: TypeAdapter[ProviderAuthAuthorization] = TypeAdapter(ProviderAuthAuthorization)
 
 
 #: Shared response validators keyed by response shape.

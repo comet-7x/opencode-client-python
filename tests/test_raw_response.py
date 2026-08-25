@@ -36,7 +36,7 @@ BASE = "http://localhost:4096"
 DOMAINS = ["sessions", "server", "vcs", "mcp", "files", "projects", "auth"]
 
 # stream_events 返回 AsyncEventStream 而非一次性响应，是唯一没有 raw 变体的方法
-RAW_EXCLUDED = {"stream_events"}
+RAW_EXCLUDED = {"stream_events", "stream_global_events"}
 
 
 def _public_methods(cls: Any) -> dict[str, inspect.Signature]:

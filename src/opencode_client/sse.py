@@ -43,6 +43,7 @@ from types import TracebackType
 from typing import Any
 
 import httpx
+from pydantic import ValidationError
 
 from .constants import DEFAULT_STREAM_RECONNECT_ATTEMPTS
 from .errors import make_transport_error
@@ -97,7 +98,13 @@ class SSEDecoder:
             raw: dict[str, Any] = json.loads(data)
         except ValueError:
             raw = {"type": "message", "properties": {"raw": data}}
-        return typed_event(raw)
+        try:
+            return typed_event(raw)
+        except ValidationError:
+            # Frames outside the instance envelope (e.g. /global/event's
+            # GlobalEvent wrapper) degrade instead of breaking the stream;
+            # the raw document is preserved under properties["raw"].
+            return Event(type="unknown", properties={"raw": raw})
 
     def flush(self) -> Event | None:
         """Dispatch a pending event left without its trailing blank line.

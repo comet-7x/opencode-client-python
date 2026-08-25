@@ -138,7 +138,17 @@ from .session import (
     Todo,
     UpdateSessionRequest,
 )
-from .system import LogEntry, LSPStatus, ServerPaths
+from .system import (
+    GlobalEvent,
+    LogEntry,
+    LSPStatus,
+    ProviderAuthAuthorization,
+    ProviderAuthMethod,
+    ProviderAuthPrompt,
+    ProviderAuthPromptSelect,
+    ProviderAuthPromptText,
+    ServerPaths,
+)
 from .vcs import VcsFileDiff, VcsFileStatus, VcsInfo
 
 __all__ = [
@@ -207,6 +217,11 @@ __all__ = [
     "PermissionRuleset",
     "PermissionTool",
     "PromptModel",
+    "ProviderAuthAuthorization",
+    "ProviderAuthMethod",
+    "ProviderAuthPrompt",
+    "ProviderAuthPromptSelect",
+    "ProviderAuthPromptText",
     "PromptPart",
     "PromptRequest",
     "Project",
@@ -225,6 +240,7 @@ __all__ = [
     "ReasoningPart",
     "RetryPart",
     "ServerConfig",
+    "GlobalEvent",
     "ServerPaths",
     "Session",
     "SessionFileDiff",
