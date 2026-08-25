@@ -278,6 +278,10 @@ provider 的 `baseURL` 要用 `http://host.docker.internal:8000/v1`；
 - **开始工作前**：先读 `.agent/project_progress/BOARD.md`（任务看板），确认当前宏观阶段/微观迭代。
 - **完成工作后**：更新对应 `.agent/project_progress/iterations/IT-XXX-*.md` 的任务状态，并同步 `BOARD.md`；
   跨阶段决策与发版信息写入 `.agent/project_progress/macro/ROADMAP.md`。
+- **Code review 报告是时点产物，不在 `.agent/` 长期堆叠**：发现的问题修完
+  即把结论沉淀进对应迭代文件（含踩坑），报告本身删除或只留本地
+  （如 `temp/code_review/`，注意该目录不入库）；若存在未修复的遗留项，
+  把遗留项写进 BOARD 的阻塞/待决区即可，不要整份报告存档。
 
 ```
 BOARD.md              # 任务看板：当前宏观阶段 + 微观迭代 + 阻塞项（随时看、随时更新）

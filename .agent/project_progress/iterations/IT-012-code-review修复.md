@@ -1,7 +1,7 @@
 # IT-012 — Code Review 问题修复（11 项）
 
 日期：2026-08-24
-宏观：M5 之后的质量加固；来源：全仓库 code review（`.agent/code_review_2026-08-24.{json,md}`）
+宏观：M5 之后的质量加固；来源：全仓库 code review（报告已迁至本地 `temp/code_review/`，不入库）
 
 ## 背景
 

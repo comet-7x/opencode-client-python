@@ -6,7 +6,7 @@
 
 - **宏观**：M5 发布准备 —— ✅ 完成（IT-008：本地 dist + tag v0.1.0；PyPI 后续）
 - **微观**：IT-012 code review 问题修复 ✅（2026-08-24；1H+3M+6L+1I 全修，
-  +22 回归测试，`make check` 214 passed 全绿；报告见 `.agent/code_review_2026-08-24.md`）
+  +22 回归测试，`make check` 214 passed 全绿；报告只留本地 `temp/code_review/`，不入库）
 - **仓库**：已推送 `origin/develop` + tag `v0.1.0`；日常命令走 Makefile（`make check` 全门禁）
 - **下一步行动**：功能面继续扩张的候选：① 文件/搜索域
   （find/file/formatter 新资源域）② PyPI 发布（换名 `opencode-client-python`
