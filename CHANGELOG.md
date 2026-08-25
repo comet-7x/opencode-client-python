@@ -9,6 +9,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Files domain** (`client.files.*`): directory listing (`list`), content
+  reads with a text/binary discriminated union (`read`), git-style change
+  status (`status`), ripgrep-style text search with line numbers and
+  submatch spans (`search_text`), fuzzy filename search (`search_files`,
+  string-boolean `dirs` handled client-side), LSP workspace symbol search
+  (`search_symbols`), and registered formatters (`formatter_status`).
+- **MCP lifecycle completion** (`client.mcp.*`): the full `/mcp` family —
+  OAuth flows (`start_oauth` / `complete_oauth` browser flow,
+  `authenticate` headless flow, `remove_oauth`) plus explicit
+  `connect` / `disconnect`.
+- **Projects domain** (`client.projects.*`): `list`, `current`, partial
+  `update` (name/icon/commands), per-project `directories`, and
+  `git_init`.
+- **Auth domain** (`client.auth.*`): provider credential management
+  (`set_credentials` / `remove_credentials`; oauth / api / wellknown
+  discriminated union) and provider OAuth flows
+  (`provider_auth_methods` / `start_provider_oauth` /
+  `complete_provider_oauth`).
+- **Server system endpoints**: `get_paths`, `lsp_status`, `write_log`,
+  global config read/patch (`get_global_config` / `update_global_config`),
+  the global SSE stream (`stream_global_events`, `GlobalEvent` envelope),
+  instance/global disposal, and self-upgrade (`upgrade_global`).
+- **Single message fetch**: `sessions.get_message(session_id, message_id)`.
+- **Coverage & live-test infrastructure**: pytest-cov with a 90% gate in
+  `make test` (~92% measured); an opt-in live suite
+  (`pytest --live-url ...`, 11 read-only tests) and a full-surface live
+  sweep covering every public method against a real opencode server.
+
+### Fixed
+
+- **Default timeout unusable for blocking calls**: the default is now a
+  layered `httpx.Timeout(read=60s, connect=5s)` instead of a flat 5 s —
+  blocking calls like `sessions.prompt()` wait for the whole LLM turn.
+- **Retry idempotency awareness**: transport failures are retried on
+  idempotent methods always, and on non-idempotent ones only when the
+  request provably never reached the server (connection-phase errors);
+  read timeouts no longer blindly re-send `POST`s.
+- **Sync `EventRouter.run(timeout=...)` now enforces a real wall-clock
+  deadline** (worker-thread watchdog), matching the async twin; previously
+  a silent stream blocked past the timeout indefinitely.
+- **Response schema drift surfaces as `OpenCodeResponseError`** (an
+  `OpenCodeError` subclass carrying the original `pydantic.ValidationError`)
+  instead of leaking pydantic exceptions past `except OpenCodeError`.
+- **SSE decoder hardening**: frames outside the instance-event envelope
+  (e.g. `/global/event` wrappers) degrade to a base event instead of
+  breaking the stream.
+- `Retry-After` headers in HTTP-date form are honoured (previously only
+  delta-seconds); retry responses are closed before backing off;
+  path parameters are percent-encoded.
+
+### Changed
+
+- Examples are organised purely by functional module
+  (`quickstart/sessions/server/events/vcs/mcp/files/projects/client`);
+  every one of the library's 69 public resource methods has a runnable
+  demonstration.
+
 - **Typed hot events & event router**: frequently consumed `/event` types
   now arrive as typed subclasses (`message.part.updated` → `event.part: Part`,
   `message.part.delta`, `message.updated`, `session.idle`, `permission.asked`,

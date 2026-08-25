@@ -244,3 +244,24 @@
 - IT-010 事件 Router + 类型化热事件：`EventType` 开放集（57）+ 6 热事件
   类型化子类（降级兜底不破坏流）+ `AsyncEventRouter`/`EventRouter`
   （`stream.route(sid)` 订阅/顺序分发/`until` 终止）。
+
+## v0.2.0 增量（IT-011 ~ IT-017，2026-08-24，随下次发版带出）
+
+- **功能面**：session 域补全 11 端点（status/children/todo/diff/revert/
+  init/command/shell/part 编辑）→ files 域新资源域（7 端点）→ mcp 域补全
+  （OAuth 流 + connect/disconnect，共 8 方法）→ projects/auth 新域 +
+  系统信息端点（10 端点）→ 核心面收尾 11 端点。**核心资源域 100%**
+  （69/69 公开方法均有示例演示），目标面 80/105 = 76%
+  （详见 `api_coverage.md`）；剩余 tui/pty/sync 为有意延后批次。
+- **质量**：全仓库 code review 11 项修复（分层默认超时、重试幂等感知、
+  sync Router 真实墙钟超时、`OpenCodeResponseError` 错误分层等，
+  见 IT-012）；覆盖率工具链（src ~92%，`make test` 带 90% 门禁）。
+- **验证体系**：live 单测 11 用例（`--live-url` opt-in）+ 全端点扫描工具
+  `temp/live_sweep.py`（70 项检查对真实 opencode 1.18.22 全过、零模型漂移；
+  不入库）。examples 按功能模块重组并实现 API 面全覆盖，顺带修两个示例 bug
+  （mcp_servers --oauth 不可达、interact 轮询竞态）。
+
+### 待决
+
+- [ ] PyPI 发版：换名 `opencode-client-python` + token；发 v0.2.0 时以本节为 CHANGELOG 底稿
+- [ ] tui/pty/sync 批次是否排期（需求驱动）
