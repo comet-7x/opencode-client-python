@@ -25,6 +25,11 @@
  微观  [██████████] IT-001 ✅ … IT-012 ✅  IT-013 ✅  IT-014 ✅  IT-015 ✅  IT-016 ✅
 ```
 
+## API 覆盖进度
+
+见 [`api_coverage.md`](./api_coverage.md)：188 操作，剔除 /api+/experimental
+后目标面 105 个已覆盖 69 个（66%）；核心资源域 100%，尾巴 11 个 + tui/pty/sync 未做。
+
 ## 宏观里程碑（详见 macro/ROADMAP.md）
 
 | 里程碑 | 主题 | 状态 |
