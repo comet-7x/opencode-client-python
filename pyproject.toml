@@ -33,6 +33,7 @@ dev = [
     "ruff",
     "mypy",
     "pyright",
+    "pytest-cov>=7.1.0",
 ]
 
 [build-system]
@@ -70,6 +71,12 @@ pythonpath = ["."]
 addopts = "--tb=short"
 xfail_strict = true
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src/opencode_client"]
+
+[tool.coverage.report]
+show_missing = true
 
 [tool.ruff]
 line-length = 120

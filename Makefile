@@ -12,7 +12,7 @@ OC_PORT  ?= 20001
 OC_HOST  ?= 0.0.0.0
 COMPOSE  ?= docker compose
 
-.PHONY: help install test lint format format-check types check clean \
+.PHONY: help install test coverage lint format format-check types check clean \
         docker-pull docker-run docker-tui docker-stop docker-logs docker-health
 
 help: ## 显示所有目标
@@ -21,8 +21,11 @@ help: ## 显示所有目标
 install: ## 安装依赖（uv sync；等价 pip install -e ".[dev]"）
 	uv sync
 
-test: ## 运行全部测试（pytest，含 examples 离线冒烟）
-	$(UV_RUN) pytest
+test: ## 运行全部测试（pytest，含 examples 离线冒烟 + 覆盖率门禁）
+	$(UV_RUN) pytest --cov=src/opencode_client --cov-report=term-missing --cov-fail-under=90
+
+coverage: ## 跑测试并输出 src 分模块覆盖率报告（同 test，不带阈值）
+	$(UV_RUN) pytest --cov=src/opencode_client --cov-report=term-missing
 
 lint: ## ruff 静态检查
 	$(UV_RUN) ruff check .

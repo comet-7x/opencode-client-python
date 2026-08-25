@@ -13,6 +13,7 @@ import threading
 import time
 from collections.abc import Generator
 from contextlib import suppress
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -22,6 +23,7 @@ from opencode_client import (
     AsyncOpenCodeClient,
     CreateSessionRequest,
     OpenCodeClient,
+    Project,
     UpdateSessionRequest,
 )
 
@@ -146,3 +148,82 @@ class TestLiveAsync:
                 with suppress(Exception):
                     await listener
             assert "session.created" in seen
+
+
+class TestLiveReadOnlyDomains:
+    """IT-016: exercise every read-only domain against the real server.
+
+    All calls are side-effect-free GETs (plus one POST to a search endpoint),
+    so the whole class is safe to run repeatedly.  The point is wire-level
+    verification: our pydantic models must accept what the real server
+    actually emits — the respx mocks only prove we agree with ourselves.
+    """
+
+    def test_server_system_info(self, live_server: dict[str, Any]) -> None:
+        with OpenCodeClient(**live_server) as client:
+            paths = client.server.get_paths()
+            assert paths.worktree and paths.config
+            lsp = client.server.lsp_status()
+            assert all(s.status in ("connected", "error") for s in lsp)
+
+    def test_projects(self, live_server: dict[str, Any]) -> None:
+        with OpenCodeClient(**live_server) as client:
+            projects = client.projects.list()
+            current = client.projects.current()
+        assert all(isinstance(p, Project) and p.id for p in projects)
+        assert isinstance(current, Project) and current.worktree
+        # current 必然出现在全量清单里（同一作用域）。
+        assert current.id in {p.id for p in projects}
+
+    def test_files_browse(self, live_server: dict[str, Any], tmp_path_factory: pytest.TempPathFactory) -> None:
+        workdir = str(tmp_path_factory.mktemp("live-files"))
+        (Path(workdir) / "live_probe.py").write_text("def hello():\n    return 'world'\n", encoding="utf-8")
+        scope = {"directory": workdir}
+        with OpenCodeClient(**live_server) as client:
+            nodes = client.files.list("", **scope)
+            names = {n.name for n in nodes}
+            assert "live_probe.py" in names
+
+            content = client.files.read("live_probe.py", **scope)
+            assert content.type == "text"
+            assert "hello" in content.content
+
+            changes = client.files.status(**scope)
+            assert isinstance(changes, list)
+
+    def test_files_search(self, live_server: dict[str, Any], tmp_path_factory: pytest.TempPathFactory) -> None:
+        workdir = str(tmp_path_factory.mktemp("live-search"))
+        (Path(workdir) / "needle.py").write_text("NEEDLE_TOKEN = 1\n", encoding="utf-8")
+        scope = {"directory": workdir}
+        with OpenCodeClient(**live_server) as client:
+            matches = client.files.search_text("NEEDLE_TOKEN", **scope)
+            assert any(m.path.text.endswith("needle.py") for m in matches)
+            assert matches[0].line_number >= 0
+            assert any(sm.match.text == "NEEDLE_TOKEN" for sm in matches[0].submatches)
+
+            # search_files 的可选参数紧跟 query，不能再用 **scope 展开
+            paths = client.files.search_files("needle", directory=workdir)
+            assert any(p.endswith("needle.py") for p in paths)
+
+    def test_mcp_vcs_formatter(self, live_server: dict[str, Any]) -> None:
+        with OpenCodeClient(**live_server) as client:
+            mcp_status = client.mcp.status()
+            assert isinstance(mcp_status, dict)
+
+            vcs_info = client.vcs.info()
+            if vcs_info.branch is not None:
+                statuses = client.vcs.status()
+                assert isinstance(statuses, list)
+
+            formatters = client.files.formatter_status()
+            assert isinstance(formatters, list)
+
+    async def test_async_read_only_mirror(self, live_server: dict[str, Any]) -> None:
+        """The async twins answer identically on the same real server."""
+        async with AsyncOpenCodeClient(**live_server) as client:
+            paths = await client.server.get_paths()
+            assert paths.home
+            projects = await client.projects.list()
+            assert isinstance(projects, list)
+            status_map = await client.mcp.status()
+            assert isinstance(status_map, dict)
