@@ -2,23 +2,26 @@
 
 ## 这是什么
 
-一组**可直接运行**的 Python 脚本，按场景分文件夹组织，演示如何用
+一组**可直接运行**的 Python 脚本，按功能模块分文件夹组织（对齐 client 的资源域），演示如何用
 `opencode-client` 连接并驱动 `opencode serve` 服务。每个文件夹自带
 `README.md`（解释本组脚本讲什么、适用场景、前置条件），脚本内含逐行注释。
 
 ## 目录结构
 
-| 文件夹 | 主题 | 内容 |
-|---|---|---|
-| `00_quickstart/` | 最简入门 | 3 行代码连上服务并完成一问一答（含 `directory` 简写用法） |
-| `01_session_management/` | 会话管理 | 创建（各种参数）/ 列表 / 删除 / 历史浏览 / **生命周期全动词**（update·fork·abort·share·summarize·delete_message） |
-| `02_discovery_config/` | 服务发现与配置 | health / config / providers / agents / commands / skills 一次摸清新服务 |
-| `03_vcs/` | 版本控制 | info / status / diff / diff_raw / apply（看改动、落盘 diff、打补丁） |
-| `04_mcp/` | MCP 服务器 | status（判别联合收窄）/ add（local·remote 两种 config） |
-| `05_advanced_patterns/` | 进阶模式 | 复用客户端、超时配置、异常捕获降级、事件流、权限/问答交互循环、`with_raw_response` 裸响应 |
+**按功能模块分目录**（对齐 `client` 上的资源域），每个模块一个文件夹：
 
-编号前缀决定阅读顺序，对应 `client` 上的四个资源域
-（`sessions` / `server` / `vcs` / `mcp`）由浅到深；后续可按需新增 `99_*` 等文件夹。
+| 文件夹 | 功能模块 | 内容 |
+|---|---|---|
+| `quickstart/` | 入口 | 最简一问一答：health → 建会话 → prompt → 解析回复（含 `directory` 简写用法） |
+| `sessions/` | 会话管理（`client.sessions.*`） | 创建（各种参数）/ 列表 / 删除 / 历史浏览 / **生命周期全动词**（update·fork·abort·share·summarize·delete_message）/ 状态与历史（status·children·todo·diff·revert）/ 权限与问答交互循环 |
+| `server/` | 服务级端点（`client.server.*`） | health / config / providers / agents / commands / skills 一次摸清新服务 |
+| `events/` | 事件流（`client.server.stream_events()`） | 裸流迭代区分思考/正文/工具调用；事件 Router 按类型订阅 + 类型化热事件 |
+| `vcs/` | 版本控制（`client.vcs.*`） | info / status / diff / diff_raw / apply（看改动、落盘 diff、打补丁） |
+| `mcp/` | MCP 服务器（`client.mcp.*`） | status（判别联合收窄）/ add（local·remote 两种 config） |
+| `client/` | 客户端本体 | 复用连接池、超时配置、异常捕获降级、`with_raw_response` 裸响应 |
+
+新增示例时放进对应**功能模块**的文件夹；不要按难度或"进阶模式"分类
+（不出现 `advanced_patterns` 之类的目录，也不使用数字前缀）。
 
 ## 环境与依赖
 
@@ -48,21 +51,21 @@ curl -s http://127.0.0.1:4096/global/health     # 期望返回 {"healthy": true,
 
 ## 运行方式（两种等价）
 
-脚本目录名以数字开头（`00_quickstart` 等），是合法的包名但不是 Python
-标识符，因此**推荐用 `-m` 方式**（必须从仓库根目录执行）：
+目录名即功能模块名（合法 Python 标识符），**推荐用 `-m` 方式**
+（必须从仓库根目录执行）：
 
 ```sh
 # 方式一（推荐）：模块方式
-uv run python -m examples.00_quickstart.quickstart
+uv run python -m examples.quickstart.quickstart
 
 # 方式二：直接文件方式（同样可用）
-uv run python examples/00_quickstart/quickstart.py
+uv run python examples/quickstart/quickstart.py
 ```
 
 多数脚本支持 `--url` 指定服务地址，例如服务跑在 20001 端口：
 
 ```sh
-uv run python -m examples.00_quickstart.quickstart --url http://127.0.0.1:20001
+uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:20001
 ```
 
 ## 通用约定

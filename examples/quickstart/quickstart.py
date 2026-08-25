@@ -1,14 +1,14 @@
-"""00_quickstart: health check -> create session -> one prompt -> print reply.
+"""quickstart: health check -> create session -> one prompt -> print reply.
 
 The shortest path from "a running opencode server" to "getting an answer".
 Every line is commented; read the sibling README.md for the why.
 
 Run (either form, from the repo root):
 
-    uv run python -m examples.00_quickstart.quickstart
-    uv run python examples/00_quickstart/quickstart.py
-    uv run python examples/00_quickstart/quickstart.py --url http://127.0.0.1:20001
-    uv run python examples/00_quickstart/quickstart.py --directory /path/to/project
+    uv run python -m examples.quickstart.quickstart
+    uv run python examples/quickstart/quickstart.py
+    uv run python examples/quickstart/quickstart.py --url http://127.0.0.1:20001
+    uv run python examples/quickstart/quickstart.py --directory /path/to/project
 """
 
 from __future__ import annotations

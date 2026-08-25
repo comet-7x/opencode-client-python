@@ -21,8 +21,8 @@ upstream response as-is, or debugging a payload our models normalise away.
 
 Run (from the repo root):
 
-    uv run python -m examples.05_advanced_patterns.raw_response
-    uv run python examples/05_advanced_patterns/raw_response.py --url http://127.0.0.1:20001
+    uv run python -m examples.events.raw_response
+    uv run python examples/client/raw_response.py --url http://127.0.0.1:20001
 """
 
 from __future__ import annotations

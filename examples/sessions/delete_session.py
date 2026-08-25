@@ -7,9 +7,9 @@ maps to :class:`OpenCodeNotFoundError`, a subclass of
 
 Run (from the repo root):
 
-    uv run python -m examples.01_session_management.delete_session --session ses_XXXX
-    uv run python -m examples.01_session_management.delete_session   # 不带 id：随机删一个自己新建的
-    uv run python examples/01_session_management/delete_session.py --url http://127.0.0.1:20001
+    uv run python -m examples.sessions.delete_session --session ses_XXXX
+    uv run python -m examples.sessions.delete_session   # 不带 id：随机删一个自己新建的
+    uv run python examples/sessions/delete_session.py --url http://127.0.0.1:20001
 """
 
 from __future__ import annotations

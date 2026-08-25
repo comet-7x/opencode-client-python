@@ -17,9 +17,9 @@ Everything here is read-only except ``--set-config``.
 
 Run (from the repo root):
 
-    uv run python -m examples.02_discovery_config.explore_server
-    uv run python -m examples.02_discovery_config.explore_server --directory /path/to/project
-    uv run python -m examples.02_discovery_config.explore_server --set-config '{"share": {"enabled": false}}'
+    uv run python -m examples.server.explore_server
+    uv run python -m examples.server.explore_server --directory /path/to/project
+    uv run python -m examples.server.explore_server --set-config '{"share": {"enabled": false}}'
 """
 
 from __future__ import annotations

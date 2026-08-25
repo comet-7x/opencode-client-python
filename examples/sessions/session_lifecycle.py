@@ -16,8 +16,8 @@ All created artifacts (session + fork) are deleted again at the end.
 
 Run (from the repo root):
 
-    uv run python -m examples.01_session_management.session_lifecycle
-    uv run python -m examples.01_session_management.session_lifecycle --provider anthropic --model claude-x
+    uv run python -m examples.sessions.session_lifecycle
+    uv run python -m examples.sessions.session_lifecycle --provider anthropic --model claude-x
 """
 
 from __future__ import annotations

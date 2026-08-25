@@ -13,7 +13,7 @@ The session is created fresh and deleted at the end.
 
 Run (from the repo root):
 
-    uv run python -m examples.01_session_management.session_state_history
+    uv run python -m examples.sessions.session_state_history
 """
 
 from __future__ import annotations

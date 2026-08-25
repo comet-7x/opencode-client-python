@@ -5,9 +5,9 @@
 完整走过一次真实管线而不依赖真实 opencode 服务。
 （`streaming` 脚本里的真实 sleep 只有 0.5s，套件仍可秒级跑完。）
 
-数字前缀目录不是 Python 标识符，故用
-``importlib.import_module("examples.00_quickstart.quickstart")`` 加载，
-而非 `import examples.00_quickstart.quickstart` 这种语法。
+目录按功能模块组织（quickstart/sessions/server/events/vcs/mcp/client），
+均为合法 Python 标识符，经
+``importlib.import_module("examples.quickstart.quickstart")`` 加载。
 """
 
 from __future__ import annotations
@@ -323,80 +323,80 @@ def _run_cli(module: ModuleType, *args: str) -> None:
 
 class TestExamplesSmoke:
     def test_quickstart(self) -> None:
-        mod = _load("00_quickstart.quickstart")
+        mod = _load("quickstart.quickstart")
         _run_cli(mod, "--url", BASE)
 
     def test_quickstart_with_directory(self) -> None:
         # 00 必须演示的 --directory 简写调用路径
-        mod = _load("00_quickstart.quickstart")
+        mod = _load("quickstart.quickstart")
         _run_cli(mod, "--url", BASE, "--directory", "/tmp/scope")
 
     def test_create_session(self) -> None:
-        mod = _load("01_session_management.create_session")
+        mod = _load("sessions.create_session")
         _run_cli(mod, "--url", BASE, "--title", "t")
 
     def test_list_sessions(self) -> None:
         # fixture 里 GET /session 返回一条记录，覆盖“非空”分支与表格渲染。
-        mod = _load("01_session_management.list_sessions")
+        mod = _load("sessions.list_sessions")
         _run_cli(mod, "--url", BASE)
 
     def test_delete_session(self) -> None:
-        mod = _load("01_session_management.delete_session")
+        mod = _load("sessions.delete_session")
         _run_cli(mod, "--url", BASE, "--session", "ses_e")
 
     def test_list_messages(self) -> None:
-        mod = _load("01_session_management.list_messages")
+        mod = _load("sessions.list_messages")
         _run_cli(mod, "--url", BASE, "--session", "ses_e")
 
     def test_session_lifecycle(self) -> None:
-        mod = _load("01_session_management.session_lifecycle")
+        mod = _load("sessions.session_lifecycle")
         _run_cli(mod, "--url", BASE)
 
     def test_session_state_history(self) -> None:
-        mod = _load("01_session_management.session_state_history")
+        mod = _load("sessions.session_state_history")
         _run_cli(mod, "--url", BASE)
 
     def test_explore_server(self) -> None:
-        mod = _load("02_discovery_config.explore_server")
+        mod = _load("server.explore_server")
         _run_cli(mod, "--url", BASE)
 
     def test_explore_server_with_config_patch(self) -> None:
-        mod = _load("02_discovery_config.explore_server")
+        mod = _load("server.explore_server")
         _run_cli(mod, "--url", BASE, "--set-config", '{"share": {"enabled": false}}')
 
     def test_vcs_workflow(self) -> None:
-        mod = _load("03_vcs.vcs_workflow")
+        mod = _load("vcs.vcs_workflow")
         _run_cli(mod, "--url", BASE, "--directory", "/tmp")
 
     def test_mcp_servers(self) -> None:
-        mod = _load("04_mcp.mcp_servers")
+        mod = _load("mcp.mcp_servers")
         _run_cli(mod, "--url", BASE)
 
     def test_error_handling(self) -> None:
-        mod = _load("05_advanced_patterns.error_handling")
+        mod = _load("client.error_handling")
         _run_cli(mod, "--url", BASE)
 
     def test_client_reuse(self) -> None:
-        mod = _load("05_advanced_patterns.client_reuse")
+        mod = _load("client.client_reuse")
         _run_cli(mod, "--url", BASE)
 
     def test_stream_events(self) -> None:
-        mod = _load("05_advanced_patterns.stream_events")
+        mod = _load("events.stream_events")
         _run_cli(mod, "--url", BASE)
 
     def test_event_router(self) -> None:
-        mod = _load("05_advanced_patterns.event_router")
+        mod = _load("events.event_router")
         _run_cli(mod, "--url", BASE)
 
     def test_interact_moving_session(self) -> None:
-        mod = _load("05_advanced_patterns.interact_moving_session")
+        mod = _load("sessions.interact_moving_session")
         _run_cli(mod, "--url", BASE)
 
     def test_interact_with_respond_verbs(self) -> None:
         # --respond 额外走 sessions.respond_permission + server.reject_question
-        mod = _load("05_advanced_patterns.interact_moving_session")
+        mod = _load("sessions.interact_moving_session")
         _run_cli(mod, "--url", BASE, "--respond")
 
     def test_raw_response(self) -> None:
-        mod = _load("05_advanced_patterns.raw_response")
+        mod = _load("client.raw_response")
         _run_cli(mod, "--url", BASE)

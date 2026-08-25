@@ -21,8 +21,8 @@ deltas), but it now runs inside a two-line handler instead of an 80-line loop.
 
 Run (from the repo root):
 
-    uv run python -m examples.05_advanced_patterns.event_router
-    uv run python examples/05_advanced_patterns/event_router.py --provider anthropic --model claude-x
+    uv run python -m examples.events.event_router
+    uv run python examples/events/event_router.py --provider anthropic --model claude-x
 """
 
 from __future__ import annotations

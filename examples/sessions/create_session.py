@@ -6,9 +6,9 @@ model, metadata, directory scoping) and prints every field of the returned
 
 Run (from the repo root):
 
-    uv run python -m examples.01_session_management.create_session
-    uv run python -m examples.01_session_management.create_session --title 我的会话 --provider anthropic --model claude-x
-    uv run python examples/01_session_management/create_session.py --url http://127.0.0.1:20001
+    uv run python -m examples.sessions.create_session
+    uv run python -m examples.sessions.create_session --title 我的会话 --provider anthropic --model claude-x
+    uv run python examples/sessions/create_session.py --url http://127.0.0.1:20001
 """
 
 from __future__ import annotations

@@ -13,10 +13,10 @@ apply this patch". This script walks the whole domain in order:
 
 Run (from the repo root):
 
-    uv run python -m examples.03_vcs.vcs_workflow
-    uv run python -m examples.03_vcs.vcs_workflow --directory /path/to/repo --mode branch
-    uv run python -m examples.03_vcs.vcs_workflow --save diff.txt
-    uv run python -m examples.03_vcs.vcs_workflow --apply patch.txt
+    uv run python -m examples.vcs.vcs_workflow
+    uv run python -m examples.vcs.vcs_workflow --directory /path/to/repo --mode branch
+    uv run python -m examples.vcs.vcs_workflow --save diff.txt
+    uv run python -m examples.vcs.vcs_workflow --apply patch.txt
 """
 
 from __future__ import annotations

@@ -9,10 +9,10 @@ out of scope for the client library; this script shows the two supported verbs.
 
 Run (from the repo root):
 
-    uv run python -m examples.04_mcp.mcp_servers
-    uv run python -m examples.04_mcp.mcp_servers --directory /path/to/project
-    uv run python -m examples.04_mcp.mcp_servers --name everything --command npx,-y,@modelcontextprotocol/server-everything
-    uv run python -m examples.04_mcp.mcp_servers --name remote --remote-url https://mcp.example.com/sse
+    uv run python -m examples.mcp.mcp_servers
+    uv run python -m examples.mcp.mcp_servers --directory /path/to/project
+    uv run python -m examples.mcp.mcp_servers --name everything --command npx,-y,@modelcontextprotocol/server-everything
+    uv run python -m examples.mcp.mcp_servers --name remote --remote-url https://mcp.example.com/sse
 """
 
 from __future__ import annotations

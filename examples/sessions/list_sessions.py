@@ -6,9 +6,9 @@ and makes the result ordering explicit: the server returns sessions
 
 Run (from the repo root):
 
-    uv run python -m examples.01_session_management.list_sessions
-    uv run python -m examples.01_session_management.list_sessions --limit 5 --search quick
-    uv run python examples/01_session_management/list_sessions.py
+    uv run python -m examples.sessions.list_sessions
+    uv run python -m examples.sessions.list_sessions --limit 5 --search quick
+    uv run python examples/sessions/list_sessions.py
 """
 
 from __future__ import annotations

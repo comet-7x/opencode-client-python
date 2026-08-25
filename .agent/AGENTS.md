@@ -44,8 +44,8 @@ src/opencode_client/
     vcs.py             #   VcsResource/AsyncVcsResource（/vcs info/status/diff/diff_raw/apply）
     mcp.py             #   McpResource/AsyncMcpResource（/mcp status/add）
 tests/                 # pytest + respx 测试（test_client.py 等）
-examples/              # 教学示例，按场景分子目录（00_quickstart / 01_session_management /
-                       #   02_discovery_config / 03_vcs / 04_mcp / 05_advanced_patterns），
+examples/              # 教学示例，按功能模块分子目录（quickstart / sessions /
+                       #   server / events / vcs / mcp / client），
                        #   各目录带 README.md；test_examples.py
                        #   用 importlib 加载 + respx 驱动各脚本 cli() 做离线冒烟
 temp/repositories/     # 参考仓库（opencode 官方源码 + Python SDK；不参与构建，
@@ -79,6 +79,11 @@ temp/repositories/     # 参考仓库（opencode 官方源码 + Python SDK；不
  并在 `models/__init__.py` 的 import 列表 + `__all__` 注册。
 - 模型与资源解耦：资源层只依赖 `models` 的公开名，不 import 子模块路径
  （`from ..models import Session`，不要 `from ..models.session import ...`）。
+- **examples 只按功能模块分目录**：一个功能模块一个文件夹
+ （quickstart / sessions / server / events / vcs / mcp / client），
+ 新示例放进所属模块的文件夹；**禁止按难度/模式分类**
+ （不出现 `advanced_patterns`、`advanced` 之类目录），也**不使用数字前缀**。
+ 客户端本体能力（连接配置、错误处理、裸响应）归入 `client/`。
 
 ## 注释风格
 

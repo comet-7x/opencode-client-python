@@ -228,7 +228,7 @@ docker tag  ghcr.nju.edu.cn/anomalyco/opencode:1.18.21 ghcr.io/anomalyco/opencod
 Once healthy, point the client (and all examples/tests) at it:
 
 ```sh
-uv run python -m examples.00_quickstart.quickstart --url http://127.0.0.1:20001
+uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:20001
 uv run pytest --live-url http://127.0.0.1:20001   # opt-in integration tests
 ```
 
@@ -237,14 +237,15 @@ uv run pytest --live-url http://127.0.0.1:20001   # opt-in integration tests
 Runnable, commented walkthroughs organized by scenario — start at
 [examples/README.md](examples/README.md):
 
-| Folder | Topic |
+| Folder | Module |
 |---|---|
-| `00_quickstart/` | Minimal one-question client (incl. `directory` shorthand) |
-| `01_session_management/` | Session CRUD + full lifecycle verbs + message history |
-| `02_discovery_config/` | Health, config, providers, agents, commands, skills |
-| `03_vcs/` | Repo info / status / diff / raw diff / patch apply |
-| `04_mcp/` | MCP server status + registration |
-| `05_advanced_patterns/` | Client reuse, error handling, live streaming, interaction loops, raw responses |
+| `quickstart/` | Minimal one-question client (incl. `directory` shorthand) |
+| `sessions/` | Session CRUD + full lifecycle verbs + message history + permission/question loops |
+| `server/` | Health, config, providers, agents, commands, skills |
+| `events/` | SSE event stream: raw iteration + typed router |
+| `vcs/` | Repo info / status / diff / raw diff / patch apply |
+| `mcp/` | MCP server status + registration |
+| `client/` | Client reuse, error handling, raw responses |
 
 Every script runs offline under the test suite via `respx`, so
 `uv run pytest` verifies them without a server.

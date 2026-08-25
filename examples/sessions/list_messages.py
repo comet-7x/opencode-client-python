@@ -9,9 +9,9 @@ Shows ``sessions.list_messages(session_id)`` — it returns
 
 Run (from the repo root):
 
-    uv run python -m examples.01_session_management.list_messages
-    uv run python -m examples.01_session_management.list_messages --session ses_XXXX --limit 5
-    uv run python examples/01_session_management/list_messages.py
+    uv run python -m examples.sessions.list_messages
+    uv run python -m examples.sessions.list_messages --session ses_XXXX --limit 5
+    uv run python examples/sessions/list_messages.py
 """
 
 from __future__ import annotations
@@ -70,7 +70,7 @@ async def main(base_url: str, session_id: str | None, limit: int) -> None:
         if target is None:
             sessions = await client.sessions.list_sessions(limit=1)
             if not sessions:
-                print("服务端还没有任何会话（先跑一次 00_quickstart，或用 --session 指定）。")
+                print("服务端还没有任何会话（先跑一次 quickstart，或用 --session 指定）。")
                 return
             target = sessions[0].id
             print(f"取最新会话：{target}\n")

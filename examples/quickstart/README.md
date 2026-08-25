@@ -1,4 +1,4 @@
-# 00_quickstart — 最简入门
+# quickstart — 最简入门
 
 ## 本文件夹讲什么
 

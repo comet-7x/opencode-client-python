@@ -8,8 +8,8 @@ fallbacks).
 
 Run (from the repo root):
 
-    uv run python -m examples.05_advanced_patterns.error_handling
-    uv run python examples/05_advanced_patterns/error_handling.py --url http://127.0.0.1:20001
+    uv run python -m examples.events.error_handling
+    uv run python examples/client/error_handling.py --url http://127.0.0.1:20001
 """
 
 from __future__ import annotations

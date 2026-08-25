@@ -19,9 +19,9 @@ Pass ``--allow`` to auto-approve with ``once`` instead.
 
 Run (from the repo root):
 
-    uv run python -m examples.05_advanced_patterns.interact_moving_session
-    uv run python -m examples.05_advanced_patterns.interact_moving_session --allow
-    uv run python -m examples.05_advanced_patterns.interact_moving_session --respond
+    uv run python -m examples.events.interact_moving_session
+    uv run python -m examples.events.interact_moving_session --allow
+    uv run python -m examples.events.interact_moving_session --respond
 """
 
 from __future__ import annotations

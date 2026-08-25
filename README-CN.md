@@ -211,7 +211,7 @@ docker tag  ghcr.nju.edu.cn/anomalyco/opencode:1.18.21 ghcr.io/anomalyco/opencod
 服务探活后，客户端（以及所有示例/测试）指向它即可：
 
 ```sh
-uv run python -m examples.00_quickstart.quickstart --url http://127.0.0.1:20001
+uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:20001
 uv run pytest --live-url http://127.0.0.1:20001   # 可选的真实服务集成测试
 ```
 
@@ -220,14 +220,15 @@ uv run pytest --live-url http://127.0.0.1:20001   # 可选的真实服务集成�
 可直接运行、带逐行注释的场景化示例，入口见
 [examples/README.md](examples/README.md)：
 
-| 目录 | 主题 |
+| 目录 | 功能模块 |
 |---|---|
-| `00_quickstart/` | 最简入门（含 `directory` 简写） |
-| `01_session_management/` | 会话增删改查 + 全生命周期动词 + 消息历史 |
-| `02_discovery_config/` | 健康检查、配置、providers、agents、commands、skills |
-| `03_vcs/` | 仓库信息 / 状态 / diff / 原始 diff / 打补丁 |
-| `04_mcp/` | MCP 服务器状态 + 注册 |
-| `05_advanced_patterns/` | 客户端复用、异常处理、实时流、交互循环、裸响应视图 |
+| `quickstart/` | 最简入门（含 `directory` 简写） |
+| `sessions/` | 会话增删改查 + 全生命周期动词 + 消息历史 + 权限/问答交互 |
+| `server/` | 健康检查、配置、providers、agents、commands、skills |
+| `events/` | SSE 事件流：裸流迭代 + 类型化 Router |
+| `vcs/` | 仓库信息 / 状态 / diff / 原始 diff / 打补丁 |
+| `mcp/` | MCP 服务器状态 + 注册 |
+| `client/` | 客户端复用、异常处理、裸响应视图 |
 
 所有脚本都在测试套件里用 `respx` 离线驱动，`uv run pytest` 无需真实服务即可验证。
 

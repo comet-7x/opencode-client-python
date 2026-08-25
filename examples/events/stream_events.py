@@ -13,8 +13,8 @@ module). No manual ``SSEDecoder`` plumbing is needed.
 
 Run (from the repo root):
 
-    uv run python -m examples.05_advanced_patterns.stream_events
-    uv run python examples/05_advanced_patterns/stream_events.py --provider anthropic --model claude-x
+    uv run python -m examples.events.stream_events
+    uv run python examples/events/stream_events.py --provider anthropic --model claude-x
 """
 
 from __future__ import annotations
