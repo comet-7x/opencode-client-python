@@ -44,8 +44,10 @@ from .constants import (
     DEFAULT_USER_AGENT,
 )
 from .errors import make_api_error, make_transport_error
+from .resources.auth import AsyncAuthResource, AuthResource
 from .resources.files import AsyncFilesResource, FilesResource
 from .resources.mcp import AsyncMcpResource, McpResource
+from .resources.projects import AsyncProjectsResource, ProjectsResource
 from .resources.server import AsyncServerResource, ServerResource
 from .resources.sessions import AsyncSessionsResource, SessionsResource
 from .resources.vcs import AsyncVcsResource, VcsResource
@@ -283,6 +285,8 @@ class OpenCodeClient:
         self.vcs = VcsResource(self)
         self.mcp = McpResource(self)
         self.files = FilesResource(self)
+        self.projects = ProjectsResource(self)
+        self.auth = AuthResource(self)
 
     @property
     def http(self) -> httpx.Client:
@@ -415,6 +419,8 @@ class AsyncOpenCodeClient:
         self.vcs = AsyncVcsResource(self)
         self.mcp = AsyncMcpResource(self)
         self.files = AsyncFilesResource(self)
+        self.projects = AsyncProjectsResource(self)
+        self.auth = AsyncAuthResource(self)
 
     @property
     def http(self) -> httpx.AsyncClient:

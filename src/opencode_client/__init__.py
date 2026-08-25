@@ -154,6 +154,7 @@ from .models import (
     VcsInfo,
     typed_event,
 )
+from .models.auth import ApiKeyCredentials, AuthCredentials, OAuthCredentials, WellKnownCredentials
 from .models.files import (
     BinaryFileContent,
     FileChange,
@@ -172,6 +173,15 @@ from .models.files import (
     TextSubmatch,
 )
 from .models.mcp import McpOAuthStart
+from .models.project import (
+    Project,
+    ProjectCommands,
+    ProjectDirectory,
+    ProjectIcon,
+    ProjectTime,
+    UpdateProjectRequest,
+)
+from .models.system import LogEntry, LSPStatus, ServerPaths
 from .router import AsyncEventRouter, EventRouter
 from .sse import AsyncEventStream, EventStream, SSEDecoder
 
@@ -229,6 +239,7 @@ __all__ = [
     "Model",
     "ModelID",
     "NOT_GIVEN",
+    "ApiKeyCredentials",
     "OpenCodeApiError",
     "OpenCodeAuthenticationError",
     "OpenCodeClient",
@@ -243,7 +254,19 @@ __all__ = [
     "OpenCodeTimeoutError",
     "OpenCodeTransportError",
     "OpenCodeUnprocessableEntityError",
+    "OAuthCredentials",
+    "AuthCredentials",
+    "WellKnownCredentials",
     "OpencodeModel",
+    "Project",
+    "ProjectCommands",
+    "ProjectDirectory",
+    "ProjectIcon",
+    "ProjectTime",
+    "UpdateProjectRequest",
+    "LSPStatus",
+    "LogEntry",
+    "ServerPaths",
     "Part",
     "PartBase",
     "PartTime",

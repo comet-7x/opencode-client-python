@@ -15,13 +15,25 @@ events.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+import builtins
+from typing import TYPE_CHECKING, Any, Literal
 
 import httpx
 
-from ..models import Agent, Command, Health, PermissionRequest, ProviderList, QuestionRequest, Skill
+from ..models import (
+    Agent,
+    Command,
+    Health,
+    LSPStatus,
+    PermissionRequest,
+    ProviderList,
+    QuestionRequest,
+    ServerPaths,
+    Skill,
+)
 from ._wire import (
     TYPE_ADAPTERS,
+    log_body,
     path_segment,
     permission_reply_body,
     question_reply_body,
@@ -61,6 +73,39 @@ class ServerResource(Resource):
         """Check server liveness and get its version."""
         response = self._send("GET", "/global/health")
         return validate_response(response, TYPE_ADAPTERS.health)
+
+    def get_paths(self, directory: str | None = None, workspace: str | None = None) -> ServerPaths:
+        """Get the server's filesystem layout (home/state/config/worktree/directory)."""
+        response = self._send("GET", "/path", **request_spec(directory=directory, workspace=workspace))
+        return validate_response(response, TYPE_ADAPTERS.server_paths)
+
+    def lsp_status(self, directory: str | None = None, workspace: str | None = None) -> builtins.list[LSPStatus]:
+        """List the language servers attached to the worktree and their status."""
+        response = self._send("GET", "/lsp", **request_spec(directory=directory, workspace=workspace))
+        return validate_response(response, TYPE_ADAPTERS.lsp_statuses)
+
+    def write_log(
+        self,
+        service: str | None = None,
+        level: Literal["debug", "info", "error", "warn"] | None = None,
+        message: str | None = None,
+        extra: dict[str, Any] | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> bool:
+        """Write an entry into the server's own log (for remote debugging).
+
+        Args:
+            service: Service name for the entry.
+            level: Log level; server default applies when omitted.
+            message: The message text.
+            extra: Arbitrary structured context.
+        """
+        json_body = log_body(service, level, message, extra)
+        response = self._send(
+            "POST", "/log", **request_spec(directory=directory, workspace=workspace, json_body=json_body)
+        )
+        return validate_response(response, TYPE_ADAPTERS.bool)
 
     def get_config(self, directory: str | None = None, workspace: str | None = None) -> dict[str, Any]:
         """Read the effective server configuration (optionally scoped)."""
@@ -244,6 +289,39 @@ class AsyncServerResource(AsyncResource):
         response = await self._send("GET", "/global/health")
         return validate_response(response, TYPE_ADAPTERS.health)
 
+    async def get_paths(self, directory: str | None = None, workspace: str | None = None) -> ServerPaths:
+        """Get the server's filesystem layout (home/state/config/worktree/directory)."""
+        response = await self._send("GET", "/path", **request_spec(directory=directory, workspace=workspace))
+        return validate_response(response, TYPE_ADAPTERS.server_paths)
+
+    async def lsp_status(self, directory: str | None = None, workspace: str | None = None) -> builtins.list[LSPStatus]:
+        """List the language servers attached to the worktree and their status."""
+        response = await self._send("GET", "/lsp", **request_spec(directory=directory, workspace=workspace))
+        return validate_response(response, TYPE_ADAPTERS.lsp_statuses)
+
+    async def write_log(
+        self,
+        service: str | None = None,
+        level: Literal["debug", "info", "error", "warn"] | None = None,
+        message: str | None = None,
+        extra: dict[str, Any] | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> bool:
+        """Write an entry into the server's own log (for remote debugging).
+
+        Args:
+            service: Service name for the entry.
+            level: Log level; server default applies when omitted.
+            message: The message text.
+            extra: Arbitrary structured context.
+        """
+        json_body = log_body(service, level, message, extra)
+        response = await self._send(
+            "POST", "/log", **request_spec(directory=directory, workspace=workspace, json_body=json_body)
+        )
+        return validate_response(response, TYPE_ADAPTERS.bool)
+
     async def get_config(self, directory: str | None = None, workspace: str | None = None) -> dict[str, Any]:
         """Read the effective server configuration (optionally scoped)."""
         response = await self._send("GET", "/config", **request_spec(directory=directory, workspace=workspace))
@@ -410,6 +488,27 @@ class ServerResourceWithRawResponse(Resource):
         """Check server liveness; return the raw response."""
         return self._send("GET", "/global/health")
 
+    def get_paths(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Get the server's filesystem layout; return the raw response."""
+        return self._send("GET", "/path", **request_spec(directory=directory, workspace=workspace))
+
+    def lsp_status(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List language servers; return the raw response."""
+        return self._send("GET", "/lsp", **request_spec(directory=directory, workspace=workspace))
+
+    def write_log(
+        self,
+        service: str | None = None,
+        level: Literal["debug", "info", "error", "warn"] | None = None,
+        message: str | None = None,
+        extra: dict[str, Any] | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Write a server log entry; return the raw response."""
+        json_body = log_body(service, level, message, extra)
+        return self._send("POST", "/log", **request_spec(directory=directory, workspace=workspace, json_body=json_body))
+
     def get_config(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Read the effective configuration; return the raw response."""
         return self._send("GET", "/config", **request_spec(directory=directory, workspace=workspace))
@@ -504,6 +603,29 @@ class AsyncServerResourceWithRawResponse(AsyncResource):
     async def health(self) -> httpx.Response:
         """Check server liveness; return the raw response."""
         return await self._send("GET", "/global/health")
+
+    async def get_paths(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """Get the server's filesystem layout; return the raw response."""
+        return await self._send("GET", "/path", **request_spec(directory=directory, workspace=workspace))
+
+    async def lsp_status(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
+        """List language servers; return the raw response."""
+        return await self._send("GET", "/lsp", **request_spec(directory=directory, workspace=workspace))
+
+    async def write_log(
+        self,
+        service: str | None = None,
+        level: Literal["debug", "info", "error", "warn"] | None = None,
+        message: str | None = None,
+        extra: dict[str, Any] | None = None,
+        directory: str | None = None,
+        workspace: str | None = None,
+    ) -> httpx.Response:
+        """Write a server log entry; return the raw response."""
+        json_body = log_body(service, level, message, extra)
+        return await self._send(
+            "POST", "/log", **request_spec(directory=directory, workspace=workspace, json_body=json_body)
+        )
 
     async def get_config(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Read the effective configuration; return the raw response."""

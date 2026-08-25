@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypeAlias
 
 import pydantic
 from pydantic import Field
@@ -64,7 +64,7 @@ class MCPStatusNeedsClientRegistration(OpencodeModel):
 
 
 #: Discriminated union of the five MCP server states.
-MCPStatus = Annotated[
+MCPStatus: TypeAlias = Annotated[
     MCPStatusConnected | MCPStatusDisabled | MCPStatusFailed | MCPStatusNeedsAuth | MCPStatusNeedsClientRegistration,
     pydantic.Field(discriminator="status"),
 ]
@@ -113,7 +113,7 @@ class McpRemoteConfig(OpencodeModel):
 
 
 #: Discriminated union of the two MCP server config shapes.
-McpConfig = Annotated[
+McpConfig: TypeAlias = Annotated[
     McpLocalConfig | McpRemoteConfig,
     pydantic.Field(discriminator="type"),
 ]

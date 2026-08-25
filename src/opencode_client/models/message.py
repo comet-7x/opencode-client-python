@@ -1,6 +1,6 @@
 """Models for messages: the info object plus its parts."""
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, TypeAlias
 
 import pydantic
 
@@ -88,7 +88,7 @@ class AssistantMessage(OpencodeModel):
 
 
 #: Discriminated union of the two message roles.
-Message = Annotated[UserMessage | AssistantMessage, pydantic.Field(discriminator="role")]
+Message: TypeAlias = Annotated[UserMessage | AssistantMessage, pydantic.Field(discriminator="role")]
 
 
 class MessageWithParts(OpencodeModel):

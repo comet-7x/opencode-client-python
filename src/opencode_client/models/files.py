@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypeAlias
 
 import pydantic
 from pydantic import Field
@@ -83,7 +83,7 @@ class BinaryFileContent(OpencodeModel):
 
 
 #: Discriminated union of the two ``GET /file/content`` shapes.
-FileContent = Annotated[
+FileContent: TypeAlias = Annotated[
     TextFileContent | BinaryFileContent,
     pydantic.Field(discriminator="type"),
 ]

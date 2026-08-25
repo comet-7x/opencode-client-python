@@ -9,6 +9,7 @@ package root or from this submodule; deep submodule paths
 
 from __future__ import annotations
 
+from .auth import ApiKeyCredentials, AuthCredentials, OAuthCredentials, WellKnownCredentials
 from .base import OpencodeModel
 from .discover import Agent, Command, Health, Model, Provider, ProviderList, ServerConfig, Skill
 from .event import (
@@ -109,6 +110,14 @@ from .part import (
     ToolStatePending,
     ToolStateRunning,
 )
+from .project import (
+    Project,
+    ProjectCommands,
+    ProjectDirectory,
+    ProjectIcon,
+    ProjectTime,
+    UpdateProjectRequest,
+)
 from .session import (
     CreateSessionRequest,
     ModelID,
@@ -129,15 +138,19 @@ from .session import (
     Todo,
     UpdateSessionRequest,
 )
+from .system import LogEntry, LSPStatus, ServerPaths
 from .vcs import VcsFileDiff, VcsFileStatus, VcsInfo
 
 __all__ = [
     "Agent",
+    "ApiKeyCredentials",
     "AgentPart",
     "AgentPartInput",
     "AssistantMessage",
     "AssistantMessagePath",
     "AssistantMessageTokens",
+    "AuthCredentials",
+    "AuthCredentials",
     "BinaryFileContent",
     "Command",
     "CompactionPart",
@@ -180,10 +193,13 @@ __all__ = [
     "McpRemoteConfig",
     "Model",
     "ModelID",
+    "OAuthCredentials",
     "OpencodeModel",
     "Part",
     "PartBase",
     "PartTime",
+    "LSPStatus",
+    "LogEntry",
     "PatchPart",
     "PermissionAskedEvent",
     "PermissionRequest",
@@ -193,6 +209,11 @@ __all__ = [
     "PromptModel",
     "PromptPart",
     "PromptRequest",
+    "Project",
+    "ProjectCommands",
+    "ProjectDirectory",
+    "ProjectIcon",
+    "ProjectTime",
     "Provider",
     "ProviderList",
     "QuestionAnswer",
@@ -204,6 +225,7 @@ __all__ = [
     "ReasoningPart",
     "RetryPart",
     "ServerConfig",
+    "ServerPaths",
     "Session",
     "SessionFileDiff",
     "SessionIdleEvent",
@@ -234,6 +256,8 @@ __all__ = [
     "TextSubmatch",
     "TextFileContent",
     "Todo",
+    "UpdateProjectRequest",
+    "WellKnownCredentials",
     "ToolPart",
     "ToolState",
     "ToolStateCompleted",

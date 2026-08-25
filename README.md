@@ -246,6 +246,7 @@ Runnable, commented walkthroughs organized by scenario — start at
 | `vcs/` | Repo info / status / diff / raw diff / patch apply |
 | `mcp/` | MCP server status + registration |
 | `files/` | Directory listing, file reads, text/filename/symbol search, formatters |
+| `projects/` | Projects, current scope, git init; server paths, LSP status, log writing |
 | `client/` | Client reuse, error handling, raw responses |
 
 Every script runs offline under the test suite via `respx`, so

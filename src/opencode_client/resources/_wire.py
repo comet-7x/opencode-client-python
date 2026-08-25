@@ -23,6 +23,7 @@ from pydantic import TypeAdapter, ValidationError
 from ..errors import make_response_error
 from ..models import (
     Agent,
+    AuthCredentials,
     Command,
     CreateSessionRequest,
     FileChange,
@@ -30,6 +31,7 @@ from ..models import (
     FileNode,
     FormatterStatus,
     Health,
+    LSPStatus,
     McpLocalConfig,
     McpOAuthStart,
     McpRemoteConfig,
@@ -37,10 +39,13 @@ from ..models import (
     MessageWithParts,
     Part,
     PermissionRequest,
+    Project,
+    ProjectDirectory,
     PromptModel,
     PromptPart,
     ProviderList,
     QuestionRequest,
+    ServerPaths,
     Session,
     SessionFileDiff,
     SessionStatus,
@@ -49,6 +54,7 @@ from ..models import (
     TextMatch,
     TextPartInput,
     Todo,
+    UpdateProjectRequest,
     UpdateSessionRequest,
     VcsFileDiff,
     VcsFileStatus,
@@ -160,6 +166,16 @@ class TypeAdapters:
     symbols: TypeAdapter[list[Symbol]] = TypeAdapter(list[Symbol])
     #: ``GET /formatter``.
     formatter_statuses: TypeAdapter[list[FormatterStatus]] = TypeAdapter(list[FormatterStatus])
+    #: ``GET /project``.
+    projects: TypeAdapter[list[Project]] = TypeAdapter(list[Project])
+    #: ``GET /project/current`` / ``PATCH /project/{id}`` / ``POST /project/git/init``.
+    project: TypeAdapter[Project] = TypeAdapter(Project)
+    #: ``GET /project/{id}/directories``.
+    project_directories: TypeAdapter[list[ProjectDirectory]] = TypeAdapter(list[ProjectDirectory])
+    #: ``GET /path``.
+    server_paths: TypeAdapter[ServerPaths] = TypeAdapter(ServerPaths)
+    #: ``GET /lsp``.
+    lsp_statuses: TypeAdapter[list[LSPStatus]] = TypeAdapter(list[LSPStatus])
 
 
 #: Shared response validators keyed by response shape.
@@ -479,6 +495,56 @@ def vcs_apply_body(patch: str) -> dict[str, Any]:
         The JSON body dict.
     """
     return {"patch": patch}
+
+
+def update_project_body(body: UpdateProjectRequest) -> dict[str, Any]:
+    """Serialize the optional fields for ``PATCH /project/{id}``.
+
+    Args:
+        body: The mutable project fields (name/icon/commands).
+
+    Returns:
+        The JSON body containing only the supplied fields.
+    """
+    return body.to_wire()
+
+
+def log_body(
+    service: str | None,
+    level: Literal["debug", "info", "error", "warn"] | None,
+    message: str | None,
+    extra: dict[str, object] | None,
+) -> dict[str, Any]:
+    """Collect the optional fields for ``POST /log``.
+
+    Args:
+        service: Service name for the log entry.
+        level: Log level (server default applies when omitted).
+        message: The log message itself.
+        extra: Arbitrary structured context.
+
+    Returns:
+        A dict of only the supplied fields, plus ``extra`` verbatim when given.
+    """
+    payload: dict[str, Any] = {}
+    _optional(payload, "service", service)
+    _optional(payload, "level", level)
+    _optional(payload, "message", message)
+    if extra is not None:
+        payload["extra"] = extra
+    return payload
+
+
+def credentials_body(credentials: AuthCredentials) -> dict[str, Any]:
+    """Serialize the discriminated-union credentials for ``PUT /auth``.
+
+    Args:
+        credentials: One of the three credential shapes (oauth/api/wellknown).
+
+    Returns:
+        The JSON body tagged with its ``type`` discriminator.
+    """
+    return credentials.to_wire()
 
 
 def mcp_add_body(name: str, config: McpLocalConfig | McpRemoteConfig | dict[str, Any]) -> dict[str, Any]:

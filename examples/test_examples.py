@@ -254,6 +254,53 @@ def mock_server() -> Generator[respx.MockRouter, None, None]:
             )
         )
         router.post("/vcs/apply").mock(return_value=httpx.Response(200, json={"success": True}))
+        # —— projects + 系统信息（explore_projects）。
+        router.get("/project").mock(
+            return_value=httpx.Response(
+                200,
+                json=[
+                    {
+                        "id": "prj_1",
+                        "worktree": "/tmp/proj",
+                        "name": "demo",
+                        "vcs": "git",
+                        "time": {"created": 1000, "updated": 2000},
+                        "sandboxes": [],
+                    }
+                ],
+            )
+        )
+        router.get("/project/current").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "id": "prj_1",
+                    "worktree": "/tmp/proj",
+                    "time": {"created": 1000, "updated": 2000},
+                    "sandboxes": [],
+                },
+            )
+        )
+        router.get("/path").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "home": "/home/u",
+                    "state": "/s",
+                    "config": "/c",
+                    "worktree": "/w",
+                    "directory": "/d",
+                },
+            )
+        )
+        router.get("/lsp").mock(
+            return_value=httpx.Response(
+                200, json=[{"id": "pyright", "name": "pyright", "root": "/tmp/proj", "status": "connected"}]
+            )
+        )
+        router.post("/log").mock(return_value=httpx.Response(200, json=True))
+        router.put(path__regex=r"/auth/[^/]+").mock(return_value=httpx.Response(200, json=True))
+        router.delete(path__regex=r"/auth/[^/]+").mock(return_value=httpx.Response(200, json=True))
         # —— mcp（04 mcp_servers）。
         router.get("/mcp").mock(return_value=httpx.Response(200, json={"docs": {"status": "connected"}}))
         router.post("/mcp").mock(return_value=httpx.Response(200, json={"name": "added", "status": "connected"}))
@@ -439,6 +486,10 @@ class TestExamplesSmoke:
     def test_mcp_oauth_lifecycle(self) -> None:
         mod = _load("mcp.mcp_servers")
         _run_cli(mod, "--url", BASE, "--oauth", "remote")
+
+    def test_explore_projects(self) -> None:
+        mod = _load("projects.explore_projects")
+        _run_cli(mod, "--url", BASE, "--log", "--auth-demo")
 
     def test_browse_files(self) -> None:
         mod = _load("files.browse_files")

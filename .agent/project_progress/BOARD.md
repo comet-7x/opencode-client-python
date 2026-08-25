@@ -5,8 +5,9 @@
 ## 当前位置
 
 - **宏观**：M5 发布准备 —— ✅ 完成（IT-008：本地 dist + tag v0.1.0；PyPI 后续）
-- **微观**：IT-014 mcp 域补全 ✅（2026-08-24；+6 端点共 8 方法，
-  +10 测试，`make check` 242 passed 全绿）
+- **微观**：IT-015 project/auth/system 域 ✅（2026-08-24；+10 端点两个新域，
+  +20 测试，`make check` 262 passed 全绿）
+- IT-014 mcp 域补全 ✅（2026-08-24；+6 端点共 8 方法，+10 测试）
 - IT-013 files 域 ✅（2026-08-24；7 端点，`client.files.*`）
 - IT-013 files 域 ✅（2026-08-24；7 端点，`client.files.*`）
 - **仓库**：已推送 `origin/develop` + tag `v0.1.0`；日常命令走 Makefile（`make check` 全门禁）
@@ -20,7 +21,7 @@
 
 ```
 宏观  [█████] M1 ✅ ─ M2 ✅ ── M3 ✅ ── M4 ✅ ── M5 ✅
- 微观  [█████████] IT-001 ✅ … IT-011 ✅  IT-012 ✅  IT-013 ✅  IT-014 ✅
+ 微观  [█████████] IT-001 ✅ … IT-011 ✅  IT-012 ✅  …  IT-014 ✅  IT-015 ✅
 ```
 
 ## 宏观里程碑（详见 macro/ROADMAP.md）
@@ -51,6 +52,7 @@
 | IT-012 | code review 问题修复：默认超时/重试幂等/Router 超时语义/异常分层 + 6 Low + 1 Info | ✅ | 2026-08-24 |
 | IT-013 | files 域：list/read/status + search_text/files/symbols + formatter（7 端点×4 类） | ✅ | 2026-08-24 |
 | IT-014 | mcp 域补全：OAuth start/callback/authenticate/remove + connect/disconnect（6 端点×4 类） | ✅ | 2026-08-24 |
+| IT-015 | project/auth 域 + server 补 get_paths/lsp_status/write_log（10 端点） | ✅ | 2026-08-24 |
 
 ## 阻塞 / 风险
 

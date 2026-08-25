@@ -33,7 +33,7 @@ from opencode_client import (
 
 BASE = "http://localhost:4096"
 
-DOMAINS = ["sessions", "server", "vcs", "mcp", "files"]
+DOMAINS = ["sessions", "server", "vcs", "mcp", "files", "projects", "auth"]
 
 # stream_events 返回 AsyncEventStream 而非一次性响应，是唯一没有 raw 变体的方法
 RAW_EXCLUDED = {"stream_events"}

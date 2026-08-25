@@ -229,6 +229,7 @@ uv run pytest --live-url http://127.0.0.1:20001   # 可选的真实服务集成�
 | `vcs/` | 仓库信息 / 状态 / diff / 原始 diff / 打补丁 |
 | `mcp/` | MCP 服务器状态 + 注册 |
 | `files/` | 目录浏览、文件读取、文本/文件名/符号搜索、formatter |
+| `projects/` | 项目清单/当前作用域/git init；服务端路径、LSP 状态、日志写入 |
 | `client/` | 客户端复用、异常处理、裸响应视图 |
 
 所有脚本都在测试套件里用 `respx` 离线驱动，`uv run pytest` 无需真实服务即可验证。

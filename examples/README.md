@@ -19,6 +19,7 @@
 | `vcs/` | 版本控制（`client.vcs.*`） | info / status / diff / diff_raw / apply（看改动、落盘 diff、打补丁） |
 | `mcp/` | MCP 服务器（`client.mcp.*`） | status（判别联合收窄）/ add（local·remote 两种 config）/ OAuth 生命周期（浏览器流+无头流）/ connect·disconnect |
 | `files/` | 文件系统与搜索（`client.files.*`） | 目录浏览、读文件（text/binary 判联合）、git 视角状态；文本/文件名/符号三路搜索；formatter 状态 |
+| `projects/` | 项目面与系统信息（`client.projects.*` 等） | 项目清单/当前作用域/改名/git init；服务端目录布局、LSP 状态、写服务端日志；provider 凭证往返 |
 | `client/` | 客户端本体 | 复用连接池、超时配置、异常捕获降级、`with_raw_response` 裸响应 |
 
 新增示例时放进对应**功能模块**的文件夹；不要按难度或"进阶模式"分类
