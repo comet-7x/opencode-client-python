@@ -30,7 +30,11 @@ API surface.
 
 ## Installation
 
-The package is not on PyPI yet; install from this repository:
+```sh
+pip install opencode-client-python
+```
+
+Or from source:
 
 ```sh
 git clone https://github.com/comet-7x/opencode-client-python.git
@@ -76,9 +80,11 @@ with OpenCodeClient("http://127.0.0.1:4096") as client:
 ```
 
 Client options: `base_url` (required), `username` / `password` (Basic auth,
-optional), `timeout` (seconds, default 5), `max_retries` (default 2). Use
-`client.with_options(...)` to derive a new client that overrides only the
-settings you pass.
+optional), `timeout` (scalar seconds or an `httpx.Timeout`; the default allows
+60 s to read a response but only 5 s to connect — blocking calls like
+`sessions.prompt()` wait for a whole LLM turn), and `max_retries`
+(default 2). Use `client.with_options(...)` to derive a new client that
+overrides only the settings you pass.
 
 ## Resource groups
 
@@ -86,13 +92,18 @@ The API is grouped by endpoint domain under the client:
 
 | Group | Methods |
 |---|---|
-| `client.sessions.*` | `list_sessions` `create` `get` `update` `delete` `fork` `abort` `share` `unshare` `summarize` `respond_permission` `list_messages` `prompt` `prompt_async` `delete_message` |
-| `client.server.*` | `health` `get_config` `update_config` `list_providers` `list_agents` `list_commands` `list_skills` `list_permissions` `reply_permission` `list_questions` `reply_question` `reject_question` `stream_events` |
+| `client.sessions.*` | `list_sessions` `create` `get` `get_message` `update` `delete` `fork` `abort` `share` `unshare` `summarize` `respond_permission` `list_messages` `delete_message` `update_part` `delete_part` `prompt` `prompt_async` `command` `shell` `init` `diff` `revert` `unrevert` `list_todos` `children` `status` |
+| `client.server.*` | `health` `get_config` `update_config` `get_global_config` `update_global_config` `list_providers` `list_agents` `list_commands` `list_skills` `list_permissions` `reply_permission` `list_questions` `reply_question` `reject_question` `get_paths` `lsp_status` `write_log` `dispose_instance` `dispose_global` `upgrade_global` `stream_events` `stream_global_events` |
 | `client.vcs.*` | `info` `status` `diff` `diff_raw` `apply` |
-| `client.mcp.*` | `status` `add` |
+| `client.mcp.*` | `status` `add` `start_oauth` `complete_oauth` `authenticate` `remove_oauth` `connect` `disconnect` |
+| `client.files.*` | `list` `read` `status` `search_text` `search_files` `search_symbols` `formatter_status` |
+| `client.projects.*` | `list` `current` `update` `directories` `git_init` |
+| `client.auth.*` | `set_credentials` `remove_credentials` `provider_auth_methods` `start_provider_oauth` `complete_provider_oauth` |
 
 Most methods take optional `directory` / `workspace` scoping query params
-passed as plain keyword arguments.
+passed as plain keyword arguments. The core resource surface is **100%
+covered** (see `.agent/project_progress/api_coverage.md`); what remains
+(`tui` / `pty` / `sync`) is intentionally deferred.
 
 ## Error handling
 
@@ -108,6 +119,8 @@ OpenCodeError
 │   ├── OpenCodeUnprocessableEntityError (422)
 │   ├── OpenCodeRateLimitError        (429)
 │   └── OpenCodeServerError           (5xx)
+├── OpenCodeResponseError       (2xx body failed schema validation;
+│                                wraps pydantic.ValidationError)
 └── OpenCodeTransportError        (no HTTP response at all)
     ├── OpenCodeServerConnectionError
     └── OpenCodeTimeoutError
@@ -145,7 +158,10 @@ async with client.server.stream_events() as stream:
 Reconnection semantics: only **transport errors** trigger a retry (exponential
 backoff 0.5 s → 8 s, budget `max_reconnect_attempts`, reset on any received
 line); a clean EOF ends the iteration. `prompt_async` + `stream_events` is
-the standard pattern for watching a turn live.
+the standard pattern for watching a turn live. A global variant,
+`stream_global_events()`, opens the `/global/event` stream whose frames span
+all instances the server hosts (loose `GlobalEvent` envelope; unmatched shapes
+degrade to base events — the stream never breaks).
 
 ### Typed hot events & the event router
 
@@ -186,9 +202,10 @@ print(raw.status_code, raw.headers["content-type"])
 session = Session.model_validate(raw.json())  # parse it yourself if you like
 ```
 
-Available on all four resource groups (`sessions` / `server` / `vcs` / `mcp`);
-`stream_events` has no raw variant (it returns an event stream, not a
-one-shot response).
+Available on every resource group (`sessions` / `server` / `vcs` / `mcp` /
+`files` / `projects` / `auth`); the SSE streams (`stream_events` /
+`stream_global_events`) have no raw variant (they return event streams, not
+one-shot responses).
 
 ## Running a local server (Docker)
 
@@ -234,7 +251,7 @@ uv run pytest --live-url http://127.0.0.1:20001   # opt-in integration tests
 
 ## Examples
 
-Runnable, commented walkthroughs organized by scenario — start at
+Runnable, commented walkthroughs organized by functional module — start at
 [examples/README.md](examples/README.md):
 
 | Folder | Module |

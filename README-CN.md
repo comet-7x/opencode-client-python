@@ -24,7 +24,11 @@
 
 ## 安装
 
-包尚未发布到 PyPI，从本仓库安装：
+```sh
+pip install opencode-client-python
+```
+
+或从源码安装：
 
 ```sh
 git clone https://github.com/comet-7x/opencode-client-python.git
@@ -70,7 +74,9 @@ with OpenCodeClient("http://127.0.0.1:4096") as client:
 ```
 
 客户端选项：`base_url`（必填）、`username` / `password`（Basic 认证，可选）、
-`timeout`（秒，默认 5）、`max_retries`（默认 2）。用 `client.with_options(...)`
+`timeout`（标量秒数或 `httpx.Timeout`；默认允许 60 秒读响应但只给 5 秒建连——
+`sessions.prompt()` 这类阻塞调用要等整个 LLM turn）、以及 `max_retries`
+（默认 2）。用 `client.with_options(...)`
 可以基于现有 client 派生一个只覆盖指定项的新 client。
 
 ## 资源分组
@@ -79,12 +85,17 @@ API 按端点域挂在客户端下分组：
 
 | 分组 | 方法 |
 |---|---|
-| `client.sessions.*` | `list_sessions` `create` `get` `update` `delete` `fork` `abort` `share` `unshare` `summarize` `respond_permission` `list_messages` `prompt` `prompt_async` `delete_message` |
-| `client.server.*` | `health` `get_config` `update_config` `list_providers` `list_agents` `list_commands` `list_skills` `list_permissions` `reply_permission` `list_questions` `reply_question` `reject_question` `stream_events` |
+| `client.sessions.*` | `list_sessions` `create` `get` `get_message` `update` `delete` `fork` `abort` `share` `unshare` `summarize` `respond_permission` `list_messages` `delete_message` `update_part` `delete_part` `prompt` `prompt_async` `command` `shell` `init` `diff` `revert` `unrevert` `list_todos` `children` `status` |
+| `client.server.*` | `health` `get_config` `update_config` `get_global_config` `update_global_config` `list_providers` `list_agents` `list_commands` `list_skills` `list_permissions` `reply_permission` `list_questions` `reply_question` `reject_question` `get_paths` `lsp_status` `write_log` `dispose_instance` `dispose_global` `upgrade_global` `stream_events` `stream_global_events` |
 | `client.vcs.*` | `info` `status` `diff` `diff_raw` `apply` |
-| `client.mcp.*` | `status` `add` |
+| `client.mcp.*` | `status` `add` `start_oauth` `complete_oauth` `authenticate` `remove_oauth` `connect` `disconnect` |
+| `client.files.*` | `list` `read` `status` `search_text` `search_files` `search_symbols` `formatter_status` |
+| `client.projects.*` | `list` `current` `update` `directories` `git_init` |
+| `client.auth.*` | `set_credentials` `remove_credentials` `provider_auth_methods` `start_provider_oauth` `complete_provider_oauth` |
 
 多数方法都接受可选的 `directory` / `workspace` 作用域查询参数（平铺关键字参数）。
+核心资源面已 **100% 覆盖**（见 `.agent/project_progress/api_coverage.md`）；
+`tui` / `pty` / `sync` 为有意延后批次。
 
 ## 错误处理
 
@@ -100,6 +111,8 @@ OpenCodeError
 │   ├── OpenCodeUnprocessableEntityError (422)
 │   ├── OpenCodeRateLimitError        (429)
 │   └── OpenCodeServerError           (5xx)
+├── OpenCodeResponseError       （2xx body 未通过 schema 校验；包装
+│                                pydantic.ValidationError）
 └── OpenCodeTransportError        （根本没拿到 HTTP 响应）
     ├── OpenCodeServerConnectionError
     └── OpenCodeTimeoutError
@@ -137,6 +150,9 @@ async with client.server.stream_events() as stream:
 重连语义：只有**传输错误**触发重试（指数退避 0.5 s → 8 s，预算
 `max_reconnect_attempts`，收到任意行即重置预算）；干净 EOF 结束迭代。
 `prompt_async` + `stream_events` 是实时观察一个 turn 的标准姿势。
+全局版本 `stream_global_events()` 打开 `/global/event` 流，其帧横跨服务端
+承载的所有实例（宽松的 `GlobalEvent` 信封；不匹配的形状降级为基类事件——
+流永不断）。
 
 ### 类型化热事件与事件 Router
 
@@ -174,8 +190,9 @@ print(raw.status_code, raw.headers["content-type"])
 session = Session.model_validate(raw.json())  # 需要的话自己解析
 ```
 
-四个资源域（`sessions` / `server` / `vcs` / `mcp`）都有；
-`stream_events` 没有 raw 变体（它返回事件流，不是一次性响应）。
+七个资源域（`sessions` / `server` / `vcs` / `mcp` / `files` / `projects` /
+`auth`）全部可用；SSE 流（`stream_events` / `stream_global_events`）没有
+raw 变体（它们返回事件流，不是一次性响应）。
 
 ## 本地服务（Docker）
 
@@ -217,7 +234,7 @@ uv run pytest --live-url http://127.0.0.1:20001   # 可选的真实服务集成�
 
 ## 示例
 
-可直接运行、带逐行注释的场景化示例，入口见
+可直接运行、带逐行注释的功能模块示例，入口见
 [examples/README.md](examples/README.md)：
 
 | 目录 | 功能模块 |
