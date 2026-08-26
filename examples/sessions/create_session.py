@@ -8,7 +8,7 @@ Run (from the repo root):
 
     uv run python -m examples.sessions.create_session
     uv run python -m examples.sessions.create_session --title 我的会话 --provider anthropic --model claude-x
-    uv run python examples/sessions/create_session.py --url http://127.0.0.1:20001
+    uv run python examples/sessions/create_session.py
 """
 
 from __future__ import annotations

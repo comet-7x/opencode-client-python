@@ -41,7 +41,7 @@ uv run python -m examples.00_quickstart.quickstart
 uv run python examples/00_quickstart/quickstart.py
 
 # 服务不在 4096 时
-uv run python -m examples.00_quickstart.quickstart --url http://127.0.0.1:20001
+uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:8080
 
 # 看全部参数
 uv run python -m examples.00_quickstart.quickstart --help

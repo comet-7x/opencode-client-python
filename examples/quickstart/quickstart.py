@@ -7,7 +7,7 @@ Run (either form, from the repo root):
 
     uv run python -m examples.quickstart.quickstart
     uv run python examples/quickstart/quickstart.py
-    uv run python examples/quickstart/quickstart.py --url http://127.0.0.1:20001
+    uv run python examples/quickstart/quickstart.py
     uv run python examples/quickstart/quickstart.py --directory /path/to/project
 """
 

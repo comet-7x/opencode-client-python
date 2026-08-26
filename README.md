@@ -232,7 +232,8 @@ one-shot responses).
 
 A running `opencode serve` is required. It is declared in
 [docker-compose.yml](docker-compose.yml); the Makefile targets below are thin
-wrappers around `docker compose`. Default port **20001**, image
+wrappers around `docker compose`. Default port **4096** (matches the
+native `opencode serve` default), image
 `ghcr.io/anomalyco/opencode:1.18.21` (latest listed at
 <https://github.com/anomalyco/opencode/pkgs/container/opencode>).
 Overrides (`OC_IMAGE` / `OC_PORT` / `OC_HOST`) go in a local `.env` —
@@ -266,8 +267,8 @@ docker tag  ghcr.nju.edu.cn/anomalyco/opencode:1.18.21 ghcr.io/anomalyco/opencod
 Once healthy, point the client (and all examples/tests) at it:
 
 ```sh
-uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:20001
-uv run pytest --live-url http://127.0.0.1:20001   # opt-in integration tests
+uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:8080
+uv run pytest --live-url http://127.0.0.1:4096    # opt-in integration tests
 ```
 
 ## Examples

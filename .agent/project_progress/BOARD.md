@@ -24,7 +24,7 @@
 - **下一步行动**：需求驱动排期 tui/pty/sync 批次；或开始消费反馈迭代。
   （更正记录：早前「OpenAPI 已无 /mcp/* 路径」备注有误，IT-014 已核实勘误）
 - **备注**：本地 `opencode serve` 统一 Docker 管理（Makefile `docker-*` 目标，
-  默认 20001；镜像慢走域名代理 + tag 还原）；examples 按资源域组织为
+  默认 4096；镜像慢走域名代理 + tag 还原）；examples 按资源域组织为
   功能模块目录（quickstart/sessions/server/events/vcs/mcp/files/client）
 
 ```

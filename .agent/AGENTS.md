@@ -33,7 +33,7 @@ make types              # mypy src/ tests/ + pyright（strict），两者都要�
 ```
 
 - 单测：`uv run pytest tests/test_sse.py -k reconnect`（标准 pytest 语法）。
-- live 集成测试 opt-in：`uv run pytest --live-url http://127.0.0.1:20001`
+- live 集成测试 opt-in：`uv run pytest --live-url http://127.0.0.1:4096`
   （可加 `--live-password`，用户名默认 `opencode`）；不给 flag 时
   `tests/test_live_server.py` 整模块 skip、不触网。
 - pytest 配置（`pyproject.toml`）：`asyncio_mode=auto`（async 测试无需 marker）、
@@ -52,6 +52,8 @@ make types              # mypy src/ tests/ + pyright（strict），两者都要�
 ```sh
 # 1. CHANGELOG.md：[Unreleased] 改成 [x.y.z] - 日期，并补 compare 链接（发版说明底稿）
 # 2. pyproject.toml：version 升级；constants.py 的 DEFAULT_USER_AGENT 同步版本号
+#    ⚠️ README 双语同步检查：README.md 与 README-CN.md 逐节核对
+#    （安装方式/资源方法表/默认值/示例清单），两份必须一致
 # 3. 质量门禁
 make check
 # 4. 构建 dist（wheel + sdist）
@@ -90,7 +92,8 @@ git push origin develop --tags
 
 ## 本地服务（Docker）
 
-开发/联调需要真实 `opencode serve`；统一用 **Docker** 管理（不自建进程），默认端口 `20001`：
+开发/联调需要真实 `opencode serve`；统一用 **Docker** 管理（不自建进程），默认端口 `4096`
+（与原生 `opencode serve` 默认一致；⚠️ 若宿主机同时有原生 serve 占 4096，用 `.env` 覆盖 OC_PORT）：
 
 ```sh
 make docker-pull        # 拉 ghcr.io/anomalyco/opencode:1.18.21
@@ -107,13 +110,13 @@ make docker-logs / make docker-stop / make docker-tui
 - 镜像 entrypoint 已是 `opencode`，compose 的 `command` 只写子命令（`serve ...`）；
   写全名会拼成 `opencode opencode serve`，容器秒退。
 - **探活先确认应答方**：宿主机若另跑原生 `opencode serve` 占同端口，curl 打到的是它
-  （`lsof -iTCP:20001` 可查；`docker ps` 是第一手）。
+  （`lsof -iTCP:4096` 可查；`docker ps` 是第一手）。
 - `temp/` 与 `.venv/` 用空命名卷（`temp-shadow`/`venv-shadow`）遮蔽——bind mount
   无法负向排除子路径；**不要删这两个卷**。
 - **Mac 专属**：模型服务（vLLM）在宿主机时容器内不能用 `127.0.0.1`，provider 的
   `baseURL` 用 `http://host.docker.internal:8000/v1`（provider 配置经挂载复用）。
-- examples 默认服务地址是 **4096**；Docker 服务在 20001 时加
-  `--url http://127.0.0.1:20001`（多数脚本支持）。
+- 全仓库统一端口 **4096**：examples 默认、Docker compose 映射、文档示例一致，
+  零配置互通；非 4096 场景一律 `--url` / `OC_PORT` 覆盖。
 
 ## 代码结构（src 布局）
 

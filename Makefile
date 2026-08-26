@@ -8,7 +8,7 @@ UV_RUN := uv run
 # 拉取慢时换域名代理（ghcr.io -> ghcr.nju.edu.cn 或 ghcr.m.daocloud.io），
 # 拉完用 docker tag 还原官方名再 up，详见 .agent/AGENTS.md「本地服务（Docker）」。
 OC_IMAGE ?= ghcr.io/anomalyco/opencode:1.18.21
-OC_PORT  ?= 20001
+OC_PORT  ?= 4096
 OC_HOST  ?= 0.0.0.0
 COMPOSE  ?= docker compose
 
@@ -47,7 +47,7 @@ check: format-check lint types test ## 全量质量门禁（提交前必须全�
 docker-pull: ## 拉取官方镜像（慢时换 OC_IMAGE 为域名代理，如 ghcr.nju.edu.cn/anomalyco/opencode:1.18.21）
 	docker pull $(OC_IMAGE)
 
-docker-run: ## 后台启动 API 服务（默认端口 20001；先 docker-pull）
+docker-run: ## 后台启动 API 服务（默认端口 4096；先 docker-pull）
 	OC_IMAGE=$(OC_IMAGE) OC_PORT=$(OC_PORT) OC_HOST=$(OC_HOST) $(COMPOSE) up -d
 
 docker-tui: ## 交互式 TUI（临时容器，Ctrl-D 退出即删；entrypoint 已是 opencode，参数只写子命令）

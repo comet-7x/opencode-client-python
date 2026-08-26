@@ -15,7 +15,7 @@ Teaches two related things:
 Run (from the repo root):
 
     uv run python -m examples.events.client_reuse
-    uv run python examples/client/client_reuse.py --url http://127.0.0.1:20001
+    uv run python examples/client/client_reuse.py
 """
 
 from __future__ import annotations

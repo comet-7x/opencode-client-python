@@ -61,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The Docker-managed local server and all examples/tests/docs now share one
+  default port: **4096** (the native `opencode serve` default).
 - Examples are organised purely by functional module
   (`quickstart/sessions/server/events/vcs/mcp/files/projects/client`);
   every one of the library's 69 public resource methods has a runnable

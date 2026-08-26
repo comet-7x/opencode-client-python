@@ -14,9 +14,9 @@ services:
   server:
     image: ${OC_IMAGE:-ghcr.io/anomalyco/opencode:1.18.21}
     container_name: opencode-server
-    command: serve --port ${OC_PORT:-20001} --hostname ${OC_HOST:-0.0.0.0}
+    command: serve --port ${OC_PORT:-4096} --hostname ${OC_HOST:-0.0.0.0}
     ports:
-      - "${OC_PORT:-20001}:${OC_PORT:-20001}"
+      - "${OC_PORT:-4096}:${OC_PORT:-4096}"
     volumes:
       - ./:/app
       - ~/.config/opencode:/root/.config/opencode

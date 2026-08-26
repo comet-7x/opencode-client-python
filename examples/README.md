@@ -64,10 +64,11 @@ uv run python -m examples.quickstart.quickstart
 uv run python examples/quickstart/quickstart.py
 ```
 
-多数脚本支持 `--url` 指定服务地址，例如服务跑在 20001 端口：
+所有脚本默认指向 `http://127.0.0.1:4096`（`opencode serve` 原生端口），
+非默认端口时用 `--url` 覆盖：
 
 ```sh
-uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:20001
+uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:8080
 ```
 
 ## 通用约定

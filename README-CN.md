@@ -218,7 +218,7 @@ raw 变体（它们返回事件流，不是一次性响应）。
 
 需要一个运行中的 `opencode serve`。服务声明在
 [docker-compose.yml](docker-compose.yml)，下面的 Makefile 目标是 `docker compose`
-的薄包装（默认端口 **20001**，镜像 `ghcr.io/anomalyco/opencode:1.18.21`，
+的薄包装（默认端口 **4096**，与 `opencode serve` 原生默认一致；镜像 `ghcr.io/anomalyco/opencode:1.18.21`，
 最新版本见 <https://github.com/anomalyco/opencode/pkgs/container/opencode>）。
 覆盖 `OC_IMAGE` / `OC_PORT` / `OC_HOST` 可写进本地 `.env`（`cp .env.template .env`），
 也可临时前置环境变量（`OC_PORT=20002 docker compose up -d`）：
@@ -248,8 +248,8 @@ docker tag  ghcr.nju.edu.cn/anomalyco/opencode:1.18.21 ghcr.io/anomalyco/opencod
 服务探活后，客户端（以及所有示例/测试）指向它即可：
 
 ```sh
-uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:20001
-uv run pytest --live-url http://127.0.0.1:20001   # 可选的真实服务集成测试
+uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:8080
+uv run pytest --live-url http://127.0.0.1:4096    # 可选的真实服务集成测试
 ```
 
 ## 示例
