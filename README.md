@@ -50,6 +50,9 @@ make install             # = uv sync, editable install + dev tools
 
 ## Quick start
 
+> Prerequisite: a running `opencode serve` (default `http://127.0.0.1:4096`,
+> or start one via Docker — see [Running a local server](#running-a-local-server-docker)).
+
 ### Async
 
 ```python
@@ -85,6 +88,24 @@ optional), `timeout` (scalar seconds or an `httpx.Timeout`; the default allows
 `sessions.prompt()` wait for a whole LLM turn), and `max_retries`
 (default 2). Use `client.with_options(...)` to derive a new client that
 overrides only the settings you pass.
+
+**Next steps** — the two most common follow-ups:
+
+```python
+# watch a turn live (SSE, auto-reconnect)
+async with client.server.stream_events() as stream:
+    async for event in stream.aiter_events():
+        if event.type == "session.idle":
+            break
+
+# read a file from the server's worktree
+content = await client.files.read("README.md")
+print(content.text if content.type == "text" else content.encoding)
+```
+
+Then browse the [resource groups](#resource-groups) table,
+[examples/](examples/) for runnable walkthroughs of all 69 methods, and
+[error handling](#error-handling) for the exception hierarchy.
 
 ## Resource groups
 

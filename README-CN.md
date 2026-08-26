@@ -44,6 +44,9 @@ make install             # = uv sync，可编辑安装 + 开发工具
 
 ## 快速上手
 
+> 前置条件：一个运行中的 `opencode serve`（默认 `http://127.0.0.1:4096`，
+> 也可用 Docker 启动——见[本地服务（Docker）](#本地服务docker)）。
+
 ### 异步
 
 ```python
@@ -78,6 +81,23 @@ with OpenCodeClient("http://127.0.0.1:4096") as client:
 `sessions.prompt()` 这类阻塞调用要等整个 LLM turn）、以及 `max_retries`
 （默认 2）。用 `client.with_options(...)`
 可以基于现有 client 派生一个只覆盖指定项的新 client。
+
+**下一步**——两个最常见的后续操作：
+
+```python
+# 实时观察一个 turn（SSE，自动重连）
+async with client.server.stream_events() as stream:
+    async for event in stream.aiter_events():
+        if event.type == "session.idle":
+            break
+
+# 读服务端工作区里的文件
+content = await client.files.read("README.md")
+print(content.text if content.type == "text" else content.encoding)
+```
+
+然后浏览[资源分组](#资源分组)全表、[示例目录](examples/)（69 个公开方法
+都有可运行演示）和[错误处理](#错误处理)的异常体系。
 
 ## 资源分组
 
