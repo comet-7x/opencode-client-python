@@ -42,6 +42,45 @@ make types              # mypy src/ tests/ + pyright（strict），两者都要�
   （本机有全局 proxy，会劫持 localhost 请求）。自己写脚本直连 localhost 时
   用 `curl --noproxy '*'`。
 
+## 发版流程与状态
+
+**包名 `opencode-client-python`**（PyPI 名；导入名始终是 `opencode_client`，
+`opencode-client` 已被第三方占用故更名）。
+
+发版步骤（按序，全部完成后才算闭环）：
+
+```sh
+# 1. CHANGELOG.md：[Unreleased] 改成 [x.y.z] - 日期，并补 compare 链接（发版说明底稿）
+# 2. pyproject.toml：version 升级；constants.py 的 DEFAULT_USER_AGENT 同步版本号
+# 3. 质量门禁
+make check
+# 4. 构建 dist（wheel + sdist）
+uv build
+# 5. 提交 + 打 tag
+git add -A && git commit -m "release: vx.y.z ..." && git tag -a vx.y.z -m "..."
+# 6. 上传 PyPI（⚠️ uv publish 不读 ~/.pypirc！用环境变量免交互）
+export UV_PUBLISH_USERNAME=__token__
+export UV_PUBLISH_PASSWORD=pypi-...   # 建议项目 scoped token
+uv publish
+# 7. GitHub Release（CHANGELOG 对应段落作为 notes）
+gh release create vx.y.z --title "vx.y.z" --notes-file <notes> --latest
+# 8. 推远端
+git push origin develop --tags
+```
+
+当前发布进度：
+
+| 版本 | 状态 |
+|---|---|
+| v0.1.0 | ✅ 2026-08-22（旧名 `opencode-client`，仅本地 dist + tag） |
+| v0.2.0 | ✅ 2026-08-24 **已上 PyPI**（新名首发）：https://pypi.org/project/opencode-client-python/ ；GitHub Release 同步创建；核心资源域 API 100%，详见 `api_coverage.md` |
+
+注意事项：
+- token 属密钥：只放环境变量/keyring，**绝不入库**；建议 scope 收紧到本项目
+- GitHub Release 页的 "Source code (zip/tar.gz)" 是 tag 快照自动生成，
+  不是构建产物；正式产物只有 PyPI 上的 `.whl` + `.tar.gz`
+
+
 ## 本地服务（Docker）
 
 开发/联调需要真实 `opencode serve`；统一用 **Docker** 管理（不自建进程），默认端口 `20001`：
@@ -159,7 +198,9 @@ temp/repositories/ # 参考仓库（见上）
 
 - **开始工作前**：读 `.agent/project_progress/BOARD.md`，确认当前宏观阶段/微观迭代。
 - **完成工作后**：更新对应 `iterations/IT-XXX-*.md` 的任务状态，并同步 `BOARD.md`；
-  跨阶段决策与发版信息写入 `macro/ROADMAP.md`。
+  跨阶段决策与发版信息写入 `macro/ROADMAP.md`；API 覆盖进度看
+  `project_progress/api_coverage.md`。
+- **发版**：流程与当前发布状态见上方「发版流程与状态」一节。
 - **Code review 报告是时点产物，不在 `.agent/` 堆叠**：问题修完即把结论（含踩坑）
   沉淀进迭代文件，报告本身删除或只留本地（如 `temp/code_review/`，不入库）；
   未修复遗留项写进 BOARD 阻塞区即可。
