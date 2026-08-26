@@ -266,6 +266,8 @@
 - [x] 发版就绪评估 → **已达标并完成本地发版**（2026-08-24）：
   包名定名 **`opencode-client-python`**（`opencode-client` 被第三方占用；
   导入名 `opencode_client` 不变），版本 **v0.2.0**——dist 已构建、tag 已打。
-  PyPI 上传待用户配置 token 后执行 `uv publish`。
+  **PyPI 已上线**（2026-08-24）：https://pypi.org/project/opencode-client-python/
+  安装命令 `pip install opencode-client-python`。后续发版用
+  `UV_PUBLISH_USERNAME/PASSWORD` 环境变量免交互（uv 不读 ~/.pypirc）。
   CHANGELOG `[0.2.0] - 2026-08-24` 底稿即本次发布说明。
 - [ ] tui/pty/sync 批次是否排期（需求驱动）
