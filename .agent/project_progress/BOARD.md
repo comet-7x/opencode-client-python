@@ -5,8 +5,8 @@
 ## 当前位置
 
 - **宏观**：M5 发布准备 —— ✅ 完成（IT-008：本地 dist + tag v0.1.0；PyPI 后续）
-- **微观**：IT-018 CI/CD 基建 ✅（2026-08-24；ci.yml 门禁 + publish.yml
-  Trusted Publishing，PyPI 绑定后 push tag 即自动发版）
+- **微观**：IT-018 CI/CD 基建 ✅（2026-08-24；ci.yml 已上线且首跑绿，
+  publish.yml 待 PyPI 绑定后 push tag 即自动发版）
 - IT-017 核心面收尾 ✅（2026-08-24；+11 端点，核心资源域 **100%**；
   目标面 80/105=76%；305 passed；live_sweep 70 项 57P/0F）
 - IT-016 覆盖率+live 扩域 ✅（2026-08-24；src 91.4% 门禁 90%；

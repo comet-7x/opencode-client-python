@@ -47,3 +47,7 @@ v0.2.0 已发布，但工程底座有两块缺失：① 质量门禁只在本机
 - **用户侧待办**（一次性）：PyPI 项目页 Settings → Publishing 绑定
   Owner=comet-7x / repo=opencode-client-python / workflow=publish.yml；
   之后 push v* tag 即自动发版
+
+- **CI 首跑验证**：develop 推送后 Actions 自动执行 `make check` 全门禁，
+  conclusion=success（run 32947282133）。注：checkout/setup-uv 的 Node.js 20
+  deprecation 警告为 action 版本提示，后续升级 @v5/@v6 即消。
