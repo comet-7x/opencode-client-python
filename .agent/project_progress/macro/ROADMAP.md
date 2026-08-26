@@ -263,8 +263,9 @@
 
 ### 待决
 
-- [x] 发版就绪评估 → **已达标**（2026-08-24：核心面 100%、305 passed 全绿、
-  CHANGELOG 底稿齐备）。PyPI 发布**暂缓**：`opencode-client` 名称已被第三方
-  占用，需定新名（候选 `opencode-client-python`）并配置 token 后方可发布；
-  定名前不发版本号，避免发出去收不回。
+- [x] 发版就绪评估 → **已达标并完成本地发版**（2026-08-24）：
+  包名定名 **`opencode-client-python`**（`opencode-client` 被第三方占用；
+  导入名 `opencode_client` 不变），版本 **v0.2.0**——dist 已构建、tag 已打。
+  PyPI 上传待用户配置 token 后执行 `uv publish`。
+  CHANGELOG `[0.2.0] - 2026-08-24` 底稿即本次发布说明。
 - [ ] tui/pty/sync 批次是否排期（需求驱动）
