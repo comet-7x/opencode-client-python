@@ -14,10 +14,11 @@
 - IT-014 mcp 域补全 ✅（2026-08-24；+6 端点共 8 方法，+10 测试）
 - IT-013 files 域 ✅（2026-08-24；7 端点，`client.files.*`）
 - **仓库**：tag `v0.1.0` + `v0.2.0`；日常命令走 Makefile（`make check` 全门禁）
-- **里程碑**：🎉 v0.2.0 **已发布到 PyPI**（2026-08-24）：
-  https://pypi.org/project/opencode-client-python/ ，`pip install opencode-client-python`
-  即装。注意：uv publish 不读 ~/.pypirc，免交互发布用 UV_PUBLISH_* 环境变量；
-  建议 token 收紧为项目 scoped。
+- **里程碑**：🎉 v0.2.0 **已发布到 PyPI + GitHub Release**（2026-08-24）：
+  PyPI https://pypi.org/project/opencode-client-python/ ·
+  Release https://github.com/comet-7x/opencode-client-python/releases/tag/v0.2.0
+  `pip install opencode-client-python` 即装。注意：uv publish 不读 ~/.pypirc，
+  免交互发布用 UV_PUBLISH_* 环境变量；建议 token 收紧为项目 scoped。
 - **下一步行动**：需求驱动排期 tui/pty/sync 批次；或开始消费反馈迭代。
   （更正记录：早前「OpenAPI 已无 /mcp/* 路径」备注有误，IT-014 已核实勘误）
 - **备注**：本地 `opencode serve` 统一 Docker 管理（Makefile `docker-*` 目标，
