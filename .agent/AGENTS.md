@@ -56,9 +56,12 @@ make types              # mypy src/ tests/ + pyright（strict），两者都要�
 make check
 # 4. 构建 dist（wheel + sdist）
 uv build
-# 5. 提交 + 打 tag
+# 5. 提交 + 打 tag（push tag 即触发 publish.yml 自动构建上传 PyPI）
 git add -A && git commit -m "release: vx.y.z ..." && git tag -a vx.y.z -m "..."
-# 6. 上传 PyPI（⚠️ uv publish 不读 ~/.pypirc！用环境变量免交互）
+# 6. 上传 PyPI——两种方式二选一：
+#    a) 自动：git push origin develop --tags（需已在 PyPI 绑定 Trusted
+#       Publishing，见下）；CI 会校验 tag 与 pyproject 版本一致
+#    b) 手动（⚠️ uv publish 不读 ~/.pypirc！用环境变量免交互）
 export UV_PUBLISH_USERNAME=__token__
 export UV_PUBLISH_PASSWORD=pypi-...   # 建议项目 scoped token
 uv publish
@@ -79,6 +82,10 @@ git push origin develop --tags
 - token 属密钥：只放环境变量/keyring，**绝不入库**；建议 scope 收紧到本项目
 - GitHub Release 页的 "Source code (zip/tar.gz)" 是 tag 快照自动生成，
   不是构建产物；正式产物只有 PyPI 上的 `.whl` + `.tar.gz`
+- **CI**：`.github/workflows/ci.yml`（push develop/main + PR 跑与本地同源的
+  `make check`）；`.github/workflows/publish.yml`（push `v*` tag 自动发 PyPI，
+  Trusted Publishing OIDC 免密钥——首次需在 PyPI 项目页
+  Settings → Publishing 绑定 workflow 名 `publish.yml`）
 
 
 ## 本地服务（Docker）
