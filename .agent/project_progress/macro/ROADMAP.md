@@ -263,5 +263,8 @@
 
 ### 待决
 
-- [ ] PyPI 发版：换名 `opencode-client-python` + token；发 v0.2.0 时以本节为 CHANGELOG 底稿
+- [x] 发版就绪评估 → **已达标**（2026-08-24：核心面 100%、305 passed 全绿、
+  CHANGELOG 底稿齐备）。PyPI 发布**暂缓**：`opencode-client` 名称已被第三方
+  占用，需定新名（候选 `opencode-client-python`）并配置 token 后方可发布；
+  定名前不发版本号，避免发出去收不回。
 - [ ] tui/pty/sync 批次是否排期（需求驱动）
