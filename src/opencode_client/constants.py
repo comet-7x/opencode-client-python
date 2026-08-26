@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 
 #: User-Agent sent with every request; server logs use it to identify client versions.
-DEFAULT_USER_AGENT = "opencode-client-python/0.1.0"
+DEFAULT_USER_AGENT = "opencode-client-python/0.2.0"
 
 #: Seconds to wait when establishing a connection.
 DEFAULT_CONNECT_TIMEOUT = 5.0

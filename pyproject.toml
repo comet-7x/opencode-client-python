@@ -1,6 +1,6 @@
 [project]
-name = "opencode-client"
-version = "0.1.0"
+name = "opencode-client-python"
+version = "0.2.0"
 description = "A Python client for the opencode server"
 license = "MIT"
 authors = [{ name = "comet" }]

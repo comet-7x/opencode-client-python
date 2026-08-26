@@ -1,4 +1,4 @@
-# opencode-client
+# opencode-client-python
 
 [opencode](https://opencode.ai) 服务的轻量级 Python 客户端。连接一个运行中的
 `opencode serve` 进程，以编程方式驱动它：管理会话、发送提示、查看消息、应答

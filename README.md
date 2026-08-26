@@ -1,4 +1,4 @@
-# opencode-client
+# opencode-client-python
 
 A lightweight Python client for the [opencode](https://opencode.ai) server.
 Connect to an `opencode serve` process and drive it programmatically:
