@@ -161,6 +161,14 @@ temp/repositories/ # 参考仓库（见上）
 - **examples 只按功能模块分目录**（quickstart/sessions/server/events/vcs/mcp/files/
   projects/client）；**禁止按难度/模式分类**（不出现 `advanced/` 之类）、
   **不用数字前缀**；客户端本体能力（连接配置、错误处理、裸响应）归 `client/`。
+- **新示例统一骨架**（照抄任一既有脚本即可）：中文模块 docstring（含
+  `uv run python -m examples.<模块>.<脚本>` 运行命令）+ `BASE_URL =
+  "http://127.0.0.1:4096"` + `async with AsyncOpenCodeClient(BASE_URL)`（sync 脚本用
+  `with OpenCodeClient`）+ `cli()`（argparse，`OpenCodeApiError`→exit 1、
+  `OpenCodeTransportError`→exit 2 并给人话提示）；provider/model 一律
+  `list_providers().connected` 动态探测不硬编码；脚本结束清理自建会话。
+  **新脚本必须同步登记两处测试**：`examples/test_examples.py` 加用例（可选分支
+  用参数变体覆盖）+ `examples/test_cli_errors.py` 的 CASES 加一行。
 
 ## 约定
 

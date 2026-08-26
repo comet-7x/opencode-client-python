@@ -1,32 +1,30 @@
-"""03 vcs_workflow: inspect and patch the working tree through the server.
+"""vcs_workflow：通过服务端查看并修补工作区改动。
 
-The ``client.vcs.*`` endpoints let a remote server operate on a project's
-version-control state — useful when the client and the repo live on the same
-machine but you want one programmatic surface for "what changed, show me,
-apply this patch". This script walks the whole domain in order:
+``client.vcs.*`` 让 opencode 服务端替你操作项目仓库的版本状态——客户端与
+仓库同机时，它提供一个统一的编程入口："改了什么 → 看细节 → 落补丁"：
 
-- ``vcs.info()``        -> current branch + default branch
-- ``vcs.status()``      -> changed files with add/del counts
-- ``vcs.diff(mode=...)``-> structured per-file diffs (``VcsFileDiff``)
-- ``vcs.diff_raw()``    -> the combined unified diff as plain text
-- ``vcs.apply(patch)``  -> apply a unified diff to the working tree (opt-in)
+- ``vcs.info()``         → 当前分支 + 默认分支
+- ``vcs.status()``       → 改动文件列表（增删行数）
+- ``vcs.diff(mode=...)`` → 结构化 per-file diff（VcsFileDiff）
+- ``vcs.diff_raw()``     → 整段 unified diff 纯文本（可落盘/转发）
+- ``vcs.apply(patch)``   → 应用一个 unified diff（唯一写操作，藏在 --apply 后面）
 
-Run (from the repo root):
+运行（仓库根目录）::
 
     uv run python -m examples.vcs.vcs_workflow
     uv run python -m examples.vcs.vcs_workflow --directory /path/to/repo --mode branch
-    uv run python -m examples.vcs.vcs_workflow --save diff.txt
-    uv run python -m examples.vcs.vcs_workflow --apply patch.txt
+    uv run python -m examples.vcs.vcs_workflow --save /tmp/diff.txt
+    uv run python -m examples.vcs.vcs_workflow --apply /tmp/patch.txt
 """
 
 from __future__ import annotations
 
-import argparse  # --url/--directory/--mode/--save/--apply
-import asyncio  # 事件循环
-import json  # 打印 apply 结果 dict
-import os  # 默认把作用域设为当前目录
-import sys  # 退出码
-from typing import Literal, cast  # diff 基准是二选一的字面量联合；cast 收窄 argparse 的 str
+import argparse
+import asyncio
+import json
+import os
+import sys
+from typing import Literal, cast
 
 from opencode_client import (
     AsyncOpenCodeClient,
@@ -41,46 +39,46 @@ BASE_URL = "http://127.0.0.1:4096"
 
 
 def _print_info(info: VcsInfo) -> None:
-    """Print the repo's branch state.
+    """打印分支状态。
 
     Args:
-        info: the parsed ``GET /vcs`` document.
+        info: GET /vcs 解析结果。
     """
     print("== VCS Info ==")
-    # 两个字段在 wire 上都是可选（非 git 仓库时服务端可能回空）。
-    print(f"branch          : {info.branch or '（未检出/非 git）'}")
-    print(f"default_branch  : {info.default_branch or '（未知）'}")
+    # 两个字段在 wire 上都可选：非 git 仓库时服务端可能回空。
+    branch = info.branch or "（未检出/非 git）"
+    default_branch = info.default_branch or "（未知）"
+    print(f"branch          : {branch}")
+    print(f"default_branch  : {default_branch}")
 
 
 def _print_status(statuses: list[VcsFileStatus]) -> None:
-    """Print changed files as a compact table.
+    """打印改动文件表。
 
     Args:
-        statuses: the parsed ``GET /vcs/status`` list.
+        statuses: GET /vcs/status 解析结果。
     """
     print("\n== VCS Status ==")
     if not statuses:
         print("（工作区干净，无改动）")
         return
-    # 列宽：文件路径可能很长，只固定状态与增删列。
     print(f"{'status':<10} {'+':>5} {'-':>5}  file")
     for status in statuses:
         print(f"{status.status:<10} {int(status.additions):>5} {int(status.deletions):>5}  {status.file}")
 
 
 def _print_diffs(diffs: list[VcsFileDiff], limit: int) -> None:
-    """Print the structured diff, truncating each patch for readability.
+    """打印结构化 diff，单文件 patch 截断展示。
 
     Args:
-        diffs: the parsed ``GET /vcs/diff`` list.
-        limit: max patch characters to show per file (full text via --save/diff_raw).
+        diffs: GET /vcs/diff 解析结果。
+        limit: 每文件 patch 最多显示的字符数。
     """
     print("\n== VCS Diff (structured) ==")
     if not diffs:
         print("（无可展示的 diff）")
         return
     for diff in diffs:
-        # patch 是单文件的 unified diff 文本；完整文本看 diff_raw / --save。
         snippet = diff.patch[:limit].replace("\n", "\\n")
         print(f"- {diff.file}  +{int(diff.additions)} -{int(diff.deletions)}  [{diff.status}]")
         print(f"    {snippet}{'…' if len(diff.patch) > limit else ''}")
@@ -94,23 +92,21 @@ async def main(
     save_to: str | None,
     patch_file: str | None,
 ) -> None:
-    """Walk info -> status -> diff -> diff_raw, optionally apply a patch.
+    """按 info → status → diff → diff_raw 顺序走一遍，可选应用补丁。
 
     Args:
-        base_url: server base URL.
-        directory: 项目目录的绝对路径（vcs 端点靠 query 参数 directory 定位仓库）。
-        mode: diff 基准，``"git"``（工作区 vs HEAD）或 ``"branch"``（vs 当前分支）。
-        context: diff 上下文行数（0 = 不传，用服务端默认）。
-        save_to: 给了就把 diff_raw 的完整文本写进这个文件。
-        patch_file: 给了就把该文件内容当作 unified diff 提交给 vcs.apply。
+        base_url: 服务地址。
+        directory: 项目目录绝对路径（vcs 端点靠 directory query 参数定位仓库）。
+        mode: diff 基准，git=工作区 vs HEAD，branch=vs 当前分支。
+        context: diff 上下文行数（0 = 用服务端默认）。
+        save_to: 给了就把 diff_raw 全文写进该文件。
+        patch_file: 给了就把该文件内容作为 unified diff 提交给 apply。
     """
     async with AsyncOpenCodeClient(base_url) as client:
         _print_info(await client.vcs.info(directory=directory))
         _print_status(await client.vcs.status(directory=directory))
-        # context 传 None 表示"用服务端默认"，所以 0 归一成 None。
         _print_diffs(await client.vcs.diff(mode=mode, context=context or None, directory=directory), limit=200)
 
-        # —— diff_raw：同一份 diff 的"原始文本"形态（text/x-diff），适合直接落盘/转发。
         raw = await client.vcs.diff_raw(directory=directory)
         print(f"\n== VCS Diff (raw) ==  {len(raw)} chars")
         if raw:
@@ -122,18 +118,18 @@ async def main(
                 fh.write(raw)
             print(f"完整 raw diff 已写入 {save_to}")
 
-        # —— apply：真正改动工作区，所以做成显式开关，且只应用用户给的补丁文件。
+        # apply 会真实改动工作区，所以做成显式开关、只应用用户给的补丁文件。
         if patch_file is not None:
             with open(patch_file, encoding="utf-8") as fh:
                 patch = fh.read()
             result = await client.vcs.apply(patch, directory=directory)
-            # 结果结构随服务端版本演进，这里原样打印不做强类型。
+            # 返回结构随服务端版本演进，原样打印不做强类型。
             print("\n== VCS Apply result ==\n" + json.dumps(result, ensure_ascii=False, indent=2))
 
 
 def cli() -> None:
-    """Parse args, run main, translate library errors into exit codes."""
-    parser = argparse.ArgumentParser(description=__doc__)
+    """解析参数并运行 main。"""
+    parser = argparse.ArgumentParser(description="查看并修补工作区改动")
     parser.add_argument("--url", default=BASE_URL, help="opencode server base URL")
     parser.add_argument("--directory", default=os.getcwd(), help="absolute path of the project repo (default: cwd)")
     parser.add_argument("--mode", choices=["git", "branch"], default="git", help="diff base")
@@ -144,7 +140,7 @@ def cli() -> None:
     )
     args = parser.parse_args()
 
-    # argparse 只能把 choices 收窄到 str；用 cast 还原成字面量联合（choices 已保证合法值）。
+    # argparse 的 choices 只能收窄到 str；choices 已保证合法值，cast 还原字面量联合。
     mode = cast(Literal["git", "branch"], args.mode)
 
     try:
@@ -153,8 +149,8 @@ def cli() -> None:
         print(f"[OpenCodeApiError] HTTP {exc.status_code}: {exc.payload}", file=sys.stderr)
         raise SystemExit(1) from exc
     except OpenCodeTransportError as exc:
-        print(f"[transport] 无法完成与 {args.url} 的通信：{exc}", file=sys.stderr)
-        print("  提示：确认服务已启动，例如 `opencode serve --port 4096`，或用 --url 指定。", file=sys.stderr)
+        print(f"[transport] 无法连接 {args.url}：{exc}", file=sys.stderr)
+        print("  提示：确认服务已启动，例如 `opencode serve --port 4096`，或用 --url 指定正确地址。", file=sys.stderr)
         raise SystemExit(2) from exc
 
 

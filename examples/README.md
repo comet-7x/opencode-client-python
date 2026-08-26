@@ -12,8 +12,8 @@
 
 | 文件夹 | 功能模块 | 内容 |
 |---|---|---|
-| `quickstart/` | 入口 | 最简一问一答：health → 建会话 → prompt → 解析回复（含 `directory` 简写用法） |
-| `sessions/` | 会话管理（`client.sessions.*`） | 创建（各种参数）/ 列表 / 删除 / 历史浏览 / **生命周期全动词**（update·fork·abort·share·summarize·delete_message）/ 状态与历史（status·children·todo·diff·revert）/ 权限与问答交互循环 |
+| `quickstart/` | 入口 | 最简一问一答：health → 建会话 → prompt → 解析回复（含 `directory` 简写用法；`quickstart_sync.py` 是同流程的 sync 客户端版） |
+| `sessions/` | 会话管理（`client.sessions.*`） | 创建（各种参数）/ 列表 / 删除 / 历史浏览 / **生命周期全动词**（update·fork·abort·share·summarize·delete_message）/ 状态与历史（status·children·todo·diff·revert）/ 权限与问答交互循环 / prompt 选项（model·system·tools·no_reply）/ 结构化 parts（file·subtask） |
 | `server/` | 服务级端点（`client.server.*`） | health / config / providers / agents / commands / skills 一次摸清新服务 |
 | `events/` | 事件流（`client.server.stream_events()`） | 裸流迭代区分思考/正文/工具调用；事件 Router 按类型订阅 + 类型化热事件 |
 | `vcs/` | 版本控制（`client.vcs.*`） | info / status / diff / diff_raw / apply（看改动、落盘 diff、打补丁） |

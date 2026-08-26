@@ -28,14 +28,14 @@ Protocol）服务器。本组脚本覆盖两个动词：
 
 ```sh
 # 只看现有 MCP server 状态
-uv run python -m examples.04_mcp.mcp_servers
+uv run python -m examples.mcp.mcp_servers
 
 # 注册一个本地 stdio server（会实际起子进程，需对应包可用）
-uv run python -m examples.04_mcp.mcp_servers \
+uv run python -m examples.mcp.mcp_servers \
     --name everything --command "npx,-y,@modelcontextprotocol/server-everything"
 
 # 注册一个远程 server
-uv run python -m examples.04_mcp.mcp_servers --name remote --remote-url https://mcp.example.com/sse
+uv run python -m examples.mcp.mcp_servers --name remote --remote-url https://mcp.example.com/sse
 ```
 
 均支持 `--url` 指定服务地址，`--directory` 按项目目录作用域，`--help` 查看全部参数。

@@ -1,12 +1,12 @@
-"""files/search_code: 在服务端工作区里找东西（文本/文件名/符号）。
+"""search_code：在服务端工作区里找东西（文本/文件名/符号）。
 
 三组"找"的端点，对应三种日常检索：
 
-- ``files.search_text(pattern)``    -> ripgrep 文本搜索（带行号与子匹配）
-- ``files.search_files(query)``     -> 按文件名模糊找路径
-- ``files.search_symbols(query)``   -> LSP 工作区符号（函数/类/方法…）
+- ``files.search_text(pattern)``    → ripgrep 文本搜索（带行号与子匹配）
+- ``files.search_files(query)``     → 按文件名模糊找路径
+- ``files.search_symbols(query)``   → LSP 工作区符号（函数/类/方法…）
 
-Run (from the repo root):
+运行（仓库根目录）::
 
     uv run python -m examples.files.search_code --pattern "TODO"
     uv run python -m examples.files.search_code --pattern "def main" --find-file workflow --symbol main
@@ -14,18 +14,12 @@ Run (from the repo root):
 
 from __future__ import annotations
 
-import argparse  # --url/--directory/--pattern/--find-file/--symbol
-import asyncio  # 事件循环
-import os  # 默认把作用域设为当前目录
-import sys  # 退出码
+import argparse
+import asyncio
+import os
+import sys
 
-from opencode_client import (
-    AsyncOpenCodeClient,
-    OpenCodeApiError,
-    OpenCodeTransportError,
-    Symbol,
-    TextMatch,
-)
+from opencode_client import AsyncOpenCodeClient, OpenCodeApiError, OpenCodeTransportError, Symbol, TextMatch
 
 BASE_URL = "http://127.0.0.1:4096"
 
@@ -76,7 +70,7 @@ async def main(
     """按需跑三类搜索：给了哪个参数就跑哪一类。
 
     Args:
-        base_url: server base URL。
+        base_url: 服务地址。
         directory: 项目目录绝对路径（query 参数 directory 定位工作区）。
         pattern: 文本搜索正则（None = 跳过文本搜索）。
         find_file: 文件名片段（None = 跳过文件名搜索）。
@@ -98,8 +92,8 @@ async def main(
 
 
 def cli() -> None:
-    """Parse args, run main, translate library errors into exit codes."""
-    parser = argparse.ArgumentParser(description=__doc__)
+    """解析参数并运行 main。"""
+    parser = argparse.ArgumentParser(description="在服务端工作区里做文本/文件名/符号三路搜索")
     parser.add_argument("--url", default=BASE_URL, help="opencode server base URL")
     parser.add_argument("--directory", default=os.getcwd(), help="absolute path of the project (default: cwd)")
     parser.add_argument("--pattern", default=None, help="regex to grep the worktree (enables text search)")
@@ -119,8 +113,8 @@ def cli() -> None:
         print(f"[OpenCodeApiError] HTTP {exc.status_code}: {exc.payload}", file=sys.stderr)
         raise SystemExit(1) from exc
     except OpenCodeTransportError as exc:
-        print(f"[transport] 无法完成与 {args.url} 的通信：{exc}", file=sys.stderr)
-        print("  提示：确认服务已启动，例如 `opencode serve --port 4096`，或用 --url 指定。", file=sys.stderr)
+        print(f"[transport] 无法连接 {args.url}：{exc}", file=sys.stderr)
+        print("  提示：确认服务已启动，例如 `opencode serve --port 4096`，或用 --url 指定正确地址。", file=sys.stderr)
         raise SystemExit(2) from exc
 
 

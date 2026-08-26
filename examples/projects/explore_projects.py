@@ -1,18 +1,18 @@
-"""projects/explore_projects: 查看服务端的项目面与系统信息。
+"""explore_projects：查看服务端的项目面与系统信息。
 
 opencode 把每个可操作的工作区登记为 **project**。本脚本把项目域与
 server 域的系统信息端点串起来，回答三个问题：
 
-- 管了哪些项目？现在在哪个里面？        -> ``client.projects.*``
-- 服务端眼里的目录布局长什么样？        -> ``client.server.get_paths()``
-- 挂了哪些语言服务器？                  -> ``client.server.lsp_status()``
+- 管了哪些项目？现在在哪个里面？        → ``client.projects.*``
+- 服务端眼里的目录布局长什么样？        → ``client.server.get_paths()``
+- 挂了哪些语言服务器？                  → ``client.server.lsp_status()``
 
 可选演示：
 - ``--log``：往服务端日志里写一条（远程调试用）
 - ``--auth-demo``：写入再删除一条假凭证（演示 PUT/DELETE /auth 往返，
   **不会**碰真实 provider 的凭证）
 
-Run (from the repo root):
+运行（仓库根目录）::
 
     uv run python -m examples.projects.explore_projects
     uv run python -m examples.projects.explore_projects --directory /path/to/project
@@ -22,10 +22,10 @@ Run (from the repo root):
 
 from __future__ import annotations
 
-import argparse  # --url/--directory/--log/--auth-demo
-import asyncio  # 事件循环
-import os  # 默认把作用域设为当前目录
-import sys  # 退出码
+import argparse
+import asyncio
+import os
+import sys
 
 from opencode_client import (
     ApiKeyCredentials,
@@ -61,13 +61,13 @@ def _print_projects(projects: list[Project], current_id: str | None) -> None:
 async def main(
     base_url: str, directory: str | None, write_log: bool, auth_demo: bool, git_init: bool, rename_to: str | None
 ) -> None:
-    """走 projects -> paths -> lsp -> directories；可选演示写日志/凭证/git init/改名。
+    """走 projects → paths → lsp → directories；可选演示写日志/凭证/git init/改名。
 
     Args:
-        base_url: server base URL。
+        base_url: 服务地址。
         directory: 可选作用域（影响 current/paths/lsp 的定位）。
         write_log: 给了就往服务端日志写一条。
-        auth_demo: 给了就做一次"写入假凭证 -> 删除"的往返演示。
+        auth_demo: 给了就做一次"写入假凭证 → 删除"的往返演示。
         git_init: 给了就对作用域工作树执行 projects.git_init（写操作！）。
         rename_to: 给了就把当前项目改名（PATCH /project/{id}，写操作！）。
     """
@@ -92,7 +92,7 @@ async def main(
         for server in servers:
             print(f"- {server.name}: {server.status}  root={server.root}")
 
-    # —— git_init 是写操作（真的会 init 仓库），做成显式开关。
+    # git_init 是写操作（真的会 init 仓库），做成显式开关。
     if git_init:
         async with AsyncOpenCodeClient(base_url) as client:
             project = await client.projects.git_init(directory=directory)
@@ -128,7 +128,7 @@ async def main(
             )
             print(f"\n== write_log -> {ok}（去服务端机器上翻它的日志文件验证）")
 
-        # 凭证端点只有写/删没有读，所以用一次性假 provider 做"写入->删除"
+        # 凭证端点只有写/删没有读，所以用一次性假 provider 做"写入→删除"
         # 往返；不传 --auth-demo 就完全不碰 /auth。
         if auth_demo:
             credentials = ApiKeyCredentials(type="api", key="sk-demo-not-real")
@@ -138,8 +138,8 @@ async def main(
 
 
 def cli() -> None:
-    """Parse args, run main, translate library errors into exit codes."""
-    parser = argparse.ArgumentParser(description=__doc__)
+    """解析参数并运行 main。"""
+    parser = argparse.ArgumentParser(description="查看服务端的项目面与系统信息")
     parser.add_argument("--url", default=BASE_URL, help="opencode server base URL")
     parser.add_argument("--directory", default=os.getcwd(), help="scope to a project directory")
     parser.add_argument("--log", action="store_true", help="also write an entry into the server log")
@@ -156,8 +156,8 @@ def cli() -> None:
         print(f"[OpenCodeApiError] HTTP {exc.status_code}: {exc.payload}", file=sys.stderr)
         raise SystemExit(1) from exc
     except OpenCodeTransportError as exc:
-        print(f"[transport] 无法完成与 {args.url} 的通信：{exc}", file=sys.stderr)
-        print("  提示：确认服务已启动，例如 `opencode serve --port 4096`，或用 --url 指定。", file=sys.stderr)
+        print(f"[transport] 无法连接 {args.url}：{exc}", file=sys.stderr)
+        print("  提示：确认服务已启动，例如 `opencode serve --port 4096`，或用 --url 指定正确地址。", file=sys.stderr)
         raise SystemExit(2) from exc
 
 

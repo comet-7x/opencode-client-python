@@ -26,9 +26,9 @@
 ## 运行
 
 ```sh
-uv run python -m examples.02_discovery_config.explore_server
-uv run python -m examples.02_discovery_config.explore_server --directory ~/code/myproj
-uv run python -m examples.02_discovery_config.explore_server --set-config '{"share": {"enabled": false}}'
+uv run python -m examples.server.explore_server
+uv run python -m examples.server.explore_server --directory ~/code/myproj
+uv run python -m examples.server.explore_server --set-config '{"share": {"enabled": false}}'
 ```
 
 均支持 `--url` 指定服务地址，`--help` 查看全部参数。

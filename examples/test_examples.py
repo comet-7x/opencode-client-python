@@ -5,8 +5,8 @@
 完整走过一次真实管线而不依赖真实 opencode 服务。
 （`streaming` 脚本里的真实 sleep 只有 0.5s，套件仍可秒级跑完。）
 
-目录按功能模块组织（quickstart/sessions/server/events/vcs/mcp/client），
-均为合法 Python 标识符，经
+目录按功能模块组织（quickstart/sessions/server/events/vcs/mcp/files/
+projects/client），均为合法 Python 标识符，经
 ``importlib.import_module("examples.quickstart.quickstart")`` 加载。
 """
 
@@ -594,6 +594,29 @@ class TestExamplesSmoke:
         # 00 必须演示的 --directory 简写调用路径
         mod = _load("quickstart.quickstart")
         _run_cli(mod, "--url", BASE, "--directory", "/tmp/scope")
+
+    def test_quickstart_sync(self) -> None:
+        # sync 客户端与 async 版完全对等的流程（OpenCodeClient）
+        mod = _load("quickstart.quickstart_sync")
+        _run_cli(mod, "--url", BASE)
+
+    def test_prompt_options(self) -> None:
+        mod = _load("sessions.prompt_options")
+        _run_cli(mod, "--url", BASE)
+
+    def test_prompt_options_with_agent_and_tool(self) -> None:
+        # 点亮 agent/tools 分支
+        mod = _load("sessions.prompt_options")
+        _run_cli(mod, "--url", BASE, "--agent", "build", "--disable-tool", "write")
+
+    def test_structured_parts(self) -> None:
+        mod = _load("sessions.structured_parts")
+        _run_cli(mod, "--url", BASE)
+
+    def test_structured_parts_with_file_and_subtask(self) -> None:
+        # file part + subtask part 两个 opt-in 分支
+        mod = _load("sessions.structured_parts")
+        _run_cli(mod, "--url", BASE, "--file-url", "file:///tmp/a.txt", "--mime", "text/plain", "--subtask", "general")
 
     def test_create_session(self) -> None:
         mod = _load("sessions.create_session")

@@ -15,6 +15,8 @@ opencode 的核心抽象是 **session（会话）**：一段与 agent 的对话�
 | `session_lifecycle.py` | `sessions.update/get/fork/abort/share/unshare/summarize/delete_message` | 建删列查之外的全部会话动词，一次在一个临时会话上走完 |
 | `session_state_history.py` | `sessions.status/children/list_todos/diff/revert/unrevert` | 会话的运行状态（idle/busy/retry）、子会话、todo 列表、文件改动与历史回退/恢复 |
 | `interact_moving_session.py` | `server.list_permissions/list_questions` + 回复端点 | 权限/问答**交互循环**：轮询 pending 请求并应答，让一个会要权限的 turn 走完到 `session.idle`；`--respond` 额外演示 `sessions.respond_permission` 与 `server.reject_question` |
+| `prompt_options.py` | `sessions.prompt(...)` 的完整 prompt body | 一次 prompt 里点亮全部选项：model / system / tools（disable/enable）/ agent / no_reply |
+| `structured_parts.py` | `sessions.prompt(..., parts=[...])` | 结构化输入：text part + file part（url + mime）+ subtask part（子任务）混排发送 |
 
 ## 适用场景
 
@@ -41,6 +43,10 @@ uv run python -m examples.sessions.session_lifecycle
 uv run python -m examples.sessions.session_state_history
 uv run python -m examples.sessions.interact_moving_session --allow
 uv run python -m examples.sessions.interact_moving_session --respond   # 额外演示 respond_permission / reject_question
+uv run python -m examples.sessions.prompt_options
+uv run python -m examples.sessions.prompt_options --agent build --disable-tool write
+uv run python -m examples.sessions.structured_parts
+uv run python -m examples.sessions.structured_parts --file-url file:///tmp/a.txt --mime text/plain
 ```
 
 均支持 `--url` 指定服务地址，`--help` 查看各脚本全部参数。

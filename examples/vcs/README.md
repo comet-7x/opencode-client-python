@@ -30,16 +30,16 @@
 
 ```sh
 # 在本仓库根目录直接跑（默认 --directory 为 cwd，--mode git）
-uv run python -m examples.03_vcs.vcs_workflow
+uv run python -m examples.vcs.vcs_workflow
 
 # 指定仓库目录 + 与当前分支比较
-uv run python -m examples.03_vcs.vcs_workflow --directory /path/to/repo --mode branch
+uv run python -m examples.vcs.vcs_workflow --directory /path/to/repo --mode branch
 
 # 把 raw diff 保存到文件
-uv run python -m examples.03_vcs.vcs_workflow --save /tmp/diff.txt
+uv run python -m examples.vcs.vcs_workflow --save /tmp/diff.txt
 
 # 应用一个补丁文件（真正改动工作区，谨慎）
-uv run python -m examples.03_vcs.vcs_workflow --apply /tmp/patch.txt
+uv run python -m examples.vcs.vcs_workflow --apply /tmp/patch.txt
 ```
 
 均支持 `--url` 指定服务地址，`--help` 查看全部参数。

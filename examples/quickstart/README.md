@@ -10,9 +10,12 @@
 4. 打印模型的回答；
 5. 删除会话（清理）。
 
-`quickstart.py` 是这个流程的完整可运行版，每一行都有注释。
+`quickstart.py` 是这个流程的完整可运行版（async 客户端），每一行都有注释。
 读它只需要认识 3 个东西：`AsyncOpenCodeClient`、`client.sessions.*`、
 `await`。
+
+`quickstart_sync.py` 是同一个流程的 **sync 客户端**（`OpenCodeClient`）版：
+除没有 `await` 外接口完全一致，同步代码库（脚本、爬虫、CLI）直接照抄它。
 
 ## 适用场景
 
@@ -35,16 +38,19 @@
 
 ```sh
 # 方式一（推荐，从仓库根目录执行）
-uv run python -m examples.00_quickstart.quickstart
+uv run python -m examples.quickstart.quickstart
 
 # 方式二（直接文件运行，效果相同）
-uv run python examples/00_quickstart/quickstart.py
+uv run python examples/quickstart/quickstart.py
+
+# sync 客户端版（OpenCodeClient，流程完全一样、无 await）
+uv run python -m examples.quickstart.quickstart_sync
 
 # 服务不在 4096 时
 uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:8080
 
 # 看全部参数
-uv run python -m examples.00_quickstart.quickstart --help
+uv run python -m examples.quickstart.quickstart --help
 ```
 
 期望输出（大致）：

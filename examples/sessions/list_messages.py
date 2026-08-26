@@ -1,71 +1,61 @@
-"""01 list_messages: render a session's message history (info + parts).
+"""list_messages：读会话历史——info 与 parts 两层联合类型的渲染。
 
-Shows ``sessions.list_messages(session_id)`` — it returns
-``MessageWithParts`` items, **newest first**, each with:
+``sessions.list_messages`` 返回 ``MessageWithParts`` 列表，**最新在前**：
 
-- ``info``: a discriminated union of ``UserMessage | AssistantMessage``
-  (use ``isinstance`` to narrow before reading role-specific fields);
-- ``parts``: the ordered list of typed parts (text/tool/reasoning/...).
+- ``msg.info``  —— user/assistant 的判别联合（isinstance 收窄后才能读
+  各自字段，如 ``tokens`` 只在 assistant 上）；
+- ``msg.parts`` —— 有序的 part 列表（text/tool/reasoning/...），按 ``type``
+  分支渲染。
 
-Run (from the repo root):
+运行（仓库根目录）::
 
     uv run python -m examples.sessions.list_messages
     uv run python -m examples.sessions.list_messages --session ses_XXXX --limit 5
-    uv run python examples/sessions/list_messages.py
 """
 
 from __future__ import annotations
 
-import argparse  # --session/--limit/--url
-import asyncio  # 事件循环
-import sys  # 退出码
+import argparse
+import asyncio
+import sys
 
-from opencode_client import (
-    AssistantMessage,  # 用于 isinstance 收窄联合类型
-    AsyncOpenCodeClient,
-    OpenCodeApiError,
-    OpenCodeTransportError,
-    Part,  # parts 列表元素的（联合）类型
-)
+from opencode_client import AssistantMessage, AsyncOpenCodeClient, OpenCodeApiError, OpenCodeTransportError, Part
 
 BASE_URL = "http://127.0.0.1:4096"
 
 
 def _render_parts(parts: list[Part]) -> None:
-    """Print one message's parts as readable one-liners.
+    """把一条消息的 parts 渲染成可读行。
 
     Args:
-        parts: the part list of one ``MessageWithParts``.
+        parts: 一条 MessageWithParts 的 part 列表。
     """
     for part in parts:
-        # parts 是按 type 判别的联合；按 .type 分支，取每种 part 收窄后可用的字段。
+        # Part 是按 type 判别的联合；分支后各类型才有自己的专属字段。
         if part.type == "text":
-            # 长文本截断，保持屏幕可读
-            print(f"  text      : {part.text[:120]!r}")
+            print(f"  text       : {part.text[:120]!r}")  # 长文本截断保持可读
         elif part.type == "tool":
-            # title 只存在于 running/completed 状态，用 getattr 兜底安全读
-            print(f"  tool      : {part.tool} [{part.state.status}] {getattr(part.state, 'title', '') or '-'}")
+            # title 只存在于 running/completed 状态，getattr 兜底安全读。
+            title = getattr(part.state, "title", "") or "-"
+            print(f"  tool       : {part.tool} [{part.state.status}] {title}")
         elif part.type == "reasoning":
-            # 推理原文通常不整段打印，仅给长度
-            print(f"  reasoning : {len(part.text)} chars")
+            print(f"  reasoning  : {len(part.text)} chars")  # 推理原文只给长度
         elif part.type == "step-finish":
-            # 每次工具/步骤结束的汇总：终止原因 + 花费
             print(f"  step-finish: reason={part.reason} cost={part.cost}")
         else:
-            # 未来新增的 part 类型不至于让整个脚本崩溃
-            print(f"  part      : {part.type}")
+            # 未来新增的 part 类型不至于让脚本崩溃：打印类型名即可。
+            print(f"  part       : {part.type}")
 
 
 async def main(base_url: str, session_id: str | None, limit: int) -> None:
-    """Print the message history of one session.
+    """展示一个会话的消息历史。
 
     Args:
-        base_url: server base URL.
-        session_id: 要展示历史的会话；为 None 时自动取最新的一个。
-        limit: 最多取多少条（服务端最新在前）。
+        base_url: 服务地址。
+        session_id: 目标会话；None 时自动取最新会话。
+        limit: 最多取多少条。
     """
     async with AsyncOpenCodeClient(base_url) as client:
-        # 没指定会话就取“最新一个”（list_sessions 也是最新在前），让脚本开箱即用。
         target = session_id
         if target is None:
             sessions = await client.sessions.list_sessions(limit=1)
@@ -75,26 +65,22 @@ async def main(base_url: str, session_id: str | None, limit: int) -> None:
             target = sessions[0].id
             print(f"取最新会话：{target}\n")
 
-        # —— 真正的调用：返回该会话的消息，**最新在前**。
-        #    limit / before 是可选查询参数（before = 只取该 id 之前更旧的消息）。
         messages = await client.sessions.list_messages(target, limit=limit)
-        print(f"--- {target}: {len(messages)} messages（按时间正序展示）---\n")
+        print(f"--- {target}: {len(messages)} messages（服务端最新在前，这里反转为对话顺序展示）---\n")
 
-        # reversed：服务端给的是最新在前，对话习惯从最早读起，故反转展示。
         for msg in reversed(messages):
-            info = msg.info  # 联合类型：user 或 assistant
+            info = msg.info
             if isinstance(info, AssistantMessage):
-                # 只有 assistant 消息带 finish（终止方式）
                 print(f"[assistant] {info.id}  finish={info.finish}")
             else:
                 print(f"[user] {info.id}")
             _render_parts(msg.parts)
-            print()  # 消息之间空一行
+            print()
 
 
 def cli() -> None:
-    """Parse args, run main, translate errors into exit codes."""
-    parser = argparse.ArgumentParser(description=__doc__)
+    """解析参数并运行 main。"""
+    parser = argparse.ArgumentParser(description="浏览会话历史")
     parser.add_argument("--url", default=BASE_URL, help="opencode server base URL")
     parser.add_argument("--session", default=None, help="session id (default: the newest one)")
     parser.add_argument("--limit", type=int, default=50, help="max messages to show")
@@ -106,8 +92,8 @@ def cli() -> None:
         print(f"[OpenCodeApiError] HTTP {exc.status_code}: {exc.payload}", file=sys.stderr)
         raise SystemExit(1) from exc
     except OpenCodeTransportError as exc:
-        print(f"[transport] 无法完成与 {args.url} 的通信：{exc}", file=sys.stderr)
-        print("  提示：确认服务已启动，例如 `opencode serve --port 4096`，或用 --url 指定。", file=sys.stderr)
+        print(f"[transport] 无法连接 {args.url}：{exc}", file=sys.stderr)
+        print("  提示：确认服务已启动，例如 `opencode serve --port 4096`，或用 --url 指定正确地址。", file=sys.stderr)
         raise SystemExit(2) from exc
 
 

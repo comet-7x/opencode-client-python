@@ -1,11 +1,13 @@
 # 📋 任务看板
 
- > 每次工作前看这里；每次完成后更新这里。最后更新：2026-08-24（IT-018 完成）
+ > 每次工作前看这里；每次完成后更新这里。最后更新：2026-08-26（IT-019 完成）
 
 ## 当前位置
 
 - **宏观**：M5 发布准备 —— ✅ 完成（IT-008：本地 dist + tag v0.1.0；PyPI 后续）
-- **微观**：IT-018 CI/CD 基建 ✅（2026-08-24；ci.yml 已上线且首跑绿，
+- **微观**：IT-019 examples 全面中文化 + 本地未合并工作择优吸收 ✅（2026-08-26；
+  远端 develop 重组后吸收 3 个新脚本、18 个脚本全中文化，`make check` 291 绿）
+- IT-018 CI/CD 基建 ✅（2026-08-24；ci.yml 已上线且首跑绿，
   publish.yml 待 PyPI 绑定后 push tag 即自动发版）
 - IT-017 核心面收尾 ✅（2026-08-24；+11 端点，核心资源域 **100%**；
   目标面 80/105=76%；305 passed；live_sweep 70 项 57P/0F）
@@ -25,7 +27,8 @@
   （更正记录：早前「OpenAPI 已无 /mcp/* 路径」备注有误，IT-014 已核实勘误）
 - **备注**：本地 `opencode serve` 统一 Docker 管理（Makefile `docker-*` 目标，
   默认 4096；镜像慢走域名代理 + tag 还原）；examples 按资源域组织为
-  功能模块目录（quickstart/sessions/server/events/vcs/mcp/files/client）
+  功能模块目录（quickstart/sessions/server/events/vcs/mcp/files/projects/client），
+  全部中文教学风格（IT-019）
 
 ```
 宏观  [█████] M1 ✅ ─ M2 ✅ ── M3 ✅ ── M4 ✅ ── M5 ✅
@@ -66,6 +69,10 @@
 | IT-013 | files 域：list/read/status + search_text/files/symbols + formatter（7 端点×4 类） | ✅ | 2026-08-24 |
 | IT-014 | mcp 域补全：OAuth start/callback/authenticate/remove + connect/disconnect（6 端点×4 类） | ✅ | 2026-08-24 |
 | IT-015 | project/auth 域 + server 补 get_paths/lsp_status/write_log（10 端点） | ✅ | 2026-08-24 |
+| IT-016 | 覆盖率+live 扩域（src 91.4%；全端点扫描 62 项 0F） | ✅ | 2026-08-24 |
+| IT-017 | 核心面收尾（+11 端点，核心资源域 100%；目标面 80/105） | ✅ | 2026-08-24 |
+| IT-018 | CI/CD 基建（ci.yml + publish.yml Trusted Publishing） | ✅ | 2026-08-24 |
+| IT-019 | examples 全面中文化 + 本地 stash 择优吸收（3 新脚本 + 18 中文化 + cli_errors 探针） | ✅ | 2026-08-26 |
 
 ## 阻塞 / 风险
 
@@ -73,6 +80,9 @@
   需换名（已探明可用：`opencode-client-python` 等，import 名不受影响）
 - ⚠️ 本机 uv python 3.12.13 缺 `collections.abc.AsyncContextManager` → 建议 `uv python install 3.12`
 - ⚠️ 真实服务 provider 名会变（`steins-middleware` → `steins-middleware-vllm`），smoke 脚本须用 `list_providers().connected` 探测，不要硬编码
+- ⚠️ 本机透明代理会把 localhost 死端口变成"超时/502 拦截"而非立即拒绝
+  （IT-019 踩坑）：`examples/test_cli_errors.py` 已带探针自动整模块 skip，
+  CI（Linux）照常跑；不要改回"假定立即拒绝"的写法
 
 ## 待决事项
 
