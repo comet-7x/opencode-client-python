@@ -227,10 +227,17 @@ tui/pty/sync 批次、上游漂移定期审计（IT-020 起）、消费反馈跟
 
 ## 发版记录
 
-### v0.2.1 — 2026-09-28（本地 dist + tag；push 后由 publish.yml 上 PyPI）
+### v0.2.1 — 2026-09-28（tag/CI/GitHub Release 已就绪推远端；PyPI 暂缓）
 - 内容：`upgrade_global` target 必填（随上游 1.18.33）、CI/CD workflows
   （ci.yml/publish.yml）、3 个新 examples、live files 用例可移植性修复；
   兼容口径 1.18.21+ / 已验证至 1.18.33（详见 CHANGELOG [0.2.1] 与 IT-020）。
+- 发布状态：commit `88bcf80` + tag `v0.2.1` 已推远端，CI 绿，
+  Release https://github.com/comet-7x/opencode-client-python/releases/tag/v0.2.1 ；
+  **PyPI 暂缓（用户拍板）**——Publish workflow 失败于 Trusted Publishing
+  未绑定（invalid-publisher，run 36431671716）；补发路径：PyPI 项目页
+  Settings → Publishing 绑定（owner comet-7x / repo opencode-client-python /
+  workflow `publish.yml` / environment 留空）后 `gh run rerun 36431671716`，
+  或手动 `UV_PUBLISH_*` + `uv publish`。
 
 ### v0.1.0 — 2026-08-22（本地 dist + git tag）
 - 发布形式：`uv build` 产出 `dist/opencode_client-0.1.0-py3-none-any.whl` +

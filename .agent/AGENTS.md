@@ -81,7 +81,7 @@ git push origin develop --tags
 |---|---|
 | v0.1.0 | ✅ 2026-08-22（旧名 `opencode-client`，仅本地 dist + tag） |
 | v0.2.0 | ✅ 2026-08-24 **已上 PyPI**（新名首发）：https://pypi.org/project/opencode-client-python/ ；GitHub Release 同步创建；核心资源域 API 100%，详见 `api_coverage.md` |
-| v0.2.1 | 🔵 2026-09-28 本地发版完成（dist + tag 已打，`make check` 绿）：上游漂移审计 1.18.21→1.18.33、`upgrade_global` target 必填（签名收紧）、CI/CD、3 新示例；push tag 后 publish.yml 自动上 PyPI，**push 待用户确认** |
+| v0.2.1 | 🟡 2026-09-28 **部分完成**：tag/CI/Release 已就绪（https://github.com/comet-7x/opencode-client-python/releases/tag/v0.2.1 ）；**PyPI 暂缓**（用户拍板）——需先在 PyPI 项目页 Settings → Publishing 绑定 Trusted Publishing（owner comet-7x / repo opencode-client-python / workflow `publish.yml` / environment 留空），然后 `gh run rerun 36431671716` 重跑失败的 Publish，或手动 `UV_PUBLISH_*` + `uv publish`；完成后本行翻 ✅ |
 
 注意事项：
 - token 属密钥：只放环境变量/keyring，**绝不入库**；建议 scope 收紧到本项目
