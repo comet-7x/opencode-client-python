@@ -1,11 +1,14 @@
 # 📋 任务看板
 
- > 每次工作前看这里；每次完成后更新这里。最后更新：2026-08-26（IT-019 完成）
+ > 每次工作前看这里；每次完成后更新这里。最后更新：2026-09-28（IT-020 完成）
 
 ## 当前位置
 
-- **宏观**：M5 发布准备 —— ✅ 完成（IT-008：本地 dist + tag v0.1.0；PyPI 后续）
-- **微观**：IT-019 examples 全面中文化 + 本地未合并工作择优吸收 ✅（2026-08-26；
+- **宏观**：M1–M5 全部完成；发布后维护/扩张期（原路线图已走完，暂无 M6 定义）
+- **微观**：IT-020 上游漂移审计 + v0.2.1 发版 ✅（2026-09-28；1.18.21→1.18.33
+  OpenAPI 全量 diff 仅 1 处实质漂移已修，live 11/11，291 绿；
+  本地 tag v0.2.1 已打，push 触发 PyPI 待用户确认）
+- IT-019 examples 全面中文化 + 本地未合并工作择优吸收 ✅（2026-08-26；
   远端 develop 重组后吸收 3 个新脚本、18 个脚本全中文化，`make check` 291 绿）
 - IT-018 CI/CD 基建 ✅（2026-08-24；ci.yml 已上线且首跑绿，
   publish.yml 待 PyPI 绑定后 push tag 即自动发版）
@@ -17,18 +20,21 @@
 - IT-015 project/auth/system 域 ✅（2026-08-24；+10 端点两个新域，+20 测试）
 - IT-014 mcp 域补全 ✅（2026-08-24；+6 端点共 8 方法，+10 测试）
 - IT-013 files 域 ✅（2026-08-24；7 端点，`client.files.*`）
-- **仓库**：tag `v0.1.0` + `v0.2.0`；日常命令走 Makefile（`make check` 全门禁）
+- **仓库**：tag `v0.1.0` + `v0.2.0` + `v0.2.1`（本地）；日常命令走 Makefile（`make check` 全门禁）
 - **里程碑**：🎉 v0.2.0 **已发布到 PyPI + GitHub Release**（2026-08-24）：
   PyPI https://pypi.org/project/opencode-client-python/ ·
   Release https://github.com/comet-7x/opencode-client-python/releases/tag/v0.2.0
   `pip install opencode-client-python` 即装。注意：uv publish 不读 ~/.pypirc，
   免交互发布用 UV_PUBLISH_* 环境变量；建议 token 收紧为项目 scoped。
-- **下一步行动**：需求驱动排期 tui/pty/sync 批次；或开始消费反馈迭代。
+- **下一步行动**：push tag v0.2.1 完成 PyPI 发布闭环（用户确认后）；
+  tui/pty/sync 批次仍需求驱动（pty 需 WebSocket 选型，见 api_coverage.md）；
+  或消费反馈迭代（PyPI 下载量/issue 跟踪）。
   （更正记录：早前「OpenAPI 已无 /mcp/* 路径」备注有误，IT-014 已核实勘误）
 - **备注**：本地 `opencode serve` 统一 Docker 管理（Makefile `docker-*` 目标，
   默认 4096；镜像慢走域名代理 + tag 还原）；examples 按资源域组织为
   功能模块目录（quickstart/sessions/server/events/vcs/mcp/files/projects/client），
-  全部中文教学风格（IT-019）
+  全部中文教学风格（IT-019）；server 兼容口径：**1.18.21+，已验证至 1.18.33**
+  （IT-020 审计，README 双语同步）
 
 ```
 宏观  [█████] M1 ✅ ─ M2 ✅ ── M3 ✅ ── M4 ✅ ── M5 ✅
@@ -73,6 +79,7 @@
 | IT-017 | 核心面收尾（+11 端点，核心资源域 100%；目标面 80/105） | ✅ | 2026-08-24 |
 | IT-018 | CI/CD 基建（ci.yml + publish.yml Trusted Publishing） | ✅ | 2026-08-24 |
 | IT-019 | examples 全面中文化 + 本地 stash 择优吸收（3 新脚本 + 18 中文化 + cli_errors 探针） | ✅ | 2026-08-26 |
+| IT-020 | 上游漂移审计（1.18.21→1.18.33，upgrade_global target 必填）+ v0.2.1 发版 | ✅ | 2026-09-28 |
 
 ## 阻塞 / 风险
 

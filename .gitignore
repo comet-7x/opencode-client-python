@@ -22,3 +22,6 @@ htmlcov/
 
 # 参考仓库（第三方 SDK clone，不参与提交）
 temp/
+
+# live 集成测试 scratch 目录（tests/test_live_server.py 运行期写入，仓库根挂进容器可见）
+.tmp-live/

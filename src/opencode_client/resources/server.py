@@ -144,16 +144,17 @@ class ServerResource(Resource):
         response = self._send("POST", "/global/dispose")
         return validate_response(response, TYPE_ADAPTERS.bool)
 
-    def upgrade_global(self, target: str | None = None) -> dict[str, Any]:
+    def upgrade_global(self, target: str) -> dict[str, Any]:
         """Ask the server to upgrade itself (``POST /global/upgrade``).
 
         Warning: actually restarts/upgrades the opencode binary.
 
         Args:
-            target: Optional version tag to upgrade to.
+            target: Version tag to upgrade to. Required since opencode
+                1.18.33 (earlier servers defaulted to latest when omitted;
+                an explicit target is accepted by both).
         """
-        json_body = {"target": target} if target is not None else None
-        response = self._send("POST", "/global/upgrade", json=json_body)
+        response = self._send("POST", "/global/upgrade", json={"target": target})
         return validate_response(response, TYPE_ADAPTERS.any_dict)
 
     def stream_global_events(
@@ -426,16 +427,17 @@ class AsyncServerResource(AsyncResource):
         response = await self._send("POST", "/global/dispose")
         return validate_response(response, TYPE_ADAPTERS.bool)
 
-    async def upgrade_global(self, target: str | None = None) -> dict[str, Any]:
+    async def upgrade_global(self, target: str) -> dict[str, Any]:
         """Ask the server to upgrade itself (``POST /global/upgrade``).
 
         Warning: actually restarts/upgrades the opencode binary.
 
         Args:
-            target: Optional version tag to upgrade to.
+            target: Version tag to upgrade to. Required since opencode
+                1.18.33 (earlier servers defaulted to latest when omitted;
+                an explicit target is accepted by both).
         """
-        json_body = {"target": target} if target is not None else None
-        response = await self._send("POST", "/global/upgrade", json=json_body)
+        response = await self._send("POST", "/global/upgrade", json={"target": target})
         return validate_response(response, TYPE_ADAPTERS.any_dict)
 
     def stream_global_events(
@@ -657,9 +659,9 @@ class ServerResourceWithRawResponse(Resource):
         """Dispose global server state; return the raw response."""
         return self._send("POST", "/global/dispose")
 
-    def upgrade_global(self, target: str | None = None) -> httpx.Response:
+    def upgrade_global(self, target: str) -> httpx.Response:
         """Ask the server to upgrade itself; return the raw response."""
-        return self._send("POST", "/global/upgrade", json={"target": target} if target is not None else None)
+        return self._send("POST", "/global/upgrade", json={"target": target})
 
     def get_config(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Read the effective configuration; return the raw response."""
@@ -795,9 +797,9 @@ class AsyncServerResourceWithRawResponse(AsyncResource):
         """Dispose global server state; return the raw response."""
         return await self._send("POST", "/global/dispose")
 
-    async def upgrade_global(self, target: str | None = None) -> httpx.Response:
+    async def upgrade_global(self, target: str) -> httpx.Response:
         """Ask the server to upgrade itself; return the raw response."""
-        return await self._send("POST", "/global/upgrade", json={"target": target} if target is not None else None)
+        return await self._send("POST", "/global/upgrade", json={"target": target})
 
     async def get_config(self, directory: str | None = None, workspace: str | None = None) -> httpx.Response:
         """Read the effective configuration; return the raw response."""

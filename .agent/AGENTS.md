@@ -54,6 +54,8 @@ make types              # mypy src/ tests/ + pyright（strict），两者都要�
 # 2. pyproject.toml：version 升级；constants.py 的 DEFAULT_USER_AGENT 同步版本号
 #    ⚠️ README 双语同步检查：README.md 与 README-CN.md 逐节核对
 #    （安装方式/资源方法表/默认值/示例清单），两份必须一致
+#    版本号尺度：按变更面定级——修复/小调整/兼容性适配用 patch，新功能
+#    批次才升 minor（IT-020 用户拍板：pre-1.0 的签名收紧不构成跳 minor 的理由）
 # 3. 质量门禁
 make check
 # 4. 构建 dist（wheel + sdist）
@@ -79,6 +81,7 @@ git push origin develop --tags
 |---|---|
 | v0.1.0 | ✅ 2026-08-22（旧名 `opencode-client`，仅本地 dist + tag） |
 | v0.2.0 | ✅ 2026-08-24 **已上 PyPI**（新名首发）：https://pypi.org/project/opencode-client-python/ ；GitHub Release 同步创建；核心资源域 API 100%，详见 `api_coverage.md` |
+| v0.2.1 | 🔵 2026-09-28 本地发版完成（dist + tag 已打，`make check` 绿）：上游漂移审计 1.18.21→1.18.33、`upgrade_global` target 必填（签名收紧）、CI/CD、3 新示例；push tag 后 publish.yml 自动上 PyPI，**push 待用户确认** |
 
 注意事项：
 - token 属密钥：只放环境变量/keyring，**绝不入库**；建议 scope 收紧到本项目

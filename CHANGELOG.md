@@ -5,6 +5,38 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-09-28
+
+### Changed
+
+- **`upgrade_global(target)` now requires `target`**: opencode 1.18.33 made
+  the request-body `target` field mandatory (an empty body answers HTTP 400).
+  The sync, async and both raw-response views take the required positional
+  keyword; an explicit target is accepted by older servers as well.
+- **Server compatibility audited against opencode 1.18.33**: a full diff of
+  the OpenAPI surface (188 operations, 472 schemas, 94 event schemas) and the
+  live test suite between 1.18.21 and 1.18.33 found no endpoint, event or
+  model drift beyond `upgrade_global` above. The library targets
+  opencode **1.18.21+** and is verified through **1.18.33**.
+
+### Added
+
+- **CI/CD workflows**: GitHub Actions `ci.yml` (same gate as local
+  `make check` on push/PR) and `publish.yml` (tag-driven PyPI publish via
+  Trusted Publishing — pushing a `v*` tag releases).
+- **Three new examples**: `quickstart/quickstart_sync.py` (sync-client
+  primer), `sessions/prompt_options.py` (full prompt parameter surface),
+  `sessions/structured_parts.py` (mixed text/file/subtask parts); example
+  docstrings and comments are now Chinese teaching notes throughout.
+
+### Fixed
+
+- **Live suite no longer depends on Docker file-sharing config**: the two
+  files-domain live tests write their scratch files under the repository
+  root (mounted at `/app` in the container standard) instead of host tmp
+  dirs the server cannot see; the server-side view is overridable via
+  `OPENCODE_LIVE_WORKDIR`.
+
 ## [0.2.0] - 2026-08-24
 
 ### Added
@@ -129,6 +161,7 @@ First public release.
 - **Docker-managed local server**: `make docker-pull/run/tui/stop/logs/health`
   targets (default port 20001).
 
-[Unreleased]: https://github.com/comet-7x/opencode-client-python/compare/v0.2.0...develop
+[Unreleased]: https://github.com/comet-7x/opencode-client-python/compare/v0.2.1...develop
+[0.2.1]: https://github.com/comet-7x/opencode-client-python/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/comet-7x/opencode-client-python/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/comet-7x/opencode-client-python/releases/tag/v0.1.0

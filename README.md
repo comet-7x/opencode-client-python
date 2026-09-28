@@ -26,7 +26,8 @@ API surface.
 ## Requirements
 
 - Python **>= 3.11**
-- A running `opencode serve` process to talk to (see [Running a local server](#running-a-local-server-docker))
+- A running `opencode serve` process to talk to (see [Running a local server](#running-a-local-server-docker)).
+  The client targets opencode **1.18.21+** and is verified against **1.18.33**.
 
 ## Installation
 

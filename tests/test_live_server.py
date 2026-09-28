@@ -9,8 +9,11 @@ default run stays offline and hermetic.
 from __future__ import annotations
 
 import asyncio
+import os
+import shutil
 import threading
 import time
+import uuid
 from collections.abc import Generator
 from contextlib import suppress
 from pathlib import Path
@@ -28,6 +31,28 @@ from opencode_client import (
 )
 
 LIVE_TITLE = "it-008 live stream probe"
+
+REPO_ROOT = Path(__file__).parents[1]
+
+#: How the server sees ``REPO_ROOT``. The Docker compose standard mounts the
+#: repository at ``/app``; for a host-native ``opencode serve`` set
+#: ``OPENCODE_LIVE_WORKDIR`` to the repository path on the server's side.
+LIVE_WORKDIR = os.environ.get("OPENCODE_LIVE_WORKDIR", "/app")
+
+
+def _make_scratch(name: str) -> tuple[str, Path]:
+    """Create a unique scratch dir in the repo; return (server-side view, host path).
+
+    The server cannot see macOS pytest tmp dirs (not shared into the
+    container), so live file probes write under the repository root — mounted
+    into the container by the compose standard — and address it through
+    ``LIVE_WORKDIR``. Paths returned by the server stay relative to the
+    directory either way.
+    """
+    rel = f".tmp-live/{name}-{uuid.uuid4().hex[:8]}"
+    host = REPO_ROOT / rel
+    host.mkdir(parents=True)
+    return f"{LIVE_WORKDIR}/{rel}", host
 
 
 def _no_sleep(seconds: float) -> None:
@@ -175,35 +200,39 @@ class TestLiveReadOnlyDomains:
         # current 必然出现在全量清单里（同一作用域）。
         assert current.id in {p.id for p in projects}
 
-    def test_files_browse(self, live_server: dict[str, Any], tmp_path_factory: pytest.TempPathFactory) -> None:
-        workdir = str(tmp_path_factory.mktemp("live-files"))
-        (Path(workdir) / "live_probe.py").write_text("def hello():\n    return 'world'\n", encoding="utf-8")
-        scope = {"directory": workdir}
-        with OpenCodeClient(**live_server) as client:
-            nodes = client.files.list("", **scope)
-            names = {n.name for n in nodes}
-            assert "live_probe.py" in names
+    def test_files_browse(self, live_server: dict[str, Any]) -> None:
+        directory, host_dir = _make_scratch("files")
+        (host_dir / "live_probe.py").write_text("def hello():\n    return 'world'\n", encoding="utf-8")
+        try:
+            with OpenCodeClient(**live_server) as client:
+                nodes = client.files.list("", directory=directory)
+                names = {n.name for n in nodes}
+                assert "live_probe.py" in names
 
-            content = client.files.read("live_probe.py", **scope)
-            assert content.type == "text"
-            assert "hello" in content.content
+                content = client.files.read("live_probe.py", directory=directory)
+                assert content.type == "text"
+                assert "hello" in content.content
 
-            changes = client.files.status(**scope)
-            assert isinstance(changes, list)
+                changes = client.files.status(directory=directory)
+                assert isinstance(changes, list)
+        finally:
+            shutil.rmtree(host_dir, ignore_errors=True)
 
-    def test_files_search(self, live_server: dict[str, Any], tmp_path_factory: pytest.TempPathFactory) -> None:
-        workdir = str(tmp_path_factory.mktemp("live-search"))
-        (Path(workdir) / "needle.py").write_text("NEEDLE_TOKEN = 1\n", encoding="utf-8")
-        scope = {"directory": workdir}
-        with OpenCodeClient(**live_server) as client:
-            matches = client.files.search_text("NEEDLE_TOKEN", **scope)
-            assert any(m.path.text.endswith("needle.py") for m in matches)
-            assert matches[0].line_number >= 0
-            assert any(sm.match.text == "NEEDLE_TOKEN" for sm in matches[0].submatches)
+    def test_files_search(self, live_server: dict[str, Any]) -> None:
+        directory, host_dir = _make_scratch("search")
+        (host_dir / "needle.py").write_text("NEEDLE_TOKEN = 1\n", encoding="utf-8")
+        try:
+            with OpenCodeClient(**live_server) as client:
+                matches = client.files.search_text("NEEDLE_TOKEN", directory=directory)
+                assert any(m.path.text.endswith("needle.py") for m in matches)
+                assert matches[0].line_number >= 0
+                assert any(sm.match.text == "NEEDLE_TOKEN" for sm in matches[0].submatches)
 
-            # search_files 的可选参数紧跟 query，不能再用 **scope 展开
-            paths = client.files.search_files("needle", directory=workdir)
-            assert any(p.endswith("needle.py") for p in paths)
+                # search_files takes the directory kwarg directly (no scope spread)
+                paths = client.files.search_files("needle", directory=directory)
+                assert any(p.endswith("needle.py") for p in paths)
+        finally:
+            shutil.rmtree(host_dir, ignore_errors=True)
 
     def test_mcp_vcs_formatter(self, live_server: dict[str, Any]) -> None:
         with OpenCodeClient(**live_server) as client:

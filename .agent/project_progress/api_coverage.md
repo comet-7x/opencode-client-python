@@ -1,9 +1,10 @@
 # REST API 覆盖进度表
 
-> 数据源：`.agent/learning_log/get_opencode_api/opencode_rest_api.json`（opencode v1.18.21 导出，188 个操作）。
+> 数据源：`.agent/learning_log/get_opencode_api/opencode_rest_api.json`（opencode v1.18.33 导出，188 个操作；
+> IT-020 审计确认与 1.18.21 基线零面漂移，旧基线存档为同目录 `opencode_rest_api_1.18.21.json`）。
 > 生成方式：解析 `src/opencode_client/resources/*.py` 的 `_send(...)` 调用与 helper 路径，
 > 与 OpenAPI 逐条比对。审计脚本思路见 `temp/api_audit.json`（本地）。
-> 最后更新：2026-08-24（IT-017 后，核心面 100%）
+> 最后更新：2026-09-28（IT-020 审计：数据源升级 1.18.33，面与 1.18.21 一致，覆盖数字不变；核心面 100%）
 
 ## 总览热力图
 

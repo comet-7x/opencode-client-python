@@ -20,7 +20,8 @@
 ## 环境要求
 
 - Python **>= 3.11**
-- 一个运行中的 `opencode serve` 进程（见[本地服务（Docker）](#本地服务docker)）
+- 一个运行中的 `opencode serve` 进程（见[本地服务（Docker）](#本地服务docker)）。
+  客户端面向 opencode **1.18.21+**，已验证至 **1.18.33**。
 
 ## 安装
 

@@ -12,9 +12,24 @@
 | M2 核心功能 | 会话/消息/事件流核心链路 + 真实服务端到端验证 | ✅ 完成（IT-002）|
 | M3 功能扩张 | 按使用场景补齐端点：权限/问答交互（IT-005）、vcs/skill/MCP 基础（IT-006）；工程化：地基 IT-003 + sync/async 对等 IT-004（余下候选 share/MCP 连接流留后续） | ✅ 完成 |
 | M4 测试强化 | 关键路径补充集成测试、事件流断连重连验证（含自动重连实现）、边界用例 | ✅ 完成（IT-007）|
-| M5 发布准备 | README 使用文档、CHANGELOG、版本号策略、打包验证（sdist+wheel）| ⬜ 未开始 |
+| M5 发布准备 | README 使用文档、CHANGELOG、版本号策略、打包验证（sdist+wheel）| ✅ 完成（IT-008 本地发版；v0.2.0 起上 PyPI，v0.2.1 见下方发版记录）|
+
+发布后进入维护/扩张期（原五阶段路线图已走完，暂无 M6 定义）：需求驱动的
+tui/pty/sync 批次、上游漂移定期审计（IT-020 起）、消费反馈跟进。
 
 ## 关键记录
+
+### 2026-09-28 — IT-020 上游漂移审计（1.18.22 → 1.18.33）+ v0.2.1 发版
+- **审计结论**：OpenAPI 全量 diff（188 操作/472 schema/94 Event*，1.18.21
+  导出 vs 1.18.33 导出）零增删；实质漂移仅 `POST /global/upgrade` 的
+  `target` 变必填（`ProviderConfig` 仅描述措辞，零影响）；live 11 用例 +
+  端点级 curl A/B 均确认行为面稳定。
+- **修复**：`upgrade_global(target)` 改必填（sync/async/raw×2 四类对齐）；
+  live files 用例摆脱 Docker 文件共享依赖（仓库根 scratch +
+  `OPENCODE_LIVE_WORKDIR`，此前依赖 `/private` 共享属环境漂移）。
+- **口径**：README 双语声明「opencode 1.18.21+，已验证至 1.18.33」；
+  OpenAPI 权威源升级为 1.18.33 导出（旧基线存档）。
+- 结果：`make check` 全绿 291 passed / 33 skipped / cov 90.70%；dist 0.2.1。
 
 ### 2026-08-24 — IT-011 session 域补全（11 端点 ×4 类）
 - sessions 15 → **26 方法**：`status`/`children`/`list_todos`/`diff`/
@@ -211,6 +226,11 @@
   PyPI 网络间歇 TLS 失败（影响 `uv build`）
 
 ## 发版记录
+
+### v0.2.1 — 2026-09-28（本地 dist + tag；push 后由 publish.yml 上 PyPI）
+- 内容：`upgrade_global` target 必填（随上游 1.18.33）、CI/CD workflows
+  （ci.yml/publish.yml）、3 个新 examples、live files 用例可移植性修复；
+  兼容口径 1.18.21+ / 已验证至 1.18.33（详见 CHANGELOG [0.2.1] 与 IT-020）。
 
 ### v0.1.0 — 2026-08-22（本地 dist + git tag）
 - 发布形式：`uv build` 产出 `dist/opencode_client-0.1.0-py3-none-any.whl` +
