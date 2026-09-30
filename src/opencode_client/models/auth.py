@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypeAlias
 
 import pydantic
 from pydantic import Field
@@ -50,7 +50,7 @@ class WellKnownCredentials(OpencodeModel):
 
 
 #: Discriminated union of the three ``PUT /auth`` credential shapes.
-AuthCredentials = Annotated[
+AuthCredentials: TypeAlias = Annotated[
     OAuthCredentials | ApiKeyCredentials | WellKnownCredentials,
     pydantic.Field(discriminator="type"),
 ]

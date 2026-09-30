@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, cast
+from typing import Annotated, Any, Literal, TypeAlias, cast
 
 import pydantic
 from pydantic import Field, model_validator
@@ -90,7 +90,7 @@ class ProviderAuthPromptSelect(OpencodeModel):
 
 
 #: Discriminated union of the two prompt shapes (discriminator ``type``).
-ProviderAuthPrompt = Annotated[
+ProviderAuthPrompt: TypeAlias = Annotated[
     ProviderAuthPromptText | ProviderAuthPromptSelect,
     pydantic.Field(discriminator="type"),
 ]

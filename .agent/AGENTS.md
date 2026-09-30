@@ -154,7 +154,10 @@ temp/repositories/ # 参考仓库（见上）
   只写「send + validate」。**
 - **加新模型**：放进 `models/<实体>.py`，继承 `OpencodeModel`，在 `models/__init__.py`
   的 import + `__all__` 注册。资源层只 import 公开名（`from ..models import Session`），
-  不 import 子模块路径。
+  不 import 子模块路径。可辨识联合别名一律带显式 `TypeAlias` 注解
+  （`Message: TypeAlias = Annotated[A | B, pydantic.Field(discriminator=...)]`），
+  禁止裸赋值隐式别名——IDE 悬停才能展开联合类型，检查器也按声明别名处理
+  （PEP 613）。
 - **加新端点必须同步加 `*WithRawResponse` 代理**（镜像全部方法、签名一致、成功返回
   未解析 `httpx.Response`；`stream_events` 无 raw 变体）；
   `tests/test_raw_response.py` 的镜像一致性锁把守。
