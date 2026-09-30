@@ -161,12 +161,15 @@ class ServerResource(Resource):
         self,
         max_reconnect_attempts: int | None = None,
     ) -> EventStream:
-        """Open the global SSE stream (``GET /global/event``) as an async context manager.
+        """Open the global SSE stream (``GET /global/event``) as a context manager.
 
-        Events arrive wrapped in a GlobalEvent envelope
-        (``directory``/``project``/``workspace``/``payload``) spanning all
-        instances the server hosts; see
-        :class:`~opencode_client.GlobalEvent` for the loose shape.
+        The stream decoder only types the six hot instance events, so
+        global frames arrive as base :class:`Event` objects (``type``
+        ``"unknown"``-style envelopes degrade rather than break); the
+        original ``GlobalEvent`` envelope
+        (``directory``/``project``/``workspace``/``payload``) is preserved
+        under ``properties["raw"]``.  Recover the typed shape with
+        ``GlobalEvent.model_validate(event.properties["raw"])``.
         """
         from ..sse import EventStream
 
@@ -446,10 +449,13 @@ class AsyncServerResource(AsyncResource):
     ) -> AsyncEventStream:
         """Open the global SSE stream (``GET /global/event``) as an async context manager.
 
-        Events arrive wrapped in a GlobalEvent envelope
-        (``directory``/``project``/``workspace``/``payload``) spanning all
-        instances the server hosts; see
-        :class:`~opencode_client.GlobalEvent` for the loose shape.
+        The stream decoder only types the six hot instance events, so
+        global frames arrive as base :class:`Event` objects (``type``
+        ``"unknown"``-style envelopes degrade rather than break); the
+        original ``GlobalEvent`` envelope
+        (``directory``/``project``/``workspace``/``payload``) is preserved
+        under ``properties["raw"]``.  Recover the typed shape with
+        ``GlobalEvent.model_validate(event.properties["raw"])``.
         """
         from ..sse import AsyncEventStream
 

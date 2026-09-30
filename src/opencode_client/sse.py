@@ -97,7 +97,9 @@ class SSEDecoder:
         try:
             raw: dict[str, Any] = json.loads(data)
         except ValueError:
-            raw = {"type": "message", "properties": {"raw": data}}
+            # Non-JSON frame: degrade like the schema-drift path below
+            # instead of inventing a "message" type nothing dispatches on.
+            return Event(type="unknown", properties={"raw": data})
         try:
             return typed_event(raw)
         except ValidationError:

@@ -5,7 +5,7 @@ from typing import Any, Literal
 from .base import OpencodeModel
 from .session import PermissionRuleset
 
-__all__ = ["Agent", "Command", "Health", "Model", "Provider", "ProviderList", "ServerConfig", "Skill"]
+__all__ = ["Agent", "Command", "Health", "Model", "Provider", "ProviderList", "Skill"]
 
 
 class Model(OpencodeModel):
@@ -43,16 +43,6 @@ class Health(OpencodeModel):
 
     healthy: Literal[True]
     version: str
-
-
-class ServerConfig(OpencodeModel):
-    """The server's own configuration (port, hostname, mDNS, CORS)."""
-
-    port: int | None = None
-    hostname: str | None = None
-    mdns: bool | None = None
-    mdns_domain: str | None = None
-    cors: list[str] | None = None
 
 
 class Command(OpencodeModel):

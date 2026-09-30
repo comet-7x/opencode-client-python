@@ -22,7 +22,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any, cast
 
-from pydantic import model_validator
+from pydantic import ValidationError, model_validator
 
 from .base import OpencodeModel
 from .interaction import PermissionRequest, QuestionRequest
@@ -220,8 +220,11 @@ class PermissionAskedEvent(_TypedEvent):
     session_id: str
     permission: str
     patterns: list[str]
-    metadata: dict[str, Any] = {}
-    always: list[str] = []
+    # Required per the OpenAPI event schema, same as PermissionRequest; a
+    # payload missing either degrades to the base Event in typed_event
+    # instead of yielding a typed event whose .request would raise.
+    metadata: dict[str, Any]
+    always: list[str]
     tool: dict[str, str] | None = None
 
     @property
@@ -271,5 +274,7 @@ def typed_event(raw: dict[str, Any]) -> Event:
         return event
     try:
         return cls.model_validate(raw)
-    except Exception:
+    except ValidationError:
+        # Schema drift is the documented fallback trigger; any other
+        # exception is a bug in our own models and must surface.
         return event

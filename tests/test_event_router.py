@@ -173,6 +173,13 @@ class TestTypedEvent:
         }
         assert type(typed_event(raw)) is Event
 
+    def test_permission_asked_missing_required_degrades_to_base(self) -> None:
+        # metadata/always are required per the OpenAPI event schema; a
+        # payload without them must degrade instead of yielding a typed
+        # event whose .request would raise.
+        raw = {"type": "permission.asked", "properties": {"id": "per_1", "sessionID": "ses_1"}}
+        assert type(typed_event(raw)) is Event
+
 
 class TestSSEDecodeHook:
     def test_iter_events_upgrades_hot_and_keeps_unknown(self) -> None:
@@ -200,7 +207,7 @@ class TestSSEDecodeHook:
         decoder = SSEDecoder()
         events = list(decoder.iter_events(iter(["data: not-json", ""])))
         assert type(events[0]) is Event
-        assert events[0].type == "message"
+        assert events[0].type == "unknown"
 
 
 class _FakeAsyncStream:

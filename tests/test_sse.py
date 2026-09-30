@@ -45,11 +45,12 @@ class TestSSEDecoder:
         events = list(decoder.iter_events(iter([raw])))
         assert [e.type for e in events] == ["eof"]
 
-    def test_non_json_data_wrapped(self) -> None:
+    def test_non_json_data_degrades_to_unknown(self) -> None:
         decoder = SSEDecoder()
         events = list(decoder.iter_events(iter(["data: not-json", ""])))
         assert len(events) == 1
-        assert events[0].type == "message"
+        assert events[0].type == "unknown"
+        assert events[0].properties == {"raw": "not-json"}
 
     def test_event_model_defaults(self) -> None:
         event = Event.model_validate({"type": "session.created"})

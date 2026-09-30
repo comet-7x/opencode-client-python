@@ -51,7 +51,8 @@ make types              # mypy src/ tests/ + pyright（strict），两者都要�
 
 ```sh
 # 1. CHANGELOG.md：[Unreleased] 改成 [x.y.z] - 日期，并补 compare 链接（发版说明底稿）
-# 2. pyproject.toml：version 升级；constants.py 的 DEFAULT_USER_AGENT 同步版本号
+# 2. pyproject.toml：version 升级；constants.py 的 DEFAULT_USER_AGENT 与
+#    __init__.py 的 __version__ 同步版本号（三处一起核对，缺一就会对外报旧版本）
 #    ⚠️ README 双语同步检查：README.md 与 README-CN.md 逐节核对
 #    （安装方式/资源方法表/默认值/示例清单），两份必须一致
 #    版本号尺度：按变更面定级——修复/小调整/兼容性适配用 patch，新功能

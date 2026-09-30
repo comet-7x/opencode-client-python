@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from .auth import ApiKeyCredentials, AuthCredentials, OAuthCredentials, WellKnownCredentials
 from .base import OpencodeModel
-from .discover import Agent, Command, Health, Model, Provider, ProviderList, ServerConfig, Skill
+from .discover import Agent, Command, Health, Model, Provider, ProviderList, Skill
 from .event import (
     EVENT_CATALOG,
     Event,
@@ -239,7 +239,6 @@ __all__ = [
     "QuestionTool",
     "ReasoningPart",
     "RetryPart",
-    "ServerConfig",
     "GlobalEvent",
     "ServerPaths",
     "Session",

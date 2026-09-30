@@ -63,6 +63,11 @@ class TestBackoffSchedule:
         response = httpx.Response(429, headers={"Retry-After": "7"})
         assert _backoff_seconds(1, response) == 7.0
 
+    def test_retry_after_is_capped(self) -> None:
+        # one header must not be able to stall the caller for minutes
+        response = httpx.Response(429, headers={"Retry-After": "3600"})
+        assert _backoff_seconds(1, response) == 60.0
+
     def test_non_numeric_retry_after_falls_back(self) -> None:
         response = httpx.Response(429, headers={"Retry-After": "2026-08-22T00:00:00Z"})
         assert _backoff_seconds(1, response) == 0.5

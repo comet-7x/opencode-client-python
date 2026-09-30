@@ -5,6 +5,42 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`__version__` now reports the released version**: the module attribute
+  stayed at `0.1.0` while `pyproject.toml` and the User-Agent said `0.2.1`
+  (PR #1 review R1-01). The release checklist now lists all three sync
+  points together.
+- **Non-JSON SSE data frames degrade to `Event(type="unknown")`** instead
+  of faking a `type="message"` event no consumer dispatches on (R1-02);
+  both degradation paths in `SSEDecoder` are now consistent.
+- **`typed_event` falls back only on `ValidationError`**: schema drift is
+  the documented degradation trigger; programming errors inside payload
+  construction now surface instead of being silently swallowed (R1-03).
+- **`PermissionAskedEvent` requires `metadata`/`always`**, matching the
+  `PermissionRequest` model and the OpenAPI event schema; a payload missing
+  either now degrades to the base `Event` instead of yielding a typed event
+  whose `.request` raised `ValidationError` (R1-05).
+- **`Retry-After` is capped at 60 seconds** so a single response header
+  cannot stall the client for minutes (R1-06).
+
+### Removed
+
+- **`ServerConfig` is no longer exported**: no endpoint returns that shape
+  (`GET /config` returns the loose instance config) and nothing consumed it
+  (R1-08).
+
+### Changed
+
+- `stream_global_events` docstrings (sync + async) now state that iteration
+  yields base `Event` objects — the original `GlobalEvent` envelope lands
+  in `properties["raw"]`, recoverable via `GlobalEvent.model_validate` —
+  instead of implying typed `GlobalEvent` yields (R1-04).
+- Duplicate `Programming Language :: Python :: 3.12` classifier removed
+  from `pyproject.toml` (R1-07).
+
 ## [0.2.1] - 2026-09-28
 
 ### Changed

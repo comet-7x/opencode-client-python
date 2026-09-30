@@ -59,6 +59,10 @@ __all__ = ["AsyncOpenCodeClient", "OpenCodeClient"]
 #: are retried after transport failures.
 _IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE", "PUT", "DELETE"})
 
+#: Upper bound on a server-provided ``Retry-After`` delay; a single
+#: response header must not be able to stall the caller for minutes.
+_RETRY_AFTER_CAP_SECONDS = 60.0
+
 #: Timeout type accepted by the clients: a scalar applied to every phase,
 #: or per-phase control via :class:`httpx.Timeout`.
 TimeoutValue = float | httpx.Timeout
@@ -171,7 +175,7 @@ def _backoff_seconds(attempt: int, response: httpx.Response | None = None) -> fl
 
     Exponential backoff: 0.5s, 1s, 2s ... capped at 8s.  A ``Retry-After``
     header wins when present — both the delta-seconds and HTTP-date forms
-    are accepted.
+    are accepted, capped at 60s so one header cannot stall the caller.
 
     Args:
         attempt: The 1-based retry index (1 = wait before the 2nd attempt).
@@ -185,7 +189,7 @@ def _backoff_seconds(attempt: int, response: httpx.Response | None = None) -> fl
         if retry_after is not None:
             parsed = _retry_after_seconds(retry_after)
             if parsed is not None:
-                return parsed
+                return min(parsed, _RETRY_AFTER_CAP_SECONDS)
     backoff: float = min(0.5 * (2.0 ** (attempt - 1)), 8.0)
     return backoff
 

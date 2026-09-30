@@ -116,7 +116,6 @@ from .models import (
     QuestionTool,
     ReasoningPart,
     RetryPart,
-    ServerConfig,
     Session,
     SessionFileDiff,
     SessionIdleEvent,
@@ -195,7 +194,7 @@ from .models.system import (
 from .router import AsyncEventRouter, EventRouter
 from .sse import AsyncEventStream, EventStream, SSEDecoder
 
-__version__ = "0.1.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "Agent",
@@ -306,7 +305,6 @@ __all__ = [
     "ReasoningPart",
     "RetryPart",
     "SSEDecoder",
-    "ServerConfig",
     "Session",
     "SessionFileDiff",
     "SessionIdleEvent",
