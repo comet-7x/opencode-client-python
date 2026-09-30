@@ -1,0 +1,38 @@
+name: Publish
+
+# push 一个 v* tag 即自动构建并发布到 PyPI（Trusted Publishing，OIDC 免密钥）。
+# 前提：PyPI 项目页已绑定本仓库的 publish.yml workflow（一次性配置）。
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      # PyPI Trusted Publishing 通过 OIDC 校验工作流身份
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+
+      - name: Verify tag matches pyproject version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PROJ="$(uv --directory . version --short 2>/dev/null || sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)"
+          if [ "$TAG" != "$PROJ" ]; then
+            echo "::error::tag v$TAG != pyproject version $PROJ"
+            exit 1
+          fi
+          echo "version check ok: $TAG"
+
+      - name: Build distributions
+        run: uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

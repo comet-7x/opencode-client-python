@@ -1,0 +1,111 @@
+# 📋 任务看板
+
+ > 每次工作前看这里；每次完成后更新这里。最后更新：2026-09-28（IT-020 完成）
+
+## 当前位置
+
+- **宏观**：M1–M5 全部完成；发布后维护/扩张期（原路线图已走完，暂无 M6 定义）
+- **微观**：IT-020 上游漂移审计 + v0.2.1 发版 🟡（2026-09-28；1.18.21→1.18.33
+  OpenAPI 全量 diff 仅 1 处实质漂移已修，live 11/11，291 绿；tag/CI/
+  GitHub Release 已就绪并推远端，**PyPI 暂缓**：Publish workflow 因
+  Trusted Publishing 未绑定失败（invalid-publisher，run 36431671716），
+  绑定后 `gh run rerun` 即闭环）
+- IT-019 examples 全面中文化 + 本地未合并工作择优吸收 ✅（2026-08-26；
+  远端 develop 重组后吸收 3 个新脚本、18 个脚本全中文化，`make check` 291 绿）
+- IT-018 CI/CD 基建 ✅（2026-08-24；ci.yml 已上线且首跑绿，
+  publish.yml 待 PyPI 绑定后 push tag 即自动发版）
+- IT-017 核心面收尾 ✅（2026-08-24；+11 端点，核心资源域 **100%**；
+  目标面 80/105=76%；305 passed；live_sweep 70 项 57P/0F）
+- IT-016 覆盖率+live 扩域 ✅（2026-08-24；src 91.4% 门禁 90%；
+  examples 场景覆盖 69/69；live 单测 11 用例零漂移；**全端点扫描 62 项
+  53P/1W/8S/0F 对真实 1.18.22**，工具 `temp/live_sweep.py` 不入库）
+- IT-015 project/auth/system 域 ✅（2026-08-24；+10 端点两个新域，+20 测试）
+- IT-014 mcp 域补全 ✅（2026-08-24；+6 端点共 8 方法，+10 测试）
+- IT-013 files 域 ✅（2026-08-24；7 端点，`client.files.*`）
+- **仓库**：tag `v0.1.0` + `v0.2.0` + `v0.2.1`（v0.2.1 已推远端，CI 绿）；日常命令走 Makefile（`make check` 全门禁）
+- **里程碑**：🎉 v0.2.0 **已发布到 PyPI + GitHub Release**（2026-08-24）：
+  PyPI https://pypi.org/project/opencode-client-python/ ·
+  Release https://github.com/comet-7x/opencode-client-python/releases/tag/v0.2.0
+  `pip install opencode-client-python` 即装。注意：uv publish 不读 ~/.pypirc，
+  免交互发布用 UV_PUBLISH_* 环境变量；建议 token 收紧为项目 scoped。
+- **下一步行动**：①完成 v0.2.1 PyPI 上传：PyPI 项目页 Settings → Publishing
+  绑定（owner comet-7x / repo opencode-client-python / workflow `publish.yml` /
+  environment 留空）后 `gh run rerun 36431671716`，或手动 `UV_PUBLISH_*` +
+  `uv publish`，成功后 AGENTS 发版表 v0.2.1 翻 ✅；
+  ②tui/pty/sync 批次仍需求驱动（pty 需 WebSocket 选型，见 api_coverage.md）；
+  或消费反馈迭代（PyPI 下载量/issue 跟踪）。
+  （更正记录：早前「OpenAPI 已无 /mcp/* 路径」备注有误，IT-014 已核实勘误）
+- **备注**：本地 `opencode serve` 统一 Docker 管理（Makefile `docker-*` 目标，
+  默认 4096；镜像慢走域名代理 + tag 还原）；examples 按资源域组织为
+  功能模块目录（quickstart/sessions/server/events/vcs/mcp/files/projects/client），
+  全部中文教学风格（IT-019）；server 兼容口径：**1.18.21+，已验证至 1.18.33**
+  （IT-020 审计，README 双语同步）
+
+```
+宏观  [█████] M1 ✅ ─ M2 ✅ ── M3 ✅ ── M4 ✅ ── M5 ✅
+ 微观  [██████████] IT-001 ✅ … IT-012 ✅  IT-013 ✅  IT-014 ✅  IT-015 ✅  IT-016 ✅
+```
+
+## API 覆盖进度
+
+见 [`api_coverage.md`](./api_coverage.md)：188 操作，剔除 /api+/experimental
+后目标面 105 个已覆盖 69 个（66%）；核心资源域 100%，尾巴 11 个 + tui/pty/sync 未做。
+
+## 宏观里程碑（详见 macro/ROADMAP.md）
+
+| 里程碑 | 主题 | 状态 |
+|---|---|---|
+| M1 | 奠基：结构 + 工具链 + AGENTS.md | ✅ |
+| M2 | 核心功能：会话/消息/事件流 + 真实验证 | ✅ |
+| M3 | 功能扩张：补齐端点 + 工程化（IT-003 地基 ✅ / IT-004 双客户端 ✅ / IT-005 permission+question ✅ / IT-006 vcs+skill+MCP ✅） | ✅ |
+| M4 | 测试强化：集成/断连重连/边界（IT-007：SSE 自动重连 + 请求重试补全 + 真实 server 集成 + 边界用例） | ✅ |
+| M5 | 发布准备：README/CHANGELOG/版本号/打包 | ✅（v0.1.0 本地 dist + tag；PyPI 因名称占用后续） |
+
+## 微观迭代（详见 iterations/）
+
+| 迭代 | 主题 | 状态 | 日期 |
+|---|---|---|---|
+| IT-001 | 项目奠基 | ✅ | 2026-08-21 |
+| IT-002 | 核心功能：会话/消息/事件流 | ✅ | 2026-08-22 |
+| IT-003 | 工程化重构：目录/examples/规范 | ✅ | 2026-08-22 |
+| IT-004 | 同步客户端 + 官方 SDK 优势吸收 | ✅ | 2026-08-22 |
+| IT-005 | permission/question 交互闭环 | ✅ | 2026-08-22 |
+| IT-006 | vcs / summary / skill / MCP 基础端点 | ✅ | 2026-08-22 |
+| IT-007 | M4 测试强化：SSE 自动重连 + 重试/集成/边界测试 | ✅ | 2026-08-22 |
+| IT-008 | M5 发布准备：LICENSE/CHANGELOG/打包/发版（本地 dist + tag v0.1.0） | ✅ | 2026-08-22 |
+| IT-009 | with_raw_response 裸响应视图：8 个 raw 代理类 + 镜像一致性锁 + 示例 | ✅ | 2026-08-23 |
+| IT-010 | 事件 Router + 类型化热事件：`EventType` 开放集 + 6 热事件子类 + `AsyncEventRouter`/`EventRouter` | ✅ | 2026-08-23 |
+| IT-011 | session 域补全：status/children/todo/diff/revert/unrevert/init/command/shell/part 编辑（11 端点×4 类） | ✅ | 2026-08-24 |
+| IT-012 | code review 问题修复：默认超时/重试幂等/Router 超时语义/异常分层 + 6 Low + 1 Info | ✅ | 2026-08-24 |
+| IT-013 | files 域：list/read/status + search_text/files/symbols + formatter（7 端点×4 类） | ✅ | 2026-08-24 |
+| IT-014 | mcp 域补全：OAuth start/callback/authenticate/remove + connect/disconnect（6 端点×4 类） | ✅ | 2026-08-24 |
+| IT-015 | project/auth 域 + server 补 get_paths/lsp_status/write_log（10 端点） | ✅ | 2026-08-24 |
+| IT-016 | 覆盖率+live 扩域（src 91.4%；全端点扫描 62 项 0F） | ✅ | 2026-08-24 |
+| IT-017 | 核心面收尾（+11 端点，核心资源域 100%；目标面 80/105） | ✅ | 2026-08-24 |
+| IT-018 | CI/CD 基建（ci.yml + publish.yml Trusted Publishing） | ✅ | 2026-08-24 |
+| IT-019 | examples 全面中文化 + 本地 stash 择优吸收（3 新脚本 + 18 中文化 + cli_errors 探针） | ✅ | 2026-08-26 |
+| IT-020 | 上游漂移审计（1.18.21→1.18.33，upgrade_global target 必填）+ v0.2.1 发版 | 🟡 PyPI 暂缓 | 2026-09-28 |
+
+## 阻塞 / 风险
+
+- ⚠️ PyPI 名称占用：`opencode-client` 已被第三方（v0.1.1）占用，后续公共发布
+  需换名（已探明可用：`opencode-client-python` 等，import 名不受影响）
+- ⚠️ 本机 uv python 3.12.13 缺 `collections.abc.AsyncContextManager` → 建议 `uv python install 3.12`
+- ⚠️ 真实服务 provider 名会变（`steins-middleware` → `steins-middleware-vllm`），smoke 脚本须用 `list_providers().connected` 探测，不要硬编码
+- ⚠️ 本机透明代理会把 localhost 死端口变成"超时/502 拦截"而非立即拒绝
+  （IT-019 踩坑）：`examples/test_cli_errors.py` 已带探针自动整模块 skip，
+  CI（Linux）照常跑；不要改回"假定立即拒绝"的写法
+
+## 待决事项
+
+- [x] M3 第一批先做什么 → 先做 IT-003 工程化地基（用户拍板）
+- [x] 是否需要 sync 客户端 → 需要，IT-004 已交付（OpenCodeClient=sync / AsyncOpenCodeClient=async）
+- [x] 端点优先级确认（permission/question ✅ IT-005 / vcs+skill+MCP 基础 ✅ IT-006；
+      余下候选：MCP connect/disconnect/auth 流、share、with_raw_response）
+- [x] 是否补 `with_raw_response`（返回原始 httpx.Response）→ IT-009 已交付
+      （官方同款代理前缀形态，镜像一致性锁把守）
+- [x] M4 集成/断连重连测试 → IT-007 已交付（live 套件 `--live-url` 开关）
+- [x] 发布渠道 → v0.1.0 本地 dist + git tag（用户拍板）；PyPI 后续（名称
+      `opencode-client` 被第三方占用，需换名，如 `opencode-client-python`）
+- [x] IT-012 L6：examples 中文注释 → 用户拍板：AGENTS.md 显式豁免教学注释
+      （已落地，见 `.agent/AGENTS.md` 注释风格节）

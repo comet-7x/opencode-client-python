@@ -1,0 +1,312 @@
+# opencode-client-python
+
+A lightweight Python client for the [opencode](https://opencode.ai) server.
+Connect to an `opencode serve` process and drive it programmatically:
+manage sessions, send prompts, inspect messages, answer permission/question
+prompts, inspect VCS state, manage MCP servers, and consume the live event
+stream — with both **synchronous** and **asynchronous** clients sharing one
+API surface.
+
+- **Typed responses**: every endpoint is parsed into a pydantic v2 model
+  (the server's camelCase / uppercase-`ID` wire fields map to `snake_case`
+  attributes automatically).
+- **Resilient**: automatic retries with exponential backoff for 429 / 5xx /
+  connection errors (honors `Retry-After`), plus a layered exception
+  hierarchy so you can catch exactly what you need.
+- **Live streams**: the `/event` SSE endpoint is exposed as an iterable with
+  built-in auto-reconnection (drops are retried with backoff; a clean EOF
+  ends the iteration).
+- **Sync + async parity**: `OpenCodeClient` and `AsyncOpenCodeClient` have
+  identical method signatures — the async one just adds `await`.
+- **Deliberately small**: no code generation, no heavyweight runtime —
+  a handful of small modules wrapping `httpx`.
+
+> 🇨🇳 中文文档见 [README-CN.md](README-CN.md)
+
+## Requirements
+
+- Python **>= 3.11**
+- A running `opencode serve` process to talk to (see [Running a local server](#running-a-local-server-docker)).
+  The client targets opencode **1.18.21+** and is verified against **1.18.33**.
+
+## Installation
+
+```sh
+pip install opencode-client-python
+```
+
+Or from source:
+
+```sh
+git clone https://github.com/comet-7x/opencode-client-python.git
+cd opencode-client-python
+pip install .            # or: uv pip install .
+```
+
+For development (tests, linters, type checkers):
+
+```sh
+make install             # = uv sync, editable install + dev tools
+```
+
+## Quick start
+
+> Prerequisite: a running `opencode serve` (default `http://127.0.0.1:4096`,
+> or start one via Docker — see [Running a local server](#running-a-local-server-docker)).
+
+### Async
+
+```python
+import asyncio
+from opencode_client import AsyncOpenCodeClient
+
+
+async def main() -> None:
+    async with AsyncOpenCodeClient("http://127.0.0.1:4096") as client:
+        print((await client.server.health()).version)
+        session = await client.sessions.create()
+        reply = await client.sessions.prompt(session.id, "Hello!")
+        print([p.text for p in reply.parts if p.type == "text"])
+
+
+asyncio.run(main())
+```
+
+### Sync
+
+```python
+from opencode_client import OpenCodeClient
+
+with OpenCodeClient("http://127.0.0.1:4096") as client:
+    print(client.server.health().version)
+    session = client.sessions.create()
+    reply = client.sessions.prompt(session.id, "Hello!")
+```
+
+Client options: `base_url` (required), `username` / `password` (Basic auth,
+optional), `timeout` (scalar seconds or an `httpx.Timeout`; the default allows
+60 s to read a response but only 5 s to connect — blocking calls like
+`sessions.prompt()` wait for a whole LLM turn), and `max_retries`
+(default 2). Use `client.with_options(...)` to derive a new client that
+overrides only the settings you pass.
+
+**Next steps** — the two most common follow-ups:
+
+```python
+# watch a turn live (SSE, auto-reconnect)
+async with client.server.stream_events() as stream:
+    async for event in stream.aiter_events():
+        if event.type == "session.idle":
+            break
+
+# read a file from the server's worktree
+content = await client.files.read("README.md")
+print(content.text if content.type == "text" else content.encoding)
+```
+
+Then browse the [resource groups](#resource-groups) table,
+[examples/](examples/) for runnable walkthroughs of all 69 methods, and
+[error handling](#error-handling) for the exception hierarchy.
+
+## Resource groups
+
+The API is grouped by endpoint domain under the client:
+
+| Group | Methods |
+|---|---|
+| `client.sessions.*` | `list_sessions` `create` `get` `get_message` `update` `delete` `fork` `abort` `share` `unshare` `summarize` `respond_permission` `list_messages` `delete_message` `update_part` `delete_part` `prompt` `prompt_async` `command` `shell` `init` `diff` `revert` `unrevert` `list_todos` `children` `status` |
+| `client.server.*` | `health` `get_config` `update_config` `get_global_config` `update_global_config` `list_providers` `list_agents` `list_commands` `list_skills` `list_permissions` `reply_permission` `list_questions` `reply_question` `reject_question` `get_paths` `lsp_status` `write_log` `dispose_instance` `dispose_global` `upgrade_global` `stream_events` `stream_global_events` |
+| `client.vcs.*` | `info` `status` `diff` `diff_raw` `apply` |
+| `client.mcp.*` | `status` `add` `start_oauth` `complete_oauth` `authenticate` `remove_oauth` `connect` `disconnect` |
+| `client.files.*` | `list` `read` `status` `search_text` `search_files` `search_symbols` `formatter_status` |
+| `client.projects.*` | `list` `current` `update` `directories` `git_init` |
+| `client.auth.*` | `set_credentials` `remove_credentials` `provider_auth_methods` `start_provider_oauth` `complete_provider_oauth` |
+
+Most methods take optional `directory` / `workspace` scoping query params
+passed as plain keyword arguments. The core resource surface is **100%
+covered** (see `.agent/project_progress/api_coverage.md`); what remains
+(`tui` / `pty` / `sync`) is intentionally deferred.
+
+## Error handling
+
+Non-2xx responses raise from a single hierarchy rooted at `OpenCodeError`:
+
+```
+OpenCodeError
+├── OpenCodeApiError            (status_code + payload)
+│   ├── OpenCodeAuthenticationError   (401)
+│   ├── OpenCodePermissionError       (403)
+│   ├── OpenCodeNotFoundError         (404)
+│   ├── OpenCodeConflictError         (409)
+│   ├── OpenCodeUnprocessableEntityError (422)
+│   ├── OpenCodeRateLimitError        (429)
+│   └── OpenCodeServerError           (5xx)
+├── OpenCodeResponseError       (2xx body failed schema validation;
+│                                wraps pydantic.ValidationError)
+└── OpenCodeTransportError        (no HTTP response at all)
+    ├── OpenCodeServerConnectionError
+    └── OpenCodeTimeoutError
+```
+
+```python
+from opencode_client import OpenCodeApiError, OpenCodeNotFoundError, OpenCodeTransportError
+
+try:
+    session = await client.sessions.get("ses_missing")
+except OpenCodeNotFoundError as exc:
+    print(f"missing: {exc.status_code}")
+except OpenCodeApiError as exc:
+    print(exc.status_code, exc.payload)
+except OpenCodeTransportError as exc:
+    print("server unreachable:", exc)
+```
+
+Transient failures (429 / 5xx / connection errors) are retried automatically
+`max_retries` times with exponential backoff before raising.
+
+## Event stream (SSE)
+
+`server.stream_events()` opens the `/event` stream as a context manager;
+iterate decoded `Event` objects with automatic reconnection:
+
+```python
+async with client.server.stream_events() as stream:
+    async for event in stream.aiter_events():
+        print(event.type, event.properties)
+        if event.type == "session.idle":
+            break
+```
+
+Reconnection semantics: only **transport errors** trigger a retry (exponential
+backoff 0.5 s → 8 s, budget `max_reconnect_attempts`, reset on any received
+line); a clean EOF ends the iteration. `prompt_async` + `stream_events` is
+the standard pattern for watching a turn live. A global variant,
+`stream_global_events()`, opens the `/global/event` stream whose frames span
+all instances the server hosts (loose `GlobalEvent` envelope; unmatched shapes
+degrade to base events — the stream never breaks).
+
+### Typed hot events & the event router
+
+Instead of branching on `event.type` and digging through the `properties`
+dict, frequently consumed event types arrive as typed subclasses
+(`message.part.updated` → `event.part: Part`, `message.part.delta`,
+`message.updated`, `session.idle`, `permission.asked`, `question.asked`).
+Unknown types and payloads that no longer validate degrade to the base
+`Event`, so the stream never breaks.
+
+`stream.route(session_id)` builds an event router — subscribe by type,
+dispatch in arrival order, one run loop:
+
+```python
+async with client.server.stream_events() as stream:
+    bus = stream.route(session.id)
+    bus.on("message.part.delta", lambda e: print(e.delta))  # typed payload
+    bus.on("message.part.updated", lambda e: print(e.part.type))
+    await bus.run(until="session.idle", timeout=300)
+```
+
+Handlers may be sync or async; several subscriptions may target one type;
+`run` stops on the `until` type, a handler raising, the `timeout`, or a clean
+stream end. `EventType` (an open-set `StrEnum`) can be used in place of
+raw strings. The plain `aiter_events()` / `iter_events()` iterators remain
+available for advanced use.
+
+## Raw responses
+
+Every method returns a parsed model. For headers, exact status codes, or the
+body before model mapping, use the `with_raw_response` prefix — same
+signatures, same retries, same error mapping on non-2xx, but the unprocessed
+`httpx.Response` on success:
+
+```python
+raw = await client.sessions.with_raw_response.get(session_id)
+print(raw.status_code, raw.headers["content-type"])
+session = Session.model_validate(raw.json())  # parse it yourself if you like
+```
+
+Available on every resource group (`sessions` / `server` / `vcs` / `mcp` /
+`files` / `projects` / `auth`); the SSE streams (`stream_events` /
+`stream_global_events`) have no raw variant (they return event streams, not
+one-shot responses).
+
+## Running a local server (Docker)
+
+A running `opencode serve` is required. It is declared in
+[docker-compose.yml](docker-compose.yml); the Makefile targets below are thin
+wrappers around `docker compose`. Default port **4096** (matches the
+native `opencode serve` default), image
+`ghcr.io/anomalyco/opencode:1.18.21` (latest listed at
+<https://github.com/anomalyco/opencode/pkgs/container/opencode>).
+Overrides (`OC_IMAGE` / `OC_PORT` / `OC_HOST`) go in a local `.env` —
+`cp .env.template .env` — or as one-off env prefixes
+(`OC_PORT=20002 docker compose up -d`):
+
+```sh
+make docker-pull        # pull the official image
+make docker-run         # start the API server in the background
+make docker-health      # curl /global/health
+make docker-logs        # inspect logs on trouble
+make docker-stop        # stop + remove (config persists in ~/.config/opencode)
+make docker-tui         # interactive TUI in a throwaway container
+```
+
+`docker-run` mounts the repository into `/app` and `~/.config/opencode` into
+the container, so your provider/model configuration is reused. If pulling is
+slow, swap the registry domain for a mirror (no global Docker config change),
+then tag back to the official name:
+
+```sh
+docker pull ghcr.nju.edu.cn/anomalyco/opencode:1.18.21     # or ghcr.m.daocloud.io/...
+docker tag  ghcr.nju.edu.cn/anomalyco/opencode:1.18.21 ghcr.io/anomalyco/opencode:1.18.21
+```
+
+> **macOS note**: if your model backend (e.g. vLLM) runs on the host, the
+> container must reach it via `http://host.docker.internal:8000/v1` — not
+> `127.0.0.1`. Set that in the provider's `baseURL` in
+> `~/.config/opencode/opencode.json`.
+
+Once healthy, point the client (and all examples/tests) at it:
+
+```sh
+uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:8080
+uv run pytest --live-url http://127.0.0.1:4096    # opt-in integration tests
+```
+
+## Examples
+
+Runnable, commented walkthroughs organized by functional module — start at
+[examples/README.md](examples/README.md):
+
+| Folder | Module |
+|---|---|
+| `quickstart/` | Minimal one-question client (incl. `directory` shorthand) |
+| `sessions/` | Session CRUD + full lifecycle verbs + message history + permission/question loops |
+| `server/` | Health, config, providers, agents, commands, skills |
+| `events/` | SSE event stream: raw iteration + typed router |
+| `vcs/` | Repo info / status / diff / raw diff / patch apply |
+| `mcp/` | MCP server status + registration |
+| `files/` | Directory listing, file reads, text/filename/symbol search, formatters |
+| `projects/` | Projects, current scope, git init; server paths, LSP status, log writing |
+| `client/` | Client reuse, error handling, raw responses |
+
+Every script runs offline under the test suite via `respx`, so
+`uv run pytest` verifies them without a server.
+
+## Development
+
+```sh
+make install            # uv sync
+make test               # pytest (offline)
+make lint               # ruff check
+make format             # ruff format
+make types              # mypy + pyright (strict)
+make check              # full gate: format-check + lint + types + test
+```
+
+Layout: `src/opencode_client/` (package), `tests/` (pytest + respx),
+`examples/` (walkthroughs), `temp/` (reference SDK, excluded from tooling).
+Contributor-facing conventions live in [AGENTS.md](AGENTS.md).
+
+## License
+
+[MIT](https://opensource.org/licenses/MIT)

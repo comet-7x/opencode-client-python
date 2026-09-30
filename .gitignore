@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+
+# 质量工具缓存
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.pyright/
+.coverage
+htmlcov/
+
+# 本地环境（.env.template 是提交进仓库的模板，显式放行）
+.DS_Store
+.env
+.env.*
+!.env.template
+
+# 参考仓库（第三方 SDK clone，不参与提交）
+temp/
+
+# live 集成测试 scratch 目录（tests/test_live_server.py 运行期写入，仓库根挂进容器可见）
+.tmp-live/

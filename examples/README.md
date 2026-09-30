@@ -1,0 +1,88 @@
+# examples — opencode-client 教学示例总入口
+
+## 这是什么
+
+一组**可直接运行**的 Python 脚本，按功能模块分文件夹组织（对齐 client 的资源域），演示如何用
+`opencode-client` 连接并驱动 `opencode serve` 服务。每个文件夹自带
+`README.md`（解释本组脚本讲什么、适用场景、前置条件），脚本内含逐行注释。
+
+## 目录结构
+
+**按功能模块分目录**（对齐 `client` 上的资源域），每个模块一个文件夹：
+
+| 文件夹 | 功能模块 | 内容 |
+|---|---|---|
+| `quickstart/` | 入口 | 最简一问一答：health → 建会话 → prompt → 解析回复（含 `directory` 简写用法；`quickstart_sync.py` 是同流程的 sync 客户端版） |
+| `sessions/` | 会话管理（`client.sessions.*`） | 创建（各种参数）/ 列表 / 删除 / 历史浏览 / **生命周期全动词**（update·fork·abort·share·summarize·delete_message）/ 状态与历史（status·children·todo·diff·revert）/ 权限与问答交互循环 / prompt 选项（model·system·tools·no_reply）/ 结构化 parts（file·subtask） |
+| `server/` | 服务级端点（`client.server.*`） | health / config / providers / agents / commands / skills 一次摸清新服务 |
+| `events/` | 事件流（`client.server.stream_events()`） | 裸流迭代区分思考/正文/工具调用；事件 Router 按类型订阅 + 类型化热事件 |
+| `vcs/` | 版本控制（`client.vcs.*`） | info / status / diff / diff_raw / apply（看改动、落盘 diff、打补丁） |
+| `mcp/` | MCP 服务器（`client.mcp.*`） | status（判别联合收窄）/ add（local·remote 两种 config）/ OAuth 生命周期（浏览器流+无头流）/ connect·disconnect |
+| `files/` | 文件系统与搜索（`client.files.*`） | 目录浏览、读文件（text/binary 判联合）、git 视角状态；文本/文件名/符号三路搜索；formatter 状态 |
+| `projects/` | 项目面与系统信息（`client.projects.*` 等） | 项目清单/当前作用域/改名/git init；服务端目录布局、LSP 状态、写服务端日志；provider 凭证往返 |
+| `client/` | 客户端本体 | 复用连接池、超时配置、异常捕获降级、`with_raw_response` 裸响应 |
+
+新增示例时放进对应**功能模块**的文件夹；不要按难度或"进阶模式"分类
+（不出现 `advanced_patterns` 之类的目录，也不使用数字前缀）。
+
+## 环境与依赖
+
+- Python **>= 3.11**；本仓库用 [uv](https://docs.astral.sh/uv/) 管理环境。
+- 首次准备（在仓库根目录）：
+
+  ```sh
+  make install          # = uv sync，装好依赖（含编辑安装 opencode-client 本身）
+  ```
+
+  > 示例脚本依赖 `opencode-client` 包本身，因此必须在**本仓库的环境**里跑；
+  > 不要在全局 Python 里裸跑（装不到该包）。
+
+## 前置条件：先起一个 opencode 服务
+
+所有示例都需要一个运行中的 `opencode serve`（默认本地 4096 端口）：
+
+```sh
+opencode serve --port 4096
+```
+
+服务起好后，任一脚本可用 `curl` 自查：
+
+```sh
+curl -s http://127.0.0.1:4096/global/health     # 期望返回 {"healthy": true, ...}
+```
+
+## 运行方式（两种等价）
+
+目录名即功能模块名（合法 Python 标识符），**推荐用 `-m` 方式**
+（必须从仓库根目录执行）：
+
+```sh
+# 方式一（推荐）：模块方式
+uv run python -m examples.quickstart.quickstart
+
+# 方式二：直接文件方式（同样可用）
+uv run python examples/quickstart/quickstart.py
+```
+
+所有脚本默认指向 `http://127.0.0.1:4096`（`opencode serve` 原生端口），
+非默认端口时用 `--url` 覆盖：
+
+```sh
+uv run python -m examples.quickstart.quickstart --url http://127.0.0.1:8080
+```
+
+## 通用约定
+
+- 所有网络请求均为 `async/await`（`AsyncOpenCodeClient`）；
+- 脚本结束前会清理自己创建的会话，不污染服务端；
+- 示例中的模型/Provider 若省略，使用服务端默认；
+- 每个脚本顶部 docstring 都写明了自己的运行命令，`--help` 可见全部参数。
+
+## 自动验证
+
+`examples/test_examples.py` 用 **respx** 离线 mock 掉 HTTP 层，以
+`main()` 入口驱动各示例做冒烟测试，因此：
+
+```sh
+uv run pytest examples/     # 无需真实 opencode 服务，CI 可复现
+```
